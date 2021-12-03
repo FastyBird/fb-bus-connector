@@ -1,4 +1,4 @@
-# FastyBird FB BUS connector plugin
+# FastyBird BUS connector plugin
 
 [![Build Status](https://badgen.net/github/checks/FastyBird/fb-bus-connector-plugin/master?cache=300&style=flast-square)](https://github.com/FastyBird/fb-bus-connector-plugin/actions)
 [![Licence](https://badgen.net/github/license/FastyBird/fb-bus-connector-plugin?cache=300&style=flast-square)](https://github.com/FastyBird/fb-bus-connector-plugin/blob/master/LICENSE.md)
@@ -10,9 +10,9 @@
 [![Black](https://img.shields.io/badge/black-enabled-brightgreen.svg?style=flat-square)](https://github.com/psf/black)
 [![MyPy](https://img.shields.io/badge/mypy-enabled-brightgreen.svg?style=flat-square)](http://mypy-lang.org)
 
-## What is FastyBird FB BUS connector plugin?
+## What is FastyBird BUS connector plugin?
 
-This is a plugin for [Python](https://www.python.org) which is implementing *FB BUS* client for [FastyBird](https://www.fastybird.com) IoT services
+This is a plugin for [Python](https://www.python.org) which is implementing **FastyBird BUS** master which is using **FIB** (*FastyBird Interface Bus*) for [FastyBird](https://www.fastybird.com) IoT services
 
 ## Installation
 
@@ -24,7 +24,7 @@ pip install fastybird-fb-bus-connector-plugin
 
 ## Documentation
 
-Learn how to consume & publish messages in [documentation](https://github.com/FastyBird/fb-bus-connector-plugin/blob/master/.docs/en/index.md).
+Learn how to communicate with devices in [documentation](https://github.com/FastyBird/fb-bus-connector-plugin/blob/master/.docs/en/index.md).
 
 ***
 Homepage [https://www.fastybird.com](https://www.fastybird.com) and repository [https://github.com/FastyBird/fb-bus-connector-plugin](https://github.com/FastyBird/fb-bus-connector-plugin).
