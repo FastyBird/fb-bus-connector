@@ -215,8 +215,8 @@ class ClientFactory:  # pylint: disable=too-few-public-methods
                 client_address=client_address,
                 client_baud_rate=client_baud_rate,
                 client_interface=client_interface,
-                protocol_version=protocol_version,
                 client_state=True,
+                protocol_version=protocol_version,
                 handler=self.__handler,
                 logger=self.__logger,
             )
