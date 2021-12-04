@@ -137,16 +137,16 @@ class V1Parser:
                 client_id=client_id,
             )
 
-        if V1Validator.validate_get_device_state(payload=payload) and address is not None:
-            return self.parse_get_device_state(
+        if V1Validator.validate_read_device_state(payload=payload) and address is not None:
+            return self.parse_read_device_state(
                 payload=payload,
                 length=length,
                 address=address,
                 client_id=client_id,
             )
 
-        if V1Validator.validate_set_device_state(payload=payload) and address is not None:
-            return self.parse_set_device_state(
+        if V1Validator.validate_write_device_state(payload=payload) and address is not None:
+            return self.parse_write_device_state(
                 payload=payload,
                 length=length,
                 address=address,
@@ -169,8 +169,8 @@ class V1Parser:
                 client_id=client_id,
             )
 
-        if V1Validator.validate_pub_sub_broadcast(payload=payload) and address is not None:
-            return self.parse_pub_sub_broadcast(
+        if V1Validator.validate_pub_sub_broadcast_register_value(payload=payload) and address is not None:
+            return self.parse_pub_sub_broadcast_register_value(
                 payload=payload,
                 length=length,
                 address=address,
@@ -451,7 +451,7 @@ class V1Parser:
 
     # -----------------------------------------------------------------------------
 
-    def parse_get_device_state(
+    def parse_read_device_state(
         self,
         payload: bytearray,
         length: int,
@@ -479,7 +479,7 @@ class V1Parser:
 
     # -----------------------------------------------------------------------------
 
-    def parse_set_device_state(
+    def parse_write_device_state(
         self,
         payload: bytearray,
         length: int,
@@ -574,7 +574,7 @@ class V1Parser:
     # -----------------------------------------------------------------------------
 
     @staticmethod
-    def parse_pub_sub_broadcast(
+    def parse_pub_sub_broadcast_register_value(
         payload: bytearray,
         length: int,
         address: int,

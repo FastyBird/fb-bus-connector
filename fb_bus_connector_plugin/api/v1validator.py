@@ -35,7 +35,34 @@ class V1Validator:
     @classmethod
     def validate(cls, payload: bytearray) -> bool:
         """Validate topic against sets of regular expressions"""
-        return True
+        if not cls.validate_version(payload=payload):
+            return False
+
+        if cls.validate_discover_device(payload=payload):
+            if (
+                cls.validate_pair_command_search_devices(payload=payload)
+                or cls.validate_pair_command_write_address(payload=payload)
+                or cls.validate_pair_command_provide_register_structure(payload=payload)
+                or cls.validate_pair_command_pairing_finished(payload=payload)
+            ):
+                return True
+
+        if (
+            cls.validate_read_single_register(payload=payload)
+            or cls.validate_read_multiple_registers(payload=payload)
+            or cls.validate_write_single_register(payload=payload)
+            or cls.validate_write_multiple_registers(payload=payload)
+            or cls.validate_report_single_register(payload=payload)
+            or cls.validate_read_device_state(payload=payload)
+            or cls.validate_write_device_state(payload=payload)
+            or cls.validate_report_device_state(payload=payload)
+            or cls.validate_pub_sub_write_register_key(payload=payload)
+            or cls.validate_pub_sub_broadcast_register_value(payload=payload)
+            or cls.validate_pong_response(payload=payload)
+        ):
+            return True
+
+        return False
 
     # -----------------------------------------------------------------------------
 
@@ -82,14 +109,14 @@ class V1Validator:
     # -----------------------------------------------------------------------------
 
     @classmethod
-    def validate_get_device_state(cls, payload: bytearray) -> bool:
+    def validate_read_device_state(cls, payload: bytearray) -> bool:
         """Validate payload against get device state packet structure"""
         return Packet(int(payload[1])) == Packet.READ_STATE
 
     # -----------------------------------------------------------------------------
 
     @classmethod
-    def validate_set_device_state(cls, payload: bytearray) -> bool:
+    def validate_write_device_state(cls, payload: bytearray) -> bool:
         """Validate payload against set device state packet structure"""
         return Packet(int(payload[1])) == Packet.WRITE_STATE
 
@@ -110,7 +137,7 @@ class V1Validator:
     # -----------------------------------------------------------------------------
 
     @classmethod
-    def validate_pub_sub_broadcast(cls, payload: bytearray) -> bool:
+    def validate_pub_sub_broadcast_register_value(cls, payload: bytearray) -> bool:
         """Validate payload against pub/sub broadcast packet structure"""
         return Packet(int(payload[1])) == Packet.PUB_SUB_BROADCAST_REGISTER_VALUE
 

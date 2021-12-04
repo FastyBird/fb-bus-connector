@@ -196,4 +196,4 @@ class FbBusConnector(Thread):  # pylint: disable=too-many-instance-attributes
 
             time.sleep(0.001)
 
-        self.__logger.info("FB BUS connector was closed")
+        self.__logger.info("Connector FB BUS was closed")
