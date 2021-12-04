@@ -62,7 +62,6 @@ setup(
     package_data={"fb_bus_connector_plugin": ["py.typed"]},
     install_requires=[
         "kink",
-        "libscrc"
         "pjon_cython",
         "setuptools",
         "fastnumbers",

@@ -1,5 +1,4 @@
 kink>=0.6
-libscrc>=1.6
 setuptools>=57.4
 pjon_cython>=11.2
 fastnumbers>=3.2
