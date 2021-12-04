@@ -13,5 +13,5 @@
 #     limitations under the License.
 
 """
-MQTT connector plugin tests
+FastyBird BUS connector plugin tests
 """

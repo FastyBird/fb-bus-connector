@@ -180,6 +180,9 @@ class PjonClient(BaseClient, pjon.ThroughSerialAsync):
 
     def handle(self) -> int:
         """Process clients"""
+        if not self.__state:
+            return 0
+
         try:
             result = self.loop()
 
@@ -200,6 +203,9 @@ class PjonClient(BaseClient, pjon.ThroughSerialAsync):
 
     def receive(self, received_payload: bytes, length: int, packet_info: Dict) -> None:
         """Process received message by clients"""
+        if not self.__state:
+            return
+
         sender_address: Optional[int] = None
 
         try:
