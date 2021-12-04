@@ -78,7 +78,11 @@ class FbBusConnector(Thread):  # pylint: disable=too-many-instance-attributes
         pairing_handler: DevicesPairing,
         logger: Logger,
     ) -> None:
-        super().__init__(name="FB Bus connector thread", daemon=True)
+        Thread.__init__(
+            self,
+            name="FB Bus connector plugin thread",
+            daemon=True,
+        )
 
         self.__receiver = receiver
         self.__publisher = publisher
@@ -87,7 +91,7 @@ class FbBusConnector(Thread):  # pylint: disable=too-many-instance-attributes
         self.__devices_registry = devices_registry
 
         self.__client = client
-        __client_factory = client_factory
+        self.__client_factory = client_factory
         self.__pairing_helper = pairing_handler
 
         self.__logger = logger
