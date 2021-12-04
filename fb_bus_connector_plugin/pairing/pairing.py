@@ -33,7 +33,7 @@ class DevicesPairing:  # pylint: disable=too-few-public-methods
     """
     BUS pairing handler proxy
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         pairing
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>

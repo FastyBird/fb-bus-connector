@@ -50,7 +50,7 @@ class PairingReceiver(BaseReceiver):  # pylint: disable=too-few-public-methods
     """
     BUS messages receiver for pairing messages
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         receivers
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>

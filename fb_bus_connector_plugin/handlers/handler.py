@@ -34,7 +34,7 @@ class Handler:  # pylint: disable=too-few-public-methods
     """
     BUS messages handler proxy
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         handlers
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>

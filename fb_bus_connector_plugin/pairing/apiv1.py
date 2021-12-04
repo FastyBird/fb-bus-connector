@@ -57,7 +57,7 @@ class ApiV1Pairing(BasePairing):  # pylint: disable=too-many-instance-attributes
     """
     BUS pairing handler for API v1
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         pairing
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>

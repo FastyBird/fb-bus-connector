@@ -44,7 +44,7 @@ class TextHelpers:
     """
     Payload text helpers
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         utilities
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -86,7 +86,7 @@ class StateHelpers:
     """
     Device state helpers
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         utilities
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -133,7 +133,7 @@ class DataTypeHelpers:
     """
     Register data type helpers
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         utilities
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -226,7 +226,7 @@ class DataTransformHelpers:
     """
     Value transformers helpers
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         utilities
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -449,7 +449,7 @@ class PacketsHelpers:  # pylint: disable=too-few-public-methods
     """
     Packets helpers
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         utilities
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>

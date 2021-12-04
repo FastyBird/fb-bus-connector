@@ -31,7 +31,7 @@ class BaseHandler(ABC):  # pylint: disable=too-few-public-methods
     """
     BUS messages base handler
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         handlers
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>

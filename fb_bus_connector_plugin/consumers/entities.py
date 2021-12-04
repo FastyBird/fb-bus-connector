@@ -38,7 +38,7 @@ class BaseEntity(ABC):  # pylint: disable=too-few-public-methods
     """
     Base entity
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         consumers
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -66,7 +66,7 @@ class DeviceEntity(BaseEntity):  # pylint: disable=too-many-instance-attributes
     """
     Device entity
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         consumers
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -243,7 +243,7 @@ class DeviceStateEntity(BaseEntity):
     """
     Device state entity
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         consumers
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -274,7 +274,7 @@ class RegisterEntity(BaseEntity):  # pylint: disable=too-many-instance-attribute
     """
     Register entity
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         consumers
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -375,7 +375,7 @@ class RegisterActualValueEntity(BaseEntity):
     """
     Register actual value entity
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         consumers
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>

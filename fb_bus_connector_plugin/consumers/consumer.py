@@ -37,7 +37,7 @@ class IConsumer(ABC):  # pylint: disable=too-few-public-methods
     """
     Entity consumer interface
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         consumers
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -53,7 +53,7 @@ class Consumer:
     """
     Messages entities consumer
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         consumers
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>

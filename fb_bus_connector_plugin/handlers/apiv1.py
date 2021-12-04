@@ -39,7 +39,7 @@ class ApiV1Handler(BaseHandler):  # pylint: disable=too-few-public-methods
     """
     BUS messages handler for API v1
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         handlers
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>

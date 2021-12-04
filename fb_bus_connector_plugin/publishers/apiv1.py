@@ -49,7 +49,7 @@ class ApiV1Publisher(BasePublisher):  # pylint: disable=too-few-public-methods
     """
     BUS publisher for API v1
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         publishers
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>

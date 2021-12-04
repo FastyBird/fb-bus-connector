@@ -33,7 +33,7 @@ class DeviceItemReceiver(BaseReceiver):  # pylint: disable=too-few-public-method
     """
     BUS messages receiver for devices messages
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         receivers
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>

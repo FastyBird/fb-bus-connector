@@ -31,7 +31,7 @@ class BaseClient(ABC):
     """
     Base client
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         clients
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>

@@ -37,7 +37,7 @@ class Client:
     """
     Plugin client proxy
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         clients
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -174,7 +174,7 @@ class ClientFactory:  # pylint: disable=too-few-public-methods
     """
     Plugin client factory
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         clients
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>

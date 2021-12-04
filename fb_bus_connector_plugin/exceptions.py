@@ -23,7 +23,7 @@ class InvalidStateException(Exception):
     """
     Service state is not valid
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         exceptions
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -34,7 +34,7 @@ class InvalidArgumentException(Exception):
     """
     Service argument is not valid
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         exceptions
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -45,7 +45,7 @@ class ParsePayloadException(Exception):
     """
     Parsing payload failed
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         exceptions
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>

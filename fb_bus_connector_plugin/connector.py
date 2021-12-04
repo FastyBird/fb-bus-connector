@@ -39,7 +39,7 @@ class FbBusConnector(Thread):  # pylint: disable=too-many-instance-attributes
     """
     FastyBird BUS connector
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         connector
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>

@@ -62,7 +62,7 @@ class DevicesRegistry:
     """
     Devices registry
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         registry
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -405,7 +405,7 @@ class RegistersRegistry:
     """
     Registers registry
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         registry
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>

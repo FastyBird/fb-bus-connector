@@ -30,7 +30,7 @@ class BaseReceiver(ABC):  # pylint: disable=too-few-public-methods
     """
     BUS messages base receiver
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         receivers
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>

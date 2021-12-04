@@ -27,7 +27,7 @@ class Packet(Enum):
     """
     Communication packets
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         types
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -67,7 +67,7 @@ class PacketContent(Enum):
     """
     Communication packets contents
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         types
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -89,7 +89,7 @@ class ProtocolVersion(Enum):
     """
     Communication protocols versions
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         types
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -110,7 +110,7 @@ class ConnectionState(Enum):
     """
     Device states
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         types
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -137,7 +137,7 @@ class DeviceDataType(Enum):
     """
     Device data types
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         types
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -173,7 +173,7 @@ class RegisterType(Enum):
     """
     Registers types
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         types
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -197,7 +197,7 @@ class PairingCommand(Enum):
     """
     Pairing commands
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         types
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -221,7 +221,7 @@ class PairingResponse(Enum):
     """
     Pairing commands responses
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         types
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -245,7 +245,7 @@ class ButtonPayloadType(Enum):
     """
     Button event types
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         types
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -273,7 +273,7 @@ class SwitchPayloadType(Enum):
     """
     Switch event types
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         types
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -296,7 +296,7 @@ class WriteKeyType(Enum):
     """
     Write unique key to register types
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         types
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -319,7 +319,7 @@ class ClientType(Enum):
     """
     Plugin client types
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         types
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>

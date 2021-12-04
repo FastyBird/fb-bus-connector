@@ -38,7 +38,7 @@ class Receiver:
     """
     BUS messages receivers proxy
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         receivers
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>

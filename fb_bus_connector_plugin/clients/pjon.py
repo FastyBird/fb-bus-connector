@@ -40,7 +40,7 @@ class PjonClient(BaseClient, pjon.ThroughSerialAsync):
     """
     PJON client
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         clients
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>

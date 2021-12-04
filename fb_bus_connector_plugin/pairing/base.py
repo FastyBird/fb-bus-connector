@@ -32,7 +32,7 @@ class BasePairing(ABC):  # pylint: disable=too-few-public-methods
     """
     BUS pairing base handler
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         pairing
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>

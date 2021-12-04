@@ -34,7 +34,7 @@ class Publisher:  # pylint: disable=too-few-public-methods
     """
     BUS publishers proxy
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         publishers
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>

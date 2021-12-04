@@ -43,7 +43,7 @@ class DeviceRecord:  # pylint: disable=too-many-public-methods,too-many-instance
     """
     Device record
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         registry
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -329,7 +329,7 @@ class RegisterRecord(ABC):  # pylint: disable=too-many-instance-attributes
     """
     Base register record
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         registry
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -558,7 +558,7 @@ class InputRegisterRecord(RegisterRecord):
     """
     Input register record
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         registry
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -594,7 +594,7 @@ class OutputRegisterRecord(RegisterRecord):
     """
     Output register record
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         registry
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -630,7 +630,7 @@ class NamedRegisterRecord(RegisterRecord):
     """
     Named register record
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         registry
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -681,7 +681,7 @@ class AttributeRegisterRecord(NamedRegisterRecord):
     """
     Attribute register record
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         registry
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -719,7 +719,7 @@ class SettingRegisterRecord(NamedRegisterRecord):
     """
     Setting register record
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         registry
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -755,7 +755,7 @@ class PairingDeviceRecord:  # pylint: disable=too-many-instance-attributes
     """
     Pairing device record
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         registry
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -980,7 +980,7 @@ class PairingRegisterRecord:
     """
     Pairing base register record
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         registry
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -1069,7 +1069,7 @@ class PairingInputRegisterRecord(PairingRegisterRecord):
     """
     Pairing input register record
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         registry
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -1097,7 +1097,7 @@ class PairingOutputRegisterRecord(PairingRegisterRecord):
     """
     Pairing output register record
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         registry
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -1125,7 +1125,7 @@ class PairingNamedRegisterRecord(PairingRegisterRecord):
     """
     Pairing named register record
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         registry
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -1168,7 +1168,7 @@ class PairingAttributeRegisterRecord(PairingNamedRegisterRecord):
     """
     Pairing attribute register record
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         registry
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -1200,7 +1200,7 @@ class PairingSettingRegisterRecord(PairingNamedRegisterRecord):
     """
     Pairing setting register record
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         registry
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>

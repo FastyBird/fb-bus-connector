@@ -39,7 +39,7 @@ class BaseEntity(ABC):
     """
     Base message entity
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         receivers
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -77,7 +77,7 @@ class SingleRegisterEntity(BaseEntity):
     """
     Base single register entity
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         receivers
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -121,7 +121,7 @@ class ReadSingleRegisterEntity(SingleRegisterEntity):
     """
     Result of reading single register from device
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         receivers
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -132,7 +132,7 @@ class WriteSingleRegisterEntity(SingleRegisterEntity):
     """
     Result of writing single register to device
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         receivers
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -143,7 +143,7 @@ class ReportSingleRegisterEntity(SingleRegisterEntity):
     """
     Result of reporting single register by device
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         receivers
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -154,7 +154,7 @@ class MultipleRegistersEntity(BaseEntity):
     """
     Base multiple registers entity
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         receivers
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -200,7 +200,7 @@ class ReadMultipleRegistersEntity(MultipleRegistersEntity):
     """
     Result of reading multiple registers from device
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         receivers
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -211,7 +211,7 @@ class WriteMultipleRegistersEntity(MultipleRegistersEntity):
     """
     Result of writing multiple registers to device
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         receivers
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -222,7 +222,7 @@ class DeviceStateEntity(BaseEntity):
     """
     Device state entity
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         receivers
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -254,7 +254,7 @@ class GetDeviceStateEntity(DeviceStateEntity):
     """
     Result of reading device state from device
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         receivers
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -265,7 +265,7 @@ class SetDeviceStateEntity(DeviceStateEntity):
     """
     Result of writing device state to device
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         receivers
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -276,7 +276,7 @@ class ReportDeviceStateEntity(DeviceStateEntity):
     """
     Result of reporting device state from device
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         receivers
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -287,7 +287,7 @@ class PubSubWriteKeyEntity(BaseEntity):
     """
     Result of writing register key
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         receivers
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -329,7 +329,7 @@ class PubSubBroadcastEntity(BaseEntity):
     """
     Result of broadcasting register value from device
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         receivers
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -371,7 +371,7 @@ class DeviceSearchEntity(BaseEntity):  # pylint: disable=too-many-instance-attri
     """
     Result of device search response with base details
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         receivers
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -561,7 +561,7 @@ class DeviceWriteAddressEntity(BaseEntity):
     """
     Result of device pairing response with set address result
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         receivers
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -593,7 +593,7 @@ class RegisterStructureEntity(BaseEntity):
     """
     Result of device pairing response with register structure
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         receivers
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
@@ -684,7 +684,7 @@ class PairingFinishedEntity(BaseEntity):
     """
     Result of device pairing response with pairing finished
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         receivers
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>

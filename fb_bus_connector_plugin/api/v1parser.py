@@ -65,7 +65,7 @@ class V1Parser:
     """
     BUS payload parser
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         api
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>

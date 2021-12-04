@@ -54,7 +54,7 @@ class RegisterItemReceiver(BaseReceiver):  # pylint: disable=too-few-public-meth
     """
     BUS messages receiver for registers messages
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         receivers
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>

@@ -28,7 +28,7 @@ class Logger:
     """
     Plugin logger
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         logger
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>

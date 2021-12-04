@@ -26,7 +26,7 @@ class V1Validator:
     """
     BUS payload validator
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         api
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>

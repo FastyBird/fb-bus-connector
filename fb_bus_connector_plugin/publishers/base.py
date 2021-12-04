@@ -31,7 +31,7 @@ class BasePublisher(ABC):  # pylint: disable=too-few-public-methods
     """
     BUS base publisher
 
-    @package        FastyBird:FastyBirdBusConnectorPlugin!
+    @package        FastyBird:FbBusConnectorPlugin!
     @module         publishers
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
