@@ -141,14 +141,14 @@ class FbBusConnector:  # pylint: disable=too-many-instance-attributes
 
     def stop(self) -> None:
         """Close all opened connections & stop connector thread"""
-        self.__stopped = True
-
         # When connector is closing...
         for device in self.__devices_registry:
             # ...set device state to disconnected
             self.__devices_registry.set_state(device=device, state=ConnectionState.UNKNOWN)
 
         self.__logger.info("Connector FB BUS has been stopped.")
+
+        self.__stopped = True
 
     # -----------------------------------------------------------------------------
 
