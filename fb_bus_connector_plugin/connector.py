@@ -20,7 +20,7 @@ FastyBird BUS connector
 
 # Python base dependencies
 import uuid
-from typing import Optional, Set
+from typing import Optional
 
 # Library libs
 from fb_bus_connector_plugin.clients.client import Client, ClientFactory
