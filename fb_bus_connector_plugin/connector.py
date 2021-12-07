@@ -19,10 +19,8 @@ FastyBird BUS connector
 """
 
 # Python base dependencies
-import time
 import uuid
-from threading import Thread
-from typing import List, Optional, Set
+from typing import Optional, Set
 
 # Library libs
 from fb_bus_connector_plugin.clients.client import Client, ClientFactory
@@ -35,7 +33,7 @@ from fb_bus_connector_plugin.registry.model import DevicesRegistry
 from fb_bus_connector_plugin.types import ClientType, ConnectionState, ProtocolVersion
 
 
-class FbBusConnector(Thread):  # pylint: disable=too-many-instance-attributes
+class FbBusConnector:  # pylint: disable=too-many-instance-attributes
     """
     FastyBird BUS connector
 
@@ -48,7 +46,6 @@ class FbBusConnector(Thread):  # pylint: disable=too-many-instance-attributes
     __stopped: bool = False
 
     __packets_to_be_sent: int = 0
-    __processed_devices: List[str] = []
 
     __connectors_identifiers: Set[uuid.UUID] = set()
 
@@ -78,12 +75,6 @@ class FbBusConnector(Thread):  # pylint: disable=too-many-instance-attributes
         pairing_handler: DevicesPairing,
         logger: Logger,
     ) -> None:
-        Thread.__init__(
-            self,
-            name="FB Bus connector plugin thread",
-            daemon=True,
-        )
-
         self.__receiver = receiver
         self.__publisher = publisher
         self.__consumer = consumer
@@ -141,7 +132,12 @@ class FbBusConnector(Thread):  # pylint: disable=too-many-instance-attributes
         """Start connector services"""
         self.__stopped = False
 
-        super().start()
+        # When connector is closing...
+        for device in self.__devices_registry:
+            # ...set device state to disconnected
+            self.__devices_registry.set_state(device=device, state=ConnectionState.UNKNOWN)
+
+        self.__logger.info("Connector FB BUS has been started.")
 
     # -----------------------------------------------------------------------------
 
@@ -158,42 +154,31 @@ class FbBusConnector(Thread):  # pylint: disable=too-many-instance-attributes
 
     # -----------------------------------------------------------------------------
 
-    def run(self) -> None:
+    def has_unfinished_tasks(self) -> bool:
+        """Check if connector has some unfinished task"""
+        return not self.__receiver.is_empty() or not self.__consumer.is_empty()
+
+    # -----------------------------------------------------------------------------
+
+    def loop(self) -> None:
         """Run connector service"""
-        self.__stopped = False
+        if self.__stopped and not self.has_unfinished_tasks():
+            self.__logger.warning("Connector FB BUS is stopped")
 
-        while True:  # pylint: disable=too-many-nested-blocks
-            self.__receiver.receive()
-            self.__consumer.consume()
+            return
 
-            # Check is pairing enabled
-            if self.__pairing_helper.is_enabled() is True:
-                self.__pairing_helper.handle()
+        self.__receiver.loop()
+        self.__consumer.loop()
 
-            # Pairing is not enabled...
-            else:
-                # Check packets queue
-                if self.__packets_to_be_sent == 0:
-                    # ...continue in communication
+        # Check is pairing enabled...
+        if self.__pairing_helper.is_enabled() is True:
+            self.__pairing_helper.loop()
 
-                    # Check for processing queue
-                    if len(self.__processed_devices) == len(self.__devices_registry):
-                        self.__processed_devices = []
+        # Pairing is not enabled...
+        else:
+            # Check packets queue...
+            if self.__packets_to_be_sent == 0:
+                # Continue processing devices
+                self.__publisher.loop()
 
-                    # Continue processing devices
-                    for device in self.__devices_registry:
-                        if device.id.__str__() not in self.__processed_devices and device.enabled and device.ready:
-                            if self.__publisher.handle(device=device):
-                                self.__processed_devices.append(device.id.__str__())
-
-                                continue
-
-            self.__packets_to_be_sent = self.__client.handle()
-
-            # All records have to be processed before thread is closed
-            if self.__stopped and self.__receiver.is_empty() and self.__consumer.is_empty():
-                break
-
-            time.sleep(0.001)
-
-        self.__logger.info("Connector FB BUS was closed")
+        self.__packets_to_be_sent = self.__client.loop()

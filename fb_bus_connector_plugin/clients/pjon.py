@@ -28,9 +28,12 @@ import pjon_cython as pjon
 from kink import inject
 
 # Library libs
+from fb_bus_connector_plugin.api.v1parser import V1Parser
+from fb_bus_connector_plugin.api.v1validator import V1Validator
 from fb_bus_connector_plugin.clients.base import BaseClient
-from fb_bus_connector_plugin.handlers.handler import Handler
+from fb_bus_connector_plugin.exceptions import ParsePayloadException
 from fb_bus_connector_plugin.logger import Logger
+from fb_bus_connector_plugin.receivers.receiver import Receiver
 from fb_bus_connector_plugin.types import Packet, PacketContent, ProtocolVersion
 from fb_bus_connector_plugin.utilities.helpers import PacketsHelpers
 
@@ -50,7 +53,8 @@ class PjonClient(BaseClient, pjon.ThroughSerialAsync):
     __state: bool = True
     __version: ProtocolVersion
 
-    __handler: Handler
+    __receiver: Receiver
+    __parser: V1Parser
 
     __MASTER_ADDRESS: int = 254
     __SERIAL_BAUD_RATE: int = 38400
@@ -66,7 +70,8 @@ class PjonClient(BaseClient, pjon.ThroughSerialAsync):
         client_interface: Optional[str],
         client_state: bool,
         protocol_version: ProtocolVersion,
-        handler: Handler,
+        receiver: Receiver,
+        parser: V1Parser,
         logger: Logger,
     ) -> None:
         BaseClient.__init__(self=self, logger=logger)
@@ -84,7 +89,8 @@ class PjonClient(BaseClient, pjon.ThroughSerialAsync):
         self.__state = client_state
         self.__version = protocol_version
 
-        self.__handler = handler
+        self.__receiver = receiver
+        self.__parser = parser
 
     # -----------------------------------------------------------------------------
 
@@ -179,7 +185,7 @@ class PjonClient(BaseClient, pjon.ThroughSerialAsync):
     # -----------------------------------------------------------------------------
 
     def handle(self) -> int:
-        """Process clients"""
+        """Process client"""
         if not self.__state:
             return 0
 
@@ -255,12 +261,12 @@ class PjonClient(BaseClient, pjon.ThroughSerialAsync):
             sender_address,
         )
 
-        self.__handler.on_message(
-            payload=bytearray(payload),
-            length=len(payload),
-            address=sender_address,
-            client_id=self.id,
-        )
+        if self.__version == ProtocolVersion.V1:
+            self.__handle_api_v1_message(
+                payload=bytearray(payload),
+                length=len(payload),
+                address=sender_address,
+            )
 
     # -----------------------------------------------------------------------------
 
@@ -303,3 +309,30 @@ class PjonClient(BaseClient, pjon.ThroughSerialAsync):
         crc = (crc << 8) | ((crc >> 8) & 0xFF)
 
         return crc & 0xFFFF
+
+    # -----------------------------------------------------------------------------
+
+    def __handle_api_v1_message(self, payload: bytearray, length: int, address: Optional[int]) -> None:
+        if V1Validator.validate_version(payload=payload) is False:
+            return
+
+        if V1Validator.validate(payload=payload) is False:
+            self._logger.warning("Received message is not valid FIB v1 convention message: %s", payload)
+
+            return
+
+        try:
+            entity = self.__parser.parse_message(
+                payload=payload,
+                length=length,
+                address=address,
+                client_id=self.__id,
+            )
+
+        except ParsePayloadException as ex:
+            self._logger.error("Received message could not be successfully parsed to entity")
+            self._logger.exception(ex)
+
+            return
+
+        self.__receiver.append(entity=entity)

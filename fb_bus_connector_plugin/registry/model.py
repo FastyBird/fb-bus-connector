@@ -21,19 +21,13 @@ FastyBird BUS connector plugin registry module models
 # Python base dependencies
 import uuid
 from datetime import datetime
-from typing import Dict, List, Optional, Set, Union
+from typing import List, Optional, Set, Union
 
 # Library dependencies
 from kink import inject
 
 # Library libs
 from fb_bus_connector_plugin.consumers.consumer import Consumer
-from fb_bus_connector_plugin.consumers.entities import (
-    DeviceEntity,
-    DeviceStateEntity,
-    RegisterActualValueEntity,
-    RegisterEntity,
-)
 from fb_bus_connector_plugin.exceptions import (
     InvalidArgumentException,
     InvalidStateException,
@@ -68,7 +62,7 @@ class DevicesRegistry:
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
 
-    __items: Dict[str, DeviceRecord] = {}
+    __items: Set[DeviceRecord] = set()
 
     __iterator_index = 0
 
@@ -84,16 +78,14 @@ class DevicesRegistry:
     ) -> None:
         self.__consumer = consumer
 
-        self.__items: Dict[str, DeviceRecord] = {}
-
     # -----------------------------------------------------------------------------
 
     def get_by_id(self, device_id: uuid.UUID) -> Optional[DeviceRecord]:
         """Find device in registry by given unique identifier"""
-        if device_id.__str__() in self.__items.keys():
-            return self.__items[device_id.__str__()]
-
-        return None
+        return next(
+            iter([record for record in self.__items if device_id.__eq__(record.id)]),
+            None,
+        )
 
     # -----------------------------------------------------------------------------
 
@@ -101,11 +93,7 @@ class DevicesRegistry:
         """Find device in registry by given unique address"""
         return next(
             iter(
-                [
-                    record
-                    for record in self.__items.values()
-                    if record.address == address and client_id.__eq__(record.client_id)
-                ]
+                [record for record in self.__items if record.address == address and client_id.__eq__(record.client_id)]
             ),
             None,
         )
@@ -114,17 +102,17 @@ class DevicesRegistry:
 
     def get_by_serial_number(self, serial_number: str) -> Optional[DeviceRecord]:
         """Find device in registry by given unique serial number"""
-        return next(iter([record for record in self.__items.values() if record.serial_number == serial_number]), None)
+        return next(iter([record for record in self.__items if record.serial_number == serial_number]), None)
 
     # -----------------------------------------------------------------------------
 
     def get_all_for_connector(self, client_id: uuid.UUID) -> List[DeviceRecord]:
         """Get all devices by connector"""
-        return [record for record in self.__items.values() if client_id.__eq__(record.client_id)]
+        return [record for record in self.__items if client_id.__eq__(record.client_id)]
 
     # -----------------------------------------------------------------------------
 
-    def append(  # pylint: disable=too-many-arguments
+    def append(  # pylint: disable=too-many-arguments,too-many-locals
         self,
         client_id: uuid.UUID,
         device_id: uuid.UUID,
@@ -134,6 +122,14 @@ class DevicesRegistry:
         device_enabled: bool,
         device_pub_sub_pub_support: bool,
         device_pub_sub_sub_support: bool,
+        device_pub_sub_sub_max_subscriptions: int = 0,
+        device_pub_sub_sub_max_conditions: int = 0,
+        device_pub_sub_sub_max_actions: int = 0,
+        hardware_manufacturer: Optional[str] = None,
+        hardware_model: Optional[str] = None,
+        hardware_version: Optional[str] = None,
+        firmware_manufacturer: Optional[str] = None,
+        firmware_version: Optional[str] = None,
         device_ready: bool = False,
     ) -> DeviceRecord:
         """Append new device or update existing device in registry"""
@@ -146,10 +142,18 @@ class DevicesRegistry:
             enabled=device_enabled,
             pub_sub_pub_support=device_pub_sub_pub_support,
             pub_sub_sub_support=device_pub_sub_sub_support,
+            pub_sub_sub_max_subscriptions=device_pub_sub_sub_max_subscriptions,
+            pub_sub_sub_max_conditions=device_pub_sub_sub_max_conditions,
+            pub_sub_sub_max_actions=device_pub_sub_sub_max_actions,
+            hardware_manufacturer=hardware_manufacturer,
+            hardware_model=hardware_model,
+            hardware_version=hardware_version,
+            firmware_manufacturer=firmware_manufacturer,
+            firmware_version=firmware_version,
             ready=device_ready,
         )
 
-        self.__items[device.id.__str__()] = device
+        self.__items.add(device)
 
         return device
 
@@ -176,7 +180,7 @@ class DevicesRegistry:
         firmware_version: Optional[str] = None,
     ) -> DeviceRecord:
         """Create new attribute record"""
-        device = self.append(
+        device_record = self.append(
             client_id=client_id,
             device_id=device_id,
             device_address=device_address,
@@ -185,53 +189,44 @@ class DevicesRegistry:
             device_enabled=device_enabled,
             device_pub_sub_pub_support=pub_sub_pub_support,
             device_pub_sub_sub_support=pub_sub_sub_support,
+            device_pub_sub_sub_max_subscriptions=pub_sub_sub_max_subscriptions,
+            device_pub_sub_sub_max_conditions=pub_sub_sub_max_conditions,
+            device_pub_sub_sub_max_actions=pub_sub_sub_max_actions,
+            hardware_manufacturer=hardware_manufacturer,
+            hardware_model=hardware_model,
+            hardware_version=hardware_version,
+            firmware_manufacturer=firmware_manufacturer,
+            firmware_version=firmware_version,
             device_ready=device_ready,
         )
 
-        self.__consumer.append(
-            entity=DeviceEntity(
-                client_id=client_id,
-                device_id=device.id,
-                device_serial_number=device.serial_number,
-                device_address=device.address,
-                device_max_packet_length=device_max_packet_length,
-                device_state=device.state,
-                device_pub_sub_pub_support=pub_sub_pub_support,
-                device_pub_sub_sub_support=pub_sub_sub_support,
-                device_pub_sub_sub_max_subscriptions=pub_sub_sub_max_subscriptions,
-                device_pub_sub_sub_max_conditions=pub_sub_sub_max_conditions,
-                device_pub_sub_sub_max_actions=pub_sub_sub_max_actions,
-                hardware_manufacturer=hardware_manufacturer,
-                hardware_model=hardware_model,
-                hardware_version=hardware_version,
-                firmware_manufacturer=firmware_manufacturer,
-                firmware_version=firmware_version,
-            )
-        )
+        self.__consumer.propagate_device_record(device_record=device_record)
 
-        return device
+        return device_record
 
     # -----------------------------------------------------------------------------
 
     def remove(self, device_id: uuid.UUID) -> None:
         """Remove device from registry"""
-        self.__items.pop(device_id.__str__(), None)
+        for record in self.__items:
+            if device_id.__eq__(record.id):
+                self.__items.remove(record)
+
+                return
 
     # -----------------------------------------------------------------------------
 
     def reset(self, client_id: Optional[uuid.UUID] = None) -> None:
         """Reset devices registry to initial state"""
         if client_id is not None:
-            for _, record in self.__items.items():
-                if record.client_id == client_id:
+            for record in self.__items:
+                if client_id.__eq__(record.client_id):
                     self.remove(device_id=record.id)
 
                     break
 
         else:
-            self.__items = {}
-
-        self.__items = {}
+            self.__items = set()
 
     # -----------------------------------------------------------------------------
 
@@ -261,12 +256,7 @@ class DevicesRegistry:
         if updated_device is None:
             raise InvalidStateException("Device record could not be re-fetched from registry after update")
 
-        self.__consumer.append(
-            entity=DeviceStateEntity(
-                device_id=updated_device.id,
-                device_state=updated_device.state,
-            )
-        )
+        self.__consumer.propagate_device_record_state(device_record=updated_device)
 
         return updated_device
 
@@ -364,7 +354,9 @@ class DevicesRegistry:
 
     def __update(self, updated_device: DeviceRecord) -> bool:
         """Update device record"""
-        self.__items[updated_device.id.__str__()] = updated_device
+        self.remove(device_id=updated_device.id)
+
+        self.__items.add(updated_device)
 
         return True
 
@@ -379,13 +371,13 @@ class DevicesRegistry:
     # -----------------------------------------------------------------------------
 
     def __len__(self) -> int:
-        return len(self.__items.values())
+        return len(self.__items)
 
     # -----------------------------------------------------------------------------
 
     def __next__(self) -> DeviceRecord:
-        if self.__iterator_index < len(self.__items.values()):
-            items: List[DeviceRecord] = list(self.__items.values())
+        if self.__iterator_index < len(self.__items):
+            items: List[DeviceRecord] = list(self.__items)
 
             result: DeviceRecord = items[self.__iterator_index]
 
@@ -639,18 +631,7 @@ class RegistersRegistry:
                 register_pubsub_key_written=register_pubsub_key_written,
             )
 
-            self.__consumer.append(
-                entity=RegisterEntity(
-                    device_id=input_register.device_id,
-                    register_id=input_register.id,
-                    register_type=input_register.type,
-                    register_data_type=input_register.data_type,
-                    register_address=input_register.address,
-                    register_key=input_register.key,
-                    register_is_settable=input_register.settable,
-                    register_is_queryable=input_register.queryable,
-                )
-            )
+            self.__consumer.propagate_register_record(register_record=input_register)
 
             return input_register
 
@@ -665,18 +646,7 @@ class RegistersRegistry:
                 register_pubsub_key_written=register_pubsub_key_written,
             )
 
-            self.__consumer.append(
-                entity=RegisterEntity(
-                    device_id=output_register.device_id,
-                    register_id=output_register.id,
-                    register_type=output_register.type,
-                    register_data_type=output_register.data_type,
-                    register_address=output_register.address,
-                    register_key=output_register.key,
-                    register_is_settable=output_register.settable,
-                    register_is_queryable=output_register.queryable,
-                )
-            )
+            self.__consumer.propagate_register_record(register_record=output_register)
 
             return output_register
 
@@ -694,19 +664,7 @@ class RegistersRegistry:
                 register_pubsub_key_written=register_pubsub_key_written,
             )
 
-            self.__consumer.append(
-                entity=RegisterEntity(
-                    device_id=attribute_register.device_id,
-                    register_id=attribute_register.id,
-                    register_type=attribute_register.type,
-                    register_data_type=attribute_register.data_type,
-                    register_address=attribute_register.address,
-                    register_name=attribute_register.name,
-                    register_key=attribute_register.key,
-                    register_is_settable=attribute_register.settable,
-                    register_is_queryable=attribute_register.queryable,
-                )
-            )
+            self.__consumer.propagate_register_record(register_record=attribute_register)
 
             return attribute_register
 
@@ -722,19 +680,7 @@ class RegistersRegistry:
                 register_pubsub_key_written=register_pubsub_key_written,
             )
 
-            self.__consumer.append(
-                entity=RegisterEntity(
-                    device_id=setting_register.device_id,
-                    register_id=setting_register.id,
-                    register_type=setting_register.type,
-                    register_data_type=setting_register.data_type,
-                    register_address=setting_register.address,
-                    register_name=setting_register.name,
-                    register_key=setting_register.key,
-                    register_is_settable=setting_register.settable,
-                    register_is_queryable=setting_register.queryable,
-                )
-            )
+            self.__consumer.propagate_register_record(register_record=setting_register)
 
             return setting_register
 
@@ -744,9 +690,9 @@ class RegistersRegistry:
 
     def remove(self, register_id: uuid.UUID) -> None:
         """Remove register from registry"""
-        for register in self.__items:
-            if register.id == register_id:
-                self.__items.remove(register)
+        for record in self.__items:
+            if register_id.__eq__(record.id):
+                self.__items.remove(record)
 
                 return
 
@@ -817,14 +763,7 @@ class RegistersRegistry:
         if updated_register is None:
             raise InvalidStateException("Register record could not be re-fetched from registry after update")
 
-        self.__consumer.append(
-            entity=RegisterActualValueEntity(
-                device_id=updated_register.device_id,
-                register_id=updated_register.id,
-                register_type=updated_register.type,
-                register_value=updated_register.actual_value,
-            )
-        )
+        self.__consumer.propagate_register_record_value(register_record=updated_register)
 
         return updated_register
 

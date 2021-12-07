@@ -48,7 +48,7 @@ class V1Validator:
                 return True
 
         if (
-            cls.validate_read_single_register(payload=payload)
+            cls.validate_read_single_register(payload=payload)  # pylint: disable=too-many-boolean-expressions
             or cls.validate_read_multiple_registers(payload=payload)
             or cls.validate_write_single_register(payload=payload)
             or cls.validate_write_multiple_registers(payload=payload)

@@ -26,7 +26,7 @@ from kink import inject
 
 # Library libs
 from fb_bus_connector_plugin.publishers.base import BasePublisher
-from fb_bus_connector_plugin.registry.records import DeviceRecord
+from fb_bus_connector_plugin.registry.model import DevicesRegistry
 
 
 @inject
@@ -42,25 +42,31 @@ class Publisher:  # pylint: disable=too-few-public-methods
 
     __publishers: Set[BasePublisher]
 
+    __devices_registry: DevicesRegistry
+
+    __processed_devices: List[str] = []
+
     # -----------------------------------------------------------------------------
 
     def __init__(
         self,
         publishers: List[BasePublisher],
+        devices_registry: DevicesRegistry,
     ) -> None:
         self.__publishers = set(publishers)
 
+        self.__devices_registry = devices_registry
+
     # -----------------------------------------------------------------------------
 
-    def handle(
-        self,
-        device: DeviceRecord,
-    ) -> bool:
+    def loop(self) -> None:
         """Handle publish read or write message to device"""
-        result = True
+        # Check for processing queue
+        if len(self.__processed_devices) >= len(self.__devices_registry):
+            self.__processed_devices = []
 
-        for publisher in self.__publishers:
-            if not publisher.handle(device=device):
-                result = False
-
-        return result
+        for device in self.__devices_registry:
+            if device.id.__str__() not in self.__processed_devices and device.enabled and device.ready:
+                for publisher in self.__publishers:
+                    if publisher.handle(device=device):
+                        self.__processed_devices.append(device.id.__str__())

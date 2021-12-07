@@ -28,9 +28,16 @@ from typing import Set
 from kink import inject
 
 # Library libs
-from fb_bus_connector_plugin.consumers.entities import BaseEntity
+from fb_bus_connector_plugin.consumers.entities import (
+    BaseEntity,
+    DeviceEntity,
+    DeviceStateEntity,
+    RegisterActualValueEntity,
+    RegisterEntity,
+)
 from fb_bus_connector_plugin.exceptions import InvalidStateException
 from fb_bus_connector_plugin.logger import Logger
+from fb_bus_connector_plugin.registry.records import DeviceRecord, RegisterRecord
 
 
 class IConsumer(ABC):  # pylint: disable=too-few-public-methods
@@ -89,7 +96,7 @@ class Consumer:
 
     # -----------------------------------------------------------------------------
 
-    def consume(self) -> None:
+    def loop(self) -> None:
         """Consume message"""
         try:
             if not self.__queue.empty():
@@ -117,3 +124,69 @@ class Consumer:
     ) -> None:
         """Register new consumer to proxy"""
         self.__consumers.add(consumer)
+
+    # -----------------------------------------------------------------------------
+
+    def propagate_device_record(self, device_record: DeviceRecord) -> None:
+        """Propagate repository device record"""
+        self.append(
+            entity=DeviceEntity(
+                client_id=device_record.client_id,
+                device_id=device_record.id,
+                device_serial_number=device_record.serial_number,
+                device_address=device_record.address,
+                device_max_packet_length=device_record.max_packet_length,
+                device_state=device_record.state,
+                device_pub_sub_pub_support=device_record.pub_sub_pub_support,
+                device_pub_sub_sub_support=device_record.pub_sub_sub_support,
+                device_pub_sub_sub_max_subscriptions=device_record.pub_sub_sub_max_subscriptions,
+                device_pub_sub_sub_max_conditions=device_record.pub_sub_sub_max_conditions,
+                device_pub_sub_sub_max_actions=device_record.pub_sub_sub_max_actions,
+                hardware_manufacturer=device_record.hardware_manufacturer,
+                hardware_model=device_record.hardware_model,
+                hardware_version=device_record.hardware_version,
+                firmware_manufacturer=device_record.firmware_manufacturer,
+                firmware_version=device_record.firmware_version,
+            )
+        )
+
+    # -----------------------------------------------------------------------------
+
+    def propagate_device_record_state(self, device_record: DeviceRecord) -> None:
+        """Propagate repository device record state"""
+        self.append(
+            entity=DeviceStateEntity(
+                device_id=device_record.id,
+                device_state=device_record.state,
+            )
+        )
+
+    # -----------------------------------------------------------------------------
+
+    def propagate_register_record(self, register_record: RegisterRecord) -> None:
+        """Propagate repository register record"""
+        self.append(
+            entity=RegisterEntity(
+                device_id=register_record.device_id,
+                register_id=register_record.id,
+                register_type=register_record.type,
+                register_data_type=register_record.data_type,
+                register_address=register_record.address,
+                register_key=register_record.key,
+                register_is_settable=register_record.settable,
+                register_is_queryable=register_record.queryable,
+            )
+        )
+
+    # -----------------------------------------------------------------------------
+
+    def propagate_register_record_value(self, register_record: RegisterRecord) -> None:
+        """Propagate repository register record value"""
+        self.append(
+            entity=RegisterActualValueEntity(
+                device_id=register_record.device_id,
+                register_id=register_record.id,
+                register_type=register_record.type,
+                register_value=register_record.actual_value,
+            )
+        )

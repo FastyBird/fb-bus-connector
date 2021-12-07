@@ -59,6 +59,16 @@ class DeviceRecord:  # pylint: disable=too-many-public-methods,too-many-instance
 
     __pub_sub_pub_support: bool = False
     __pub_sub_sub_support: bool = False
+    __pub_sub_sub_max_subscriptions: int = 0
+    __pub_sub_sub_max_conditions: int = 0
+    __pub_sub_sub_max_actions: int = 0
+
+    __hardware_manufacturer: Optional[str] = None
+    __hardware_model: Optional[str] = None
+    __hardware_version: Optional[str] = None
+
+    __firmware_manufacturer: Optional[str] = None
+    __firmware_version: Optional[str] = None
 
     __enabled: bool = False
     __ready: bool = False
@@ -80,7 +90,7 @@ class DeviceRecord:  # pylint: disable=too-many-public-methods,too-many-instance
 
     # -----------------------------------------------------------------------------
 
-    def __init__(  # pylint: disable=too-many-arguments
+    def __init__(  # pylint: disable=too-many-arguments,too-many-locals
         self,
         client_id: uuid.UUID,
         device_id: uuid.UUID,
@@ -90,16 +100,37 @@ class DeviceRecord:  # pylint: disable=too-many-public-methods,too-many-instance
         enabled: bool = False,
         pub_sub_pub_support: bool = False,
         pub_sub_sub_support: bool = False,
+        pub_sub_sub_max_subscriptions: int = 0,
+        pub_sub_sub_max_conditions: int = 0,
+        pub_sub_sub_max_actions: int = 0,
+        hardware_manufacturer: Optional[str] = None,
+        hardware_model: Optional[str] = None,
+        hardware_version: Optional[str] = None,
+        firmware_manufacturer: Optional[str] = None,
+        firmware_version: Optional[str] = None,
         ready: bool = False,
     ) -> None:
         self.__client_id = client_id
+
         self.__id = device_id
         self.__address = address
         self.__serial_number = serial_number
         self.__max_packet_length = max_packet_length
         self.__enabled = enabled
+
         self.__pub_sub_pub_support = pub_sub_pub_support
         self.__pub_sub_sub_support = pub_sub_sub_support
+        self.__pub_sub_sub_max_subscriptions = pub_sub_sub_max_subscriptions
+        self.__pub_sub_sub_max_conditions = pub_sub_sub_max_conditions
+        self.__pub_sub_sub_max_actions = pub_sub_sub_max_actions
+
+        self.__hardware_manufacturer = hardware_manufacturer
+        self.__hardware_model = hardware_model
+        self.__hardware_version = hardware_version
+
+        self.__firmware_manufacturer = firmware_manufacturer
+        self.__firmware_version = firmware_version
+
         self.__ready = ready
 
     # -----------------------------------------------------------------------------
@@ -157,6 +188,62 @@ class DeviceRecord:  # pylint: disable=too-many-public-methods,too-many-instance
     def pub_sub_sub_support(self) -> bool:
         """Has device PUB/SUB subscribe support?"""
         return self.__pub_sub_sub_support
+
+    # -----------------------------------------------------------------------------
+
+    @property
+    def pub_sub_sub_max_subscriptions(self) -> int:
+        """Maximum supported pub/sub subscriptions count"""
+        return self.__pub_sub_sub_max_subscriptions
+
+    # -----------------------------------------------------------------------------
+
+    @property
+    def pub_sub_sub_max_conditions(self) -> int:
+        """Maximum supported pub/sub conditions count"""
+        return self.__pub_sub_sub_max_conditions
+
+    # -----------------------------------------------------------------------------
+
+    @property
+    def pub_sub_sub_max_actions(self) -> int:
+        """Maximum supported pub/sub action count"""
+        return self.__pub_sub_sub_max_actions
+
+    # -----------------------------------------------------------------------------
+
+    @property
+    def hardware_manufacturer(self) -> Optional[str]:
+        """Hardware manufacturer"""
+        return self.__hardware_manufacturer
+
+    # -----------------------------------------------------------------------------
+
+    @property
+    def hardware_model(self) -> Optional[str]:
+        """Hardware model"""
+        return self.__hardware_model
+
+    # -----------------------------------------------------------------------------
+
+    @property
+    def hardware_version(self) -> Optional[str]:
+        """Hardware revision"""
+        return self.__hardware_version
+
+    # -----------------------------------------------------------------------------
+
+    @property
+    def firmware_manufacturer(self) -> Optional[str]:
+        """Firmware manufacturer"""
+        return self.__firmware_manufacturer
+
+    # -----------------------------------------------------------------------------
+
+    @property
+    def firmware_version(self) -> Optional[str]:
+        """Firmware version"""
+        return self.__firmware_version
 
     # -----------------------------------------------------------------------------
 

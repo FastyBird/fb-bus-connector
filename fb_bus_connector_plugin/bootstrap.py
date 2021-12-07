@@ -32,8 +32,6 @@ from fb_bus_connector_plugin.api.v1validator import V1Validator
 from fb_bus_connector_plugin.clients.client import Client, ClientFactory
 from fb_bus_connector_plugin.connector import FbBusConnector
 from fb_bus_connector_plugin.consumers.consumer import Consumer
-from fb_bus_connector_plugin.handlers.apiv1 import ApiV1Handler
-from fb_bus_connector_plugin.handlers.handler import Handler
 from fb_bus_connector_plugin.logger import Logger
 from fb_bus_connector_plugin.pairing.apiv1 import ApiV1Pairing
 from fb_bus_connector_plugin.pairing.pairing import DevicesPairing
@@ -105,13 +103,6 @@ def create_container(logger: logging.Logger = logging.getLogger("dummy")) -> Non
     di[Receiver] = Receiver(logger=di[Logger])
     di["fb-bus-connector-plugin_receiver-proxy"] = di[Receiver]
 
-    # Clients handlers
-    di[ApiV1Handler] = ApiV1Handler(parser=di[V1Parser], receiver=di[Receiver], logger=di[Logger])
-    di["fb-bus-connector-plugin_bus-handler-api-v1"] = di[ApiV1Handler]
-
-    di[Handler] = Handler()  # type: ignore[call-arg]
-    di["fb-bus-connector-plugin_bus-handler-proxy"] = di[Handler]
-
     # Clients publishers
     di[ApiV1Publisher] = ApiV1Publisher(
         devices_registry=di[DevicesRegistry],
@@ -127,7 +118,8 @@ def create_container(logger: logging.Logger = logging.getLogger("dummy")) -> Non
     # Connector clients factory
     di[ClientFactory] = ClientFactory(
         client=di[Client],
-        handler=di[Handler],
+        receiver=di[Receiver],
+        parser=di[V1Parser],
         logger=di[Logger],
     )
     di["fb-bus-connector-plugin_data-client-factory"] = di[ClientFactory]

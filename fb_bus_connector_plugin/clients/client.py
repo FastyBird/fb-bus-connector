@@ -25,11 +25,12 @@ from typing import List, Optional, Set, Union
 # Library dependencies
 from kink import inject
 
+from fb_bus_connector_plugin.api.v1parser import V1Parser
 from fb_bus_connector_plugin.clients.base import BaseClient
 from fb_bus_connector_plugin.clients.pjon import PjonClient
 from fb_bus_connector_plugin.exceptions import InvalidArgumentException
-from fb_bus_connector_plugin.handlers.handler import Handler
 from fb_bus_connector_plugin.logger import Logger
+from fb_bus_connector_plugin.receivers.receiver import Receiver
 from fb_bus_connector_plugin.types import ClientType, ProtocolVersion
 
 
@@ -94,7 +95,7 @@ class Client:
 
     # -----------------------------------------------------------------------------
 
-    def handle(self) -> int:
+    def loop(self) -> int:
         """Handle communication from client"""
         packets_to_be_sent = 0
 
@@ -181,6 +182,8 @@ class ClientFactory:  # pylint: disable=too-few-public-methods
     """
 
     __client: Client
+    __receiver: Receiver
+    __parser: V1Parser
 
     __logger: Logger
 
@@ -189,11 +192,13 @@ class ClientFactory:  # pylint: disable=too-few-public-methods
     def __init__(
         self,
         client: Client,
-        handler: Handler,
+        receiver: Receiver,
+        parser: V1Parser,
         logger: Logger,
     ) -> None:
         self.__client = client
-        self.__handler = handler
+        self.__receiver = receiver
+        self.__parser = parser
 
         self.__logger = logger
 
@@ -217,7 +222,8 @@ class ClientFactory:  # pylint: disable=too-few-public-methods
                 client_interface=client_interface,
                 client_state=True,
                 protocol_version=protocol_version,
-                handler=self.__handler,
+                receiver=self.__receiver,
+                parser=self.__parser,
                 logger=self.__logger,
             )
 

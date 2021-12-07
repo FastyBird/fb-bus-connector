@@ -51,7 +51,7 @@ class BasePairing(ABC):  # pylint: disable=too-few-public-methods
     # -----------------------------------------------------------------------------
 
     @abstractmethod
-    def handle(self) -> None:
+    def loop(self) -> None:
         """Handle pairing messages"""
 
     # -----------------------------------------------------------------------------

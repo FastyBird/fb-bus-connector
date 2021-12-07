@@ -51,11 +51,11 @@ class DevicesPairing:  # pylint: disable=too-few-public-methods
 
     # -----------------------------------------------------------------------------
 
-    def handle(self) -> None:
+    def loop(self) -> None:
         """Handle publish devices pairing messages"""
         for pairing in self.__pairing:
             if pairing.is_enabled():
-                pairing.handle()
+                pairing.loop()
 
     # -----------------------------------------------------------------------------
 

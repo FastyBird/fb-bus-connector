@@ -66,7 +66,7 @@ class Receiver:
     # -----------------------------------------------------------------------------
 
     def append(self, entity: BaseEntity) -> None:
-        """Append new entity for handle"""
+        """Append new entity to process"""
         try:
             self.__queue.put(item=entity)
 
@@ -75,8 +75,8 @@ class Receiver:
 
     # -----------------------------------------------------------------------------
 
-    def receive(self) -> None:
-        """Handle received message"""
+    def loop(self) -> None:
+        """Process received message"""
         try:
             if not self.__queue.empty():
                 entity = self.__queue.get()
@@ -86,11 +86,11 @@ class Receiver:
                         receiver.receive(entity=entity)
 
         except InvalidStateException as ex:
-            self.__logger.error("Received message could not be handled")
+            self.__logger.error("Received message could not be processed")
             self.__logger.exception(ex)
 
     # -----------------------------------------------------------------------------
 
     def is_empty(self) -> bool:
-        """Check if all messages are handled"""
+        """Check if all messages are processed"""
         return self.__queue.empty()
