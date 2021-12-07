@@ -25,6 +25,7 @@ from typing import List
 
 # Library libs
 from fb_bus_connector_plugin.logger import Logger
+from fb_bus_connector_plugin.types import ProtocolVersion
 
 
 class BaseClient(ABC):
@@ -60,6 +61,13 @@ class BaseClient(ABC):
     @abstractmethod
     def enabled(self) -> bool:
         """Client state"""
+
+    # -----------------------------------------------------------------------------
+
+    @property
+    @abstractmethod
+    def version(self) -> ProtocolVersion:
+        """Protocol version used by client"""
 
     # -----------------------------------------------------------------------------
 

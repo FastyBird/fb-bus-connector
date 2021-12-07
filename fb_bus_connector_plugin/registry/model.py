@@ -21,7 +21,7 @@ FastyBird BUS connector plugin registry module models
 # Python base dependencies
 import uuid
 from datetime import datetime
-from typing import List, Optional, Set, Union
+from typing import Dict, List, Optional, Union
 
 # Library dependencies
 from kink import inject
@@ -62,7 +62,7 @@ class DevicesRegistry:
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
 
-    __items: Set[DeviceRecord] = set()
+    __items: Dict[str, DeviceRecord] = {}
 
     __iterator_index = 0
 
@@ -83,7 +83,7 @@ class DevicesRegistry:
     def get_by_id(self, device_id: uuid.UUID) -> Optional[DeviceRecord]:
         """Find device in registry by given unique identifier"""
         return next(
-            iter([record for record in self.__items if device_id.__eq__(record.id)]),
+            iter([record for record in self.__items.values() if device_id.__eq__(record.id)]),
             None,
         )
 
@@ -93,7 +93,11 @@ class DevicesRegistry:
         """Find device in registry by given unique address"""
         return next(
             iter(
-                [record for record in self.__items if record.address == address and client_id.__eq__(record.client_id)]
+                [
+                    record
+                    for record in self.__items.values()
+                    if record.address == address and client_id.__eq__(record.client_id)
+                ]
             ),
             None,
         )
@@ -102,13 +106,13 @@ class DevicesRegistry:
 
     def get_by_serial_number(self, serial_number: str) -> Optional[DeviceRecord]:
         """Find device in registry by given unique serial number"""
-        return next(iter([record for record in self.__items if record.serial_number == serial_number]), None)
+        return next(iter([record for record in self.__items.values() if record.serial_number == serial_number]), None)
 
     # -----------------------------------------------------------------------------
 
     def get_all_for_connector(self, client_id: uuid.UUID) -> List[DeviceRecord]:
         """Get all devices by connector"""
-        return [record for record in self.__items if client_id.__eq__(record.client_id)]
+        return [record for record in self.__items.values() if client_id.__eq__(record.client_id)]
 
     # -----------------------------------------------------------------------------
 
@@ -153,7 +157,7 @@ class DevicesRegistry:
             ready=device_ready,
         )
 
-        self.__items.add(device)
+        self.__items[device.id.__str__()] = device
 
         return device
 
@@ -208,9 +212,9 @@ class DevicesRegistry:
 
     def remove(self, device_id: uuid.UUID) -> None:
         """Remove device from registry"""
-        for record in self.__items:
+        for record in self.__items.values():
             if device_id.__eq__(record.id):
-                self.__items.remove(record)
+                del self.__items[record.id.__str__()]
 
                 return
 
@@ -219,14 +223,14 @@ class DevicesRegistry:
     def reset(self, client_id: Optional[uuid.UUID] = None) -> None:
         """Reset devices registry to initial state"""
         if client_id is not None:
-            for record in self.__items:
+            for record in self.__items.values():
                 if client_id.__eq__(record.client_id):
                     self.remove(device_id=record.id)
 
                     break
 
         else:
-            self.__items = set()
+            self.__items = {}
 
     # -----------------------------------------------------------------------------
 
@@ -356,7 +360,7 @@ class DevicesRegistry:
         """Update device record"""
         self.remove(device_id=updated_device.id)
 
-        self.__items.add(updated_device)
+        self.__items[updated_device.id.__str__()] = updated_device
 
         return True
 
@@ -371,13 +375,13 @@ class DevicesRegistry:
     # -----------------------------------------------------------------------------
 
     def __len__(self) -> int:
-        return len(self.__items)
+        return len(self.__items.values())
 
     # -----------------------------------------------------------------------------
 
     def __next__(self) -> DeviceRecord:
-        if self.__iterator_index < len(self.__items):
-            items: List[DeviceRecord] = list(self.__items)
+        if self.__iterator_index < len(self.__items.values()):
+            items: List[DeviceRecord] = list(self.__items.values())
 
             result: DeviceRecord = items[self.__iterator_index]
 
@@ -403,7 +407,7 @@ class RegistersRegistry:
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
 
-    __items: Set[RegisterRecord] = set()
+    __items: Dict[str, RegisterRecord] = {}
 
     __consumer: Consumer
 
@@ -425,7 +429,7 @@ class RegistersRegistry:
         """Get all registers for device by type"""
         return [
             record
-            for record in self.__items
+            for record in self.__items.values()
             if device_id.__eq__(record.device_id) and (register_type is None or record.type == register_type)
         ]
 
@@ -433,7 +437,7 @@ class RegistersRegistry:
 
     def get_by_id(self, register_id: uuid.UUID) -> Optional[RegisterRecord]:
         """Get register by identifier"""
-        return next(iter([record for record in self.__items if register_id.__eq__(record.id)]), None)
+        return next(iter([record for record in self.__items.values() if register_id.__eq__(record.id)]), None)
 
     # -----------------------------------------------------------------------------
 
@@ -448,7 +452,7 @@ class RegistersRegistry:
             iter(
                 [
                     record
-                    for record in self.__items
+                    for record in self.__items.values()
                     if device_id.__eq__(record.device_id)
                     and record.address == register_address
                     and record.type == register_type
@@ -461,7 +465,7 @@ class RegistersRegistry:
 
     def get_by_key(self, register_key: str) -> Optional[RegisterRecord]:
         """Get register by its unique key"""
-        return next(iter([record for record in self.__items if record.key == register_key]), None)
+        return next(iter([record for record in self.__items.values() if record.key == register_key]), None)
 
     # -----------------------------------------------------------------------------
 
@@ -476,7 +480,7 @@ class RegistersRegistry:
         register_pubsub_key_written: WriteKeyType = WriteKeyType.NO,
     ) -> InputRegisterRecord:
         """Append new register or replace existing register in registry"""
-        for record in self.__items:
+        for record in self.__items.values():
             if record.id == register_id and record.device_id == device_id:
                 self.remove(register_id=record.id)
 
@@ -492,7 +496,7 @@ class RegistersRegistry:
             register_pubsub_key_written=register_pubsub_key_written,
         )
 
-        self.__items.add(register)
+        self.__items[register.id.__str__()] = register
 
         return register
 
@@ -509,7 +513,7 @@ class RegistersRegistry:
         register_pubsub_key_written: WriteKeyType = WriteKeyType.NO,
     ) -> OutputRegisterRecord:
         """Append new register or replace existing register in registry"""
-        for record in self.__items:
+        for record in self.__items.values():
             if record.id == register_id and record.device_id == device_id:
                 self.remove(register_id=record.id)
 
@@ -525,7 +529,7 @@ class RegistersRegistry:
             register_pubsub_key_written=register_pubsub_key_written,
         )
 
-        self.__items.add(register)
+        self.__items[register.id.__str__()] = register
 
         return register
 
@@ -545,7 +549,7 @@ class RegistersRegistry:
         register_pubsub_key_written: WriteKeyType = WriteKeyType.NO,
     ) -> AttributeRegisterRecord:
         """Append new attribute register or replace existing register in registry"""
-        for record in self.__items:
+        for record in self.__items.values():
             if record.id == register_id and record.device_id == device_id:
                 self.remove(register_id=record.id)
 
@@ -564,7 +568,7 @@ class RegistersRegistry:
             register_pubsub_key_written=register_pubsub_key_written,
         )
 
-        self.__items.add(register)
+        self.__items[register.id.__str__()] = register
 
         return register
 
@@ -582,7 +586,7 @@ class RegistersRegistry:
         register_pubsub_key_written: WriteKeyType = WriteKeyType.NO,
     ) -> SettingRegisterRecord:
         """Append new setting register or replace existing register in registry"""
-        for record in self.__items:
+        for record in self.__items.values():
             if record.id == register_id and record.device_id == device_id:
                 self.remove(register_id=record.id)
 
@@ -599,7 +603,7 @@ class RegistersRegistry:
             register_pubsub_key_written=register_pubsub_key_written,
         )
 
-        self.__items.add(register)
+        self.__items[register.id.__str__()] = register
 
         return register
 
@@ -690,9 +694,9 @@ class RegistersRegistry:
 
     def remove(self, register_id: uuid.UUID) -> None:
         """Remove register from registry"""
-        for record in self.__items:
+        for record in self.__items.values():
             if register_id.__eq__(record.id):
-                self.__items.remove(record)
+                del self.__items[record.id.__str__()]
 
                 return
 
@@ -701,7 +705,7 @@ class RegistersRegistry:
     def reset(self, device_id: Optional[uuid.UUID] = None, registers_type: Optional[RegisterType] = None) -> None:
         """Reset registers registry"""
         if device_id is not None or registers_type is not None:
-            for record in self.__items:
+            for record in self.__items.values():
                 if (device_id is None or device_id.__eq__(record.device_id)) and (
                     registers_type is None or record.type == registers_type
                 ):
@@ -710,7 +714,7 @@ class RegistersRegistry:
                     break
 
         else:
-            self.__items = set()
+            self.__items = {}
 
     # -----------------------------------------------------------------------------
 
@@ -819,10 +823,10 @@ class RegistersRegistry:
     # -----------------------------------------------------------------------------
 
     def __update(self, register: RegisterRecord) -> bool:
-        for record in self.__items:
+        for record in self.__items.values():
             if record.id == register.id:
                 self.remove(register_id=record.id)
-                self.__items.add(register)
+                self.__items[register.id.__str__()] = register
 
                 return True
 
