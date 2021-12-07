@@ -480,12 +480,6 @@ class RegistersRegistry:
         register_pubsub_key_written: WriteKeyType = WriteKeyType.NO,
     ) -> InputRegisterRecord:
         """Append new register or replace existing register in registry"""
-        for record in self.__items.values():
-            if record.id == register_id and record.device_id == device_id:
-                self.remove(register_id=record.id)
-
-                break
-
         register = InputRegisterRecord(
             device_id=device_id,
             register_id=register_id,
@@ -513,12 +507,6 @@ class RegistersRegistry:
         register_pubsub_key_written: WriteKeyType = WriteKeyType.NO,
     ) -> OutputRegisterRecord:
         """Append new register or replace existing register in registry"""
-        for record in self.__items.values():
-            if record.id == register_id and record.device_id == device_id:
-                self.remove(register_id=record.id)
-
-                break
-
         register = OutputRegisterRecord(
             device_id=device_id,
             register_id=register_id,
@@ -549,12 +537,6 @@ class RegistersRegistry:
         register_pubsub_key_written: WriteKeyType = WriteKeyType.NO,
     ) -> AttributeRegisterRecord:
         """Append new attribute register or replace existing register in registry"""
-        for record in self.__items.values():
-            if record.id == register_id and record.device_id == device_id:
-                self.remove(register_id=record.id)
-
-                break
-
         register = AttributeRegisterRecord(
             device_id=device_id,
             register_id=register_id,
@@ -586,12 +568,6 @@ class RegistersRegistry:
         register_pubsub_key_written: WriteKeyType = WriteKeyType.NO,
     ) -> SettingRegisterRecord:
         """Append new setting register or replace existing register in registry"""
-        for record in self.__items.values():
-            if record.id == register_id and record.device_id == device_id:
-                self.remove(register_id=record.id)
-
-                break
-
         register = SettingRegisterRecord(
             device_id=device_id,
             register_id=register_id,
