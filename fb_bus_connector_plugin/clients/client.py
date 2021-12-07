@@ -25,7 +25,7 @@ from typing import List, Optional, Set, Union
 # Library dependencies
 from kink import inject
 
-from fb_bus_connector_plugin.api.v1parser import V1Parser
+# Library libs
 from fb_bus_connector_plugin.clients.base import BaseClient
 from fb_bus_connector_plugin.clients.pjon import PjonClient
 from fb_bus_connector_plugin.exceptions import InvalidArgumentException
@@ -183,7 +183,6 @@ class ClientFactory:  # pylint: disable=too-few-public-methods
 
     __client: Client
     __receiver: Receiver
-    __parser: V1Parser
 
     __logger: Logger
 
@@ -193,12 +192,10 @@ class ClientFactory:  # pylint: disable=too-few-public-methods
         self,
         client: Client,
         receiver: Receiver,
-        parser: V1Parser,
         logger: Logger,
     ) -> None:
         self.__client = client
         self.__receiver = receiver
-        self.__parser = parser
 
         self.__logger = logger
 
@@ -223,7 +220,6 @@ class ClientFactory:  # pylint: disable=too-few-public-methods
                 client_state=True,
                 protocol_version=protocol_version,
                 receiver=self.__receiver,
-                parser=self.__parser,
                 logger=self.__logger,
             )
 

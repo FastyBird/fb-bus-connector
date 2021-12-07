@@ -100,7 +100,7 @@ def create_container(logger: logging.Logger = logging.getLogger("dummy")) -> Non
     )
     di["fb-bus-connector-plugin_pairing-receiver"] = di[PairingReceiver]
 
-    di[Receiver] = Receiver(logger=di[Logger])
+    di[Receiver] = Receiver(parser=di[V1Parser], logger=di[Logger])
     di["fb-bus-connector-plugin_receiver-proxy"] = di[Receiver]
 
     # Clients publishers
@@ -119,7 +119,6 @@ def create_container(logger: logging.Logger = logging.getLogger("dummy")) -> Non
     di[ClientFactory] = ClientFactory(
         client=di[Client],
         receiver=di[Receiver],
-        parser=di[V1Parser],
         logger=di[Logger],
     )
     di["fb-bus-connector-plugin_data-client-factory"] = di[ClientFactory]

@@ -19,15 +19,21 @@ FastyBird BUS connector plugin receivers module proxy
 """
 
 # Python base dependencies
+import uuid
 from queue import Full as QueueFull
 from queue import Queue
-from typing import List, Set
+from typing import List, Optional, Set
 
 # Library dependencies
 from kink import inject
 
 # Library libs
-from fb_bus_connector_plugin.exceptions import InvalidStateException
+from fb_bus_connector_plugin.api.v1parser import V1Parser
+from fb_bus_connector_plugin.api.v1validator import V1Validator
+from fb_bus_connector_plugin.exceptions import (
+    InvalidStateException,
+    ParsePayloadException,
+)
 from fb_bus_connector_plugin.logger import Logger
 from fb_bus_connector_plugin.receivers.base import BaseReceiver
 from fb_bus_connector_plugin.receivers.entities import BaseEntity
@@ -46,6 +52,7 @@ class Receiver:
 
     __receivers: Set[BaseReceiver]
     __queue: Queue
+    __parser: V1Parser
 
     __logger: Logger
 
@@ -55,9 +62,11 @@ class Receiver:
     def __init__(
         self,
         receivers: List[BaseReceiver],
+        parser: V1Parser,
         logger: Logger,
     ) -> None:
         self.__receivers = set(receivers)
+        self.__parser = parser
 
         self.__logger = logger
 
@@ -94,3 +103,37 @@ class Receiver:
     def is_empty(self) -> bool:
         """Check if all messages are processed"""
         return self.__queue.empty()
+
+    # -----------------------------------------------------------------------------
+
+    def on_message(
+        self,
+        payload: bytearray,
+        length: int,
+        address: Optional[int],
+        client_id: uuid.UUID,
+    ) -> None:
+        """Handle received message"""
+        if V1Validator.validate_version(payload=payload) is False:
+            return
+
+        if V1Validator.validate(payload=payload) is False:
+            self.__logger.warning("Received message is not valid FIB v1 convention message: %s", payload)
+
+            return
+
+        try:
+            entity = self.__parser.parse_message(
+                payload=payload,
+                length=length,
+                address=address,
+                client_id=client_id,
+            )
+
+        except ParsePayloadException as ex:
+            self.__logger.error("Received message could not be successfully parsed to entity")
+            self.__logger.exception(ex)
+
+            return
+
+        self.append(entity=entity)

@@ -28,10 +28,7 @@ import pjon_cython as pjon
 from kink import inject
 
 # Library libs
-from fb_bus_connector_plugin.api.v1parser import V1Parser
-from fb_bus_connector_plugin.api.v1validator import V1Validator
 from fb_bus_connector_plugin.clients.base import BaseClient
-from fb_bus_connector_plugin.exceptions import ParsePayloadException
 from fb_bus_connector_plugin.logger import Logger
 from fb_bus_connector_plugin.receivers.receiver import Receiver
 from fb_bus_connector_plugin.types import Packet, PacketContent, ProtocolVersion
@@ -54,7 +51,6 @@ class PjonClient(BaseClient, pjon.ThroughSerialAsync):
     __version: ProtocolVersion
 
     __receiver: Receiver
-    __parser: V1Parser
 
     __MASTER_ADDRESS: int = 254
     __SERIAL_BAUD_RATE: int = 38400
@@ -71,7 +67,6 @@ class PjonClient(BaseClient, pjon.ThroughSerialAsync):
         client_state: bool,
         protocol_version: ProtocolVersion,
         receiver: Receiver,
-        parser: V1Parser,
         logger: Logger,
     ) -> None:
         BaseClient.__init__(self=self, logger=logger)
@@ -90,7 +85,6 @@ class PjonClient(BaseClient, pjon.ThroughSerialAsync):
         self.__version = protocol_version
 
         self.__receiver = receiver
-        self.__parser = parser
 
     # -----------------------------------------------------------------------------
 
@@ -261,12 +255,12 @@ class PjonClient(BaseClient, pjon.ThroughSerialAsync):
             sender_address,
         )
 
-        if self.__version == ProtocolVersion.V1:
-            self.__handle_api_v1_message(
-                payload=bytearray(payload),
-                length=len(payload),
-                address=sender_address,
-            )
+        self.__receiver.on_message(
+            payload=bytearray(payload),
+            length=len(payload),
+            address=sender_address,
+            client_id=self.__id,
+        )
 
     # -----------------------------------------------------------------------------
 
@@ -309,30 +303,3 @@ class PjonClient(BaseClient, pjon.ThroughSerialAsync):
         crc = (crc << 8) | ((crc >> 8) & 0xFF)
 
         return crc & 0xFFFF
-
-    # -----------------------------------------------------------------------------
-
-    def __handle_api_v1_message(self, payload: bytearray, length: int, address: Optional[int]) -> None:
-        if V1Validator.validate_version(payload=payload) is False:
-            return
-
-        if V1Validator.validate(payload=payload) is False:
-            self._logger.warning("Received message is not valid FIB v1 convention message: %s", payload)
-
-            return
-
-        try:
-            entity = self.__parser.parse_message(
-                payload=payload,
-                length=length,
-                address=address,
-                client_id=self.__id,
-            )
-
-        except ParsePayloadException as ex:
-            self._logger.error("Received message could not be successfully parsed to entity")
-            self._logger.exception(ex)
-
-            return
-
-        self.__receiver.append(entity=entity)
