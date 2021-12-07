@@ -47,8 +47,6 @@ class FbBusConnector:  # pylint: disable=too-many-instance-attributes
 
     __packets_to_be_sent: int = 0
 
-    __connectors_identifiers: Set[uuid.UUID] = set()
-
     __receiver: Receiver
     __publisher: Publisher
     __consumer: Consumer
@@ -170,15 +168,16 @@ class FbBusConnector:  # pylint: disable=too-many-instance-attributes
         self.__receiver.loop()
         self.__consumer.loop()
 
-        # Check is pairing enabled...
-        if self.__pairing_helper.is_enabled() is True:
-            self.__pairing_helper.loop()
+        if not self.__stopped:
+            # Check is pairing enabled...
+            if self.__pairing_helper.is_enabled() is True:
+                self.__pairing_helper.loop()
 
-        # Pairing is not enabled...
-        else:
-            # Check packets queue...
-            if self.__packets_to_be_sent == 0:
-                # Continue processing devices
-                self.__publisher.loop()
+            # Pairing is not enabled...
+            else:
+                # Check packets queue...
+                if self.__packets_to_be_sent == 0:
+                    # Continue processing devices
+                    self.__publisher.loop()
 
-        self.__packets_to_be_sent = self.__client.loop()
+            self.__packets_to_be_sent = self.__client.loop()

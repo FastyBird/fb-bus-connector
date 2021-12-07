@@ -53,6 +53,7 @@ class Receiver:
     __receivers: Set[BaseReceiver]
     __queue: Queue
     __parser: V1Parser
+    __validator: V1Validator
 
     __logger: Logger
 
@@ -63,10 +64,12 @@ class Receiver:
         self,
         receivers: List[BaseReceiver],
         parser: V1Parser,
+        validator: V1Validator,
         logger: Logger,
     ) -> None:
         self.__receivers = set(receivers)
         self.__parser = parser
+        self.__validator = validator
 
         self.__logger = logger
 
@@ -114,10 +117,10 @@ class Receiver:
         client_id: uuid.UUID,
     ) -> None:
         """Handle received message"""
-        if V1Validator.validate_version(payload=payload) is False:
+        if self.__validator.validate_version(payload=payload) is False:
             return
 
-        if V1Validator.validate(payload=payload) is False:
+        if self.__validator.validate(payload=payload) is False:
             self.__logger.warning("Received message is not valid FIB v1 convention message: %s", payload)
 
             return

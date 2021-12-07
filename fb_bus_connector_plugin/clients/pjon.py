@@ -104,7 +104,7 @@ class PjonClient(BaseClient, pjon.ThroughSerialAsync):
 
     @property
     def version(self) -> ProtocolVersion:
-        """Client protocol version"""
+        """Protocol version used by client"""
         return self.__version
 
     # -----------------------------------------------------------------------------
