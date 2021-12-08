@@ -112,9 +112,9 @@ class FbBusConnector:  # pylint: disable=too-many-instance-attributes,too-many-p
         self,
         client_id: uuid.UUID,
         client_type: ClientType = ClientType.PJON,
-        client_address: int = 254,
-        client_baud_rate: int = 38400,
-        client_interface: str = "/dev/ttyAMA0",
+        client_address: Optional[int] = 254,
+        client_baud_rate: Optional[int] = 38400,
+        client_interface: Optional[str] = "/dev/ttyAMA0",
         protocol_version: ProtocolVersion = ProtocolVersion.V1,
     ) -> None:
         """Configure BUS client & append it to client proxy"""
