@@ -21,13 +21,15 @@ FastyBird BUS connector
 # Python base dependencies
 import uuid
 from datetime import datetime
-from typing import Union
+from typing import Optional, Union
 
-# Library libs
+# Library dependencies
 from modules_metadata.types import ButtonPayload, DataType, SwitchPayload
 
+# Library libs
 from fb_bus_connector_plugin.clients.client import Client, ClientFactory
 from fb_bus_connector_plugin.consumers.consumer import Consumer
+from fb_bus_connector_plugin.exceptions import InvalidStateException
 from fb_bus_connector_plugin.logger import Logger
 from fb_bus_connector_plugin.pairing.pairing import DevicesPairing
 from fb_bus_connector_plugin.publishers.publisher import Publisher
@@ -38,6 +40,7 @@ from fb_bus_connector_plugin.types import (
     ClientType,
     ConnectionState,
     ProtocolVersion,
+    RegisterType,
     SwitchPayloadType,
 )
 from fb_bus_connector_plugin.utilities.helpers import (
@@ -120,6 +123,136 @@ class FbBusConnector:  # pylint: disable=too-many-instance-attributes
             client_baud_rate=client_baud_rate,
             client_interface=client_interface,
             protocol_version=protocol_version,
+        )
+
+    # -----------------------------------------------------------------------------
+
+    def configure_device(  # pylint: disable=too-many-arguments,too-many-locals
+        self,
+        client_id: uuid.UUID,
+        device_id: uuid.UUID,
+        device_address: int,
+        device_serial_number: str,
+        device_max_packet_length: int,
+        device_enabled: bool = True,
+        device_pub_sub_pub_support: bool = False,
+        device_pub_sub_sub_support: bool = False,
+        device_pub_sub_sub_max_subscriptions: int = 0,
+        device_pub_sub_sub_max_conditions: int = 0,
+        device_pub_sub_sub_max_actions: int = 0,
+        hardware_manufacturer: Optional[str] = None,
+        hardware_model: Optional[str] = None,
+        hardware_version: Optional[str] = None,
+        firmware_manufacturer: Optional[str] = None,
+        firmware_version: Optional[str] = None,
+    ) -> None:
+        """Configure device connector record"""
+        self.__devices_registry.append(
+            client_id=client_id,
+            device_id=device_id,
+            device_address=device_address,
+            device_serial_number=device_serial_number,
+            device_max_packet_length=device_max_packet_length,
+            device_enabled=device_enabled,
+            device_pub_sub_pub_support=device_pub_sub_pub_support,
+            device_pub_sub_sub_support=device_pub_sub_sub_support,
+            device_pub_sub_sub_max_subscriptions=device_pub_sub_sub_max_subscriptions,
+            device_pub_sub_sub_max_conditions=device_pub_sub_sub_max_conditions,
+            device_pub_sub_sub_max_actions=device_pub_sub_sub_max_actions,
+            hardware_manufacturer=hardware_manufacturer,
+            hardware_model=hardware_model,
+            hardware_version=hardware_version,
+            firmware_manufacturer=firmware_manufacturer,
+            firmware_version=firmware_version,
+            device_ready=True,
+        )
+
+    # -----------------------------------------------------------------------------
+
+    def configure_device_input_register(  # pylint: disable=too-many-arguments
+        self,
+        device_id: uuid.UUID,
+        register_id: uuid.UUID,
+        register_address: int,
+        register_key: Optional[str],
+        register_data_type: DataType,
+    ) -> None:
+        """Configure device input register connector record"""
+        self.__configure_device_register(
+            device_id=device_id,
+            register_id=register_id,
+            register_address=register_address,
+            register_key=register_key,
+            register_data_type=register_data_type,
+            register_type=RegisterType.INPUT,
+        )
+
+    # -----------------------------------------------------------------------------
+
+    def configure_device_output_register(  # pylint: disable=too-many-arguments
+        self,
+        device_id: uuid.UUID,
+        register_id: uuid.UUID,
+        register_address: int,
+        register_key: Optional[str],
+        register_data_type: DataType,
+    ) -> None:
+        """Configure device output register connector record"""
+        self.__configure_device_register(
+            device_id=device_id,
+            register_id=register_id,
+            register_address=register_address,
+            register_key=register_key,
+            register_data_type=register_data_type,
+            register_type=RegisterType.OUTPUT,
+        )
+
+    # -----------------------------------------------------------------------------
+
+    def configure_device_attribute_register(  # pylint: disable=too-many-arguments
+        self,
+        device_id: uuid.UUID,
+        register_id: uuid.UUID,
+        register_address: int,
+        register_key: Optional[str],
+        register_data_type: DataType,
+        register_name: str,
+        register_settable: bool,
+        register_queryable: bool,
+    ) -> None:
+        """Configure device attribute register connector record"""
+        self.__configure_device_register(
+            device_id=device_id,
+            register_id=register_id,
+            register_address=register_address,
+            register_key=register_key,
+            register_data_type=register_data_type,
+            register_type=RegisterType.ATTRIBUTE,
+            register_name=register_name,
+            register_settable=register_settable,
+            register_queryable=register_queryable,
+        )
+
+    # -----------------------------------------------------------------------------
+
+    def configure_device_setting_register(  # pylint: disable=too-many-arguments
+        self,
+        device_id: uuid.UUID,
+        register_id: uuid.UUID,
+        register_address: int,
+        register_key: Optional[str],
+        register_data_type: DataType,
+        register_name: str,
+    ) -> None:
+        """Configure device setting register connector record"""
+        self.__configure_device_register(
+            device_id=device_id,
+            register_id=register_id,
+            register_address=register_address,
+            register_key=register_key,
+            register_data_type=register_data_type,
+            register_type=RegisterType.SETTING,
+            register_name=register_name,
         )
 
     # -----------------------------------------------------------------------------
@@ -256,3 +389,72 @@ class FbBusConnector:  # pylint: disable=too-many-instance-attributes
                 self.__publisher.loop()
 
         self.__packets_to_be_sent = self.__client.loop()
+
+    # -----------------------------------------------------------------------------
+
+    def __configure_device_register(  # pylint: disable=too-many-arguments
+        self,
+        device_id: uuid.UUID,
+        register_id: uuid.UUID,
+        register_address: int,
+        register_key: Optional[str],
+        register_data_type: DataType,
+        register_type: RegisterType,
+        register_name: Optional[str] = None,
+        register_settable: bool = False,
+        register_queryable: bool = False,
+    ) -> None:
+        device_record = self.__devices_registry.get_by_id(device_id=device_id)
+
+        if device_record is None:
+            raise InvalidStateException("Device for given register is not registered. Call 'configure_device' first")
+
+        if register_type == RegisterType.INPUT:
+            self.__registers_registry.append_input_register(
+                device_id=device_id,
+                register_id=register_id,
+                register_address=register_address,
+                register_key=register_key,
+                register_data_type=DataTypeHelpers.transform_for_device(data_type=register_data_type),
+                register_ready=True,
+            )
+
+            return
+
+        if register_type == RegisterType.OUTPUT:
+            self.__registers_registry.append_output_register(
+                device_id=device_id,
+                register_id=register_id,
+                register_address=register_address,
+                register_key=register_key,
+                register_data_type=DataTypeHelpers.transform_for_device(data_type=register_data_type),
+                register_ready=True,
+            )
+
+            return
+
+        if register_type == RegisterType.ATTRIBUTE:
+            self.__registers_registry.append_attribute_register(
+                device_id=device_id,
+                register_id=register_id,
+                register_address=register_address,
+                register_key=register_key,
+                register_data_type=DataTypeHelpers.transform_for_device(data_type=register_data_type),
+                register_name=register_name,
+                register_queryable=register_queryable,
+                register_settable=register_settable,
+                register_ready=True,
+            )
+
+            return
+
+        if register_type == RegisterType.SETTING:
+            self.__registers_registry.append_setting_register(
+                device_id=device_id,
+                register_id=register_id,
+                register_address=register_address,
+                register_key=register_key,
+                register_data_type=DataTypeHelpers.transform_for_device(data_type=register_data_type),
+                register_name=register_name,
+                register_ready=True,
+            )
