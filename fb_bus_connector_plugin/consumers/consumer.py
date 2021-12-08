@@ -86,16 +86,6 @@ class Consumer:
 
     # -----------------------------------------------------------------------------
 
-    def append(self, entity: BaseEntity) -> None:
-        """Append new entity for consume"""
-        try:
-            self.__queue.put(item=entity)
-
-        except QueueFull:
-            self.__logger.error("Consumer processing queue is full. New messages could not be added")
-
-    # -----------------------------------------------------------------------------
-
     def loop(self) -> None:
         """Consume message"""
         try:
@@ -129,7 +119,7 @@ class Consumer:
 
     def propagate_device_record(self, device_record: DeviceRecord) -> None:
         """Propagate repository device record"""
-        self.append(
+        self.__append(
             entity=DeviceEntity(
                 client_id=device_record.client_id,
                 device_id=device_record.id,
@@ -154,7 +144,7 @@ class Consumer:
 
     def propagate_device_record_state(self, device_record: DeviceRecord) -> None:
         """Propagate repository device record state"""
-        self.append(
+        self.__append(
             entity=DeviceStateEntity(
                 device_id=device_record.id,
                 device_state=device_record.state,
@@ -165,7 +155,7 @@ class Consumer:
 
     def propagate_register_record(self, register_record: RegisterRecord) -> None:
         """Propagate repository register record"""
-        self.append(
+        self.__append(
             entity=RegisterEntity(
                 device_id=register_record.device_id,
                 register_id=register_record.id,
@@ -182,7 +172,7 @@ class Consumer:
 
     def propagate_register_record_value(self, register_record: RegisterRecord) -> None:
         """Propagate repository register record value"""
-        self.append(
+        self.__append(
             entity=RegisterActualValueEntity(
                 device_id=register_record.device_id,
                 register_id=register_record.id,
@@ -190,3 +180,13 @@ class Consumer:
                 register_value=register_record.actual_value,
             )
         )
+
+    # -----------------------------------------------------------------------------
+
+    def __append(self, entity: BaseEntity) -> None:
+        """Append new entity for consume"""
+        try:
+            self.__queue.put(item=entity)
+
+        except QueueFull:
+            self.__logger.error("Consumer processing queue is full. New messages could not be added")

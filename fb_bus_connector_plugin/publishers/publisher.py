@@ -19,7 +19,8 @@ FastyBird BUS connector plugin client publishers module proxy
 """
 
 # Python base dependencies
-from typing import List, Set
+from datetime import datetime
+from typing import List, Set, Union
 
 # Library dependencies
 from kink import inject
@@ -27,6 +28,7 @@ from kink import inject
 # Library libs
 from fb_bus_connector_plugin.publishers.base import BasePublisher
 from fb_bus_connector_plugin.registry.model import DevicesRegistry
+from fb_bus_connector_plugin.types import ButtonPayloadType, SwitchPayloadType, DeviceDataType
 
 
 @inject
@@ -70,3 +72,16 @@ class Publisher:  # pylint: disable=too-few-public-methods
                 for publisher in self.__publishers:
                     if publisher.handle(device=device):
                         self.__processed_devices.append(device.id.__str__())
+
+    # -----------------------------------------------------------------------------
+
+    @staticmethod
+    def broadcast_value(
+        broadcast_key: str,
+        broadcast_value: Union[str, int, float, bool, ButtonPayloadType, SwitchPayloadType, datetime],
+        broadcast_data_type: DeviceDataType,
+    ) -> bool:
+        """Broadcast value for given key"""
+        print("PREPARING BROADCAST: %s:%s:%s", broadcast_key, broadcast_value, broadcast_data_type)
+
+        return False

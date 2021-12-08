@@ -24,7 +24,7 @@ from datetime import datetime
 from typing import Union
 
 # Library libs
-from modules_metadata.types import ButtonPayload, SwitchPayload
+from modules_metadata.types import ButtonPayload, SwitchPayload, DataType
 
 from fb_bus_connector_plugin.clients.client import Client, ClientFactory
 from fb_bus_connector_plugin.consumers.consumer import Consumer
@@ -40,7 +40,7 @@ from fb_bus_connector_plugin.types import (
     ProtocolVersion,
     SwitchPayloadType,
 )
-from fb_bus_connector_plugin.utilities.helpers import DataTransformHelpers
+from fb_bus_connector_plugin.utilities.helpers import DataTransformHelpers, DataTypeHelpers
 
 
 class FbBusConnector:  # pylint: disable=too-many-instance-attributes
@@ -191,6 +191,32 @@ class FbBusConnector:  # pylint: disable=too-many-instance-attributes
                 self.__registers_registry.set_expected_value(register=register, value=expected_value)
 
                 return True
+
+        return False
+
+    # -----------------------------------------------------------------------------
+
+    def broadcast_value(
+        self,
+        broadcast_key: str,
+        broadcast_value: Union[str, int, float, bool, ButtonPayload, SwitchPayload, datetime, None],
+        broadcast_data_type: DataType,
+    ) -> bool:
+        """Broadcast value for given register key"""
+        transformed_value = DataTransformHelpers.transform_for_device(
+            data_type=DataTypeHelpers.transform_for_device(data_type=broadcast_data_type),
+            value=broadcast_value,
+        )
+
+        if isinstance(
+            transformed_value,
+            (str, int, float, bool, ButtonPayloadType, SwitchPayloadType, datetime),
+        ):
+            return self.__publisher.broadcast_value(
+                broadcast_key=broadcast_key,
+                broadcast_value=transformed_value,
+                broadcast_data_type=DataTypeHelpers.transform_for_device(data_type=broadcast_data_type),
+            )
 
         return False
 
