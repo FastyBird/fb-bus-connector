@@ -124,8 +124,9 @@ class DevicesRegistry:
         device_serial_number: str,
         device_max_packet_length: int,
         device_enabled: bool,
-        device_pub_sub_pub_support: bool,
-        device_pub_sub_sub_support: bool,
+        device_ready: bool = False,
+        device_pub_sub_pub_support: bool = False,
+        device_pub_sub_sub_support: bool = False,
         device_pub_sub_sub_max_subscriptions: int = 0,
         device_pub_sub_sub_max_conditions: int = 0,
         device_pub_sub_sub_max_actions: int = 0,
@@ -134,7 +135,6 @@ class DevicesRegistry:
         hardware_version: Optional[str] = None,
         firmware_manufacturer: Optional[str] = None,
         firmware_version: Optional[str] = None,
-        device_ready: bool = False,
     ) -> DeviceRecord:
         """Append new device or update existing device in registry"""
         device: DeviceRecord = DeviceRecord(
@@ -144,6 +144,7 @@ class DevicesRegistry:
             serial_number=device_serial_number,
             max_packet_length=device_max_packet_length,
             enabled=device_enabled,
+            ready=device_ready,
             pub_sub_pub_support=device_pub_sub_pub_support,
             pub_sub_sub_support=device_pub_sub_sub_support,
             pub_sub_sub_max_subscriptions=device_pub_sub_sub_max_subscriptions,
@@ -154,7 +155,6 @@ class DevicesRegistry:
             hardware_version=hardware_version,
             firmware_manufacturer=firmware_manufacturer,
             firmware_version=firmware_version,
-            ready=device_ready,
         )
 
         self.__items[device.id.__str__()] = device
@@ -172,11 +172,11 @@ class DevicesRegistry:
         device_max_packet_length: int,
         device_enabled: bool,
         device_ready: bool = False,
-        pub_sub_pub_support: bool = False,
-        pub_sub_sub_support: bool = False,
-        pub_sub_sub_max_subscriptions: int = 0,
-        pub_sub_sub_max_conditions: int = 0,
-        pub_sub_sub_max_actions: int = 0,
+        device_pub_sub_pub_support: bool = False,
+        device_pub_sub_sub_support: bool = False,
+        device_pub_sub_sub_max_subscriptions: int = 0,
+        device_pub_sub_sub_max_conditions: int = 0,
+        device_pub_sub_sub_max_actions: int = 0,
         hardware_manufacturer: Optional[str] = None,
         hardware_model: Optional[str] = None,
         hardware_version: Optional[str] = None,
@@ -191,17 +191,17 @@ class DevicesRegistry:
             device_serial_number=device_serial_number,
             device_max_packet_length=device_max_packet_length,
             device_enabled=device_enabled,
-            device_pub_sub_pub_support=pub_sub_pub_support,
-            device_pub_sub_sub_support=pub_sub_sub_support,
-            device_pub_sub_sub_max_subscriptions=pub_sub_sub_max_subscriptions,
-            device_pub_sub_sub_max_conditions=pub_sub_sub_max_conditions,
-            device_pub_sub_sub_max_actions=pub_sub_sub_max_actions,
+            device_ready=device_ready,
+            device_pub_sub_pub_support=device_pub_sub_pub_support,
+            device_pub_sub_sub_support=device_pub_sub_sub_support,
+            device_pub_sub_sub_max_subscriptions=device_pub_sub_sub_max_subscriptions,
+            device_pub_sub_sub_max_conditions=device_pub_sub_sub_max_conditions,
+            device_pub_sub_sub_max_actions=device_pub_sub_sub_max_actions,
             hardware_manufacturer=hardware_manufacturer,
             hardware_model=hardware_model,
             hardware_version=hardware_version,
             firmware_manufacturer=firmware_manufacturer,
             firmware_version=firmware_version,
-            device_ready=device_ready,
         )
 
         self.__consumer.propagate_device_record(device_record=device_record)
