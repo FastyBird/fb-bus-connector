@@ -138,6 +138,13 @@ class DeviceEntity(BaseEntity):  # pylint: disable=too-many-instance-attributes
     # -----------------------------------------------------------------------------
 
     @property
+    def id(self) -> uuid.UUID:  # pylint: disable=invalid-name
+        """Device unique identifier"""
+        return self.device_id
+
+    # -----------------------------------------------------------------------------
+
+    @property
     def serial_number(self) -> str:
         """Device serial number"""
         return self.__serial_number
@@ -309,7 +316,7 @@ class RegisterEntity(BaseEntity):  # pylint: disable=too-many-instance-attribute
     # -----------------------------------------------------------------------------
 
     @property
-    def register_id(self) -> uuid.UUID:
+    def id(self) -> uuid.UUID:  # pylint: disable=invalid-name
         """Register unique identifier"""
         return self.__id
 
@@ -429,7 +436,7 @@ class RegisterActualValueEntity(BaseEntity):
     # -----------------------------------------------------------------------------
 
     @property
-    def register_id(self) -> uuid.UUID:
+    def id(self) -> uuid.UUID:  # pylint: disable=invalid-name
         """Register unique identifier"""
         return self.__id
 
