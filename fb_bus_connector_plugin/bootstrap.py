@@ -62,7 +62,11 @@ def create_container(logger: logging.Logger = logging.getLogger("dummy")) -> Non
     # API tools
     di[V1Validator] = V1Validator()
     di["fb-bus-connector-plugin_api-v1-validator"] = di[V1Validator]
-    di[V1Parser] = V1Parser(devices_registry=di[DevicesRegistry], registers_registry=di[RegistersRegistry])
+    di[V1Parser] = V1Parser(
+        validator=di[V1Validator],
+        devices_registry=di[DevicesRegistry],
+        registers_registry=di[RegistersRegistry],
+    )
     di["fb-bus-connector-plugin_api-v1-parser"] = di[V1Parser]
 
     # BUS client
@@ -129,6 +133,7 @@ def create_container(logger: logging.Logger = logging.getLogger("dummy")) -> Non
         publisher=di[Publisher],
         consumer=di[Consumer],
         devices_registry=di[DevicesRegistry],
+        registers_registry=di[RegistersRegistry],
         client=di[Client],
         client_factory=di[ClientFactory],
         pairing_handler=di[DevicesPairing],

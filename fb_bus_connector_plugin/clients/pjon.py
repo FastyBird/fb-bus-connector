@@ -109,6 +109,22 @@ class PjonClient(BaseClient, pjon.ThroughSerialAsync):
 
     # -----------------------------------------------------------------------------
 
+    def enable(self) -> bool:
+        """Enable client communication"""
+        self.__state = True
+
+        return True
+
+    # -----------------------------------------------------------------------------
+
+    def disable(self) -> bool:
+        """Disable client communication"""
+        self.__state = False
+
+        return True
+
+    # -----------------------------------------------------------------------------
+
     def broadcast_packet(self, payload: List[int], waiting_time: float = 0.0) -> bool:
         """Broadcast packet to all devices"""
         return self.send_packet(pjon.PJON_BROADCAST, payload, waiting_time)
@@ -117,6 +133,9 @@ class PjonClient(BaseClient, pjon.ThroughSerialAsync):
 
     def send_packet(self, address: int, payload: List[int], waiting_time: float = 0.0) -> bool:
         """Send packet to specific device address"""
+        if not self.__state:
+            return False
+
         crc16 = self.__crc16(bytes(payload))
 
         payload.append(crc16 >> 8)
@@ -259,24 +278,9 @@ class PjonClient(BaseClient, pjon.ThroughSerialAsync):
             payload=bytearray(payload),
             length=len(payload),
             address=sender_address,
-            client_id=self.__id,
+            client_id=self.id,
+            protocol_version=self.version,
         )
-
-    # -----------------------------------------------------------------------------
-
-    def enable(self) -> bool:
-        """Enable client communication"""
-        self.__state = True
-
-        return True
-
-    # -----------------------------------------------------------------------------
-
-    def disable(self) -> bool:
-        """Disable client communication"""
-        self.__state = False
-
-        return True
 
     # -----------------------------------------------------------------------------
 

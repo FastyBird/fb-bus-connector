@@ -20,17 +20,27 @@ FastyBird BUS connector
 
 # Python base dependencies
 import uuid
-from typing import Optional
+from datetime import datetime
+from typing import Union
 
 # Library libs
+from modules_metadata.types import ButtonPayload, SwitchPayload
+
 from fb_bus_connector_plugin.clients.client import Client, ClientFactory
 from fb_bus_connector_plugin.consumers.consumer import Consumer
 from fb_bus_connector_plugin.logger import Logger
 from fb_bus_connector_plugin.pairing.pairing import DevicesPairing
 from fb_bus_connector_plugin.publishers.publisher import Publisher
 from fb_bus_connector_plugin.receivers.receiver import Receiver
-from fb_bus_connector_plugin.registry.model import DevicesRegistry
-from fb_bus_connector_plugin.types import ClientType, ConnectionState, ProtocolVersion
+from fb_bus_connector_plugin.registry.model import DevicesRegistry, RegistersRegistry
+from fb_bus_connector_plugin.types import (
+    ButtonPayloadType,
+    ClientType,
+    ConnectionState,
+    ProtocolVersion,
+    SwitchPayloadType,
+)
+from fb_bus_connector_plugin.utilities.helpers import DataTransformHelpers
 
 
 class FbBusConnector:  # pylint: disable=too-many-instance-attributes
@@ -52,6 +62,7 @@ class FbBusConnector:  # pylint: disable=too-many-instance-attributes
     __consumer: Consumer
 
     __devices_registry: DevicesRegistry
+    __registers_registry: RegistersRegistry
 
     __client: Client
     __client_factory: ClientFactory
@@ -68,6 +79,7 @@ class FbBusConnector:  # pylint: disable=too-many-instance-attributes
         publisher: Publisher,
         consumer: Consumer,
         devices_registry: DevicesRegistry,
+        registers_registry: RegistersRegistry,
         client: Client,
         client_factory: ClientFactory,
         pairing_handler: DevicesPairing,
@@ -78,6 +90,7 @@ class FbBusConnector:  # pylint: disable=too-many-instance-attributes
         self.__consumer = consumer
 
         self.__devices_registry = devices_registry
+        self.__registers_registry = registers_registry
 
         self.__client = client
         self.__client_factory = client_factory
@@ -90,11 +103,11 @@ class FbBusConnector:  # pylint: disable=too-many-instance-attributes
     def configure_client(  # pylint: disable=too-many-arguments
         self,
         client_id: uuid.UUID,
-        client_type: ClientType,
-        client_address: int,
-        client_baud_rate: int,
-        client_interface: Optional[str],
-        protocol_version: ProtocolVersion,
+        client_type: ClientType = ClientType.PJON,
+        client_address: int = 254,
+        client_baud_rate: int = 38400,
+        client_interface: str = "/dev/ttyAMA0",
+        protocol_version: ProtocolVersion = ProtocolVersion.V1,
     ) -> None:
         """Configure BUS client & append it to client proxy"""
         self.__client_factory.create(
@@ -152,6 +165,37 @@ class FbBusConnector:  # pylint: disable=too-many-instance-attributes
 
     # -----------------------------------------------------------------------------
 
+    def write_register_value(
+        self,
+        register_id: uuid.UUID,
+        write_value: Union[str, int, float, bool, ButtonPayload, SwitchPayload, datetime, None],
+    ) -> bool:
+        """Write expected value to register"""
+        if self.__stopped:
+            self.__logger.warning("Connector is stopped, value can't be written")
+
+            return False
+
+        register = self.__registers_registry.get_by_id(register_id=register_id)
+
+        if register is not None:
+            expected_value = DataTransformHelpers.transform_for_device(
+                data_type=register.data_type,
+                value=write_value,
+            )
+
+            if isinstance(
+                expected_value,
+                (str, int, float, bool, ButtonPayloadType, SwitchPayloadType, datetime),
+            ):
+                self.__registers_registry.set_expected_value(register=register, value=expected_value)
+
+                return True
+
+        return False
+
+    # -----------------------------------------------------------------------------
+
     def has_unfinished_tasks(self) -> bool:
         """Check if connector has some unfinished task"""
         return not self.__receiver.is_empty() or not self.__consumer.is_empty()
@@ -168,16 +212,18 @@ class FbBusConnector:  # pylint: disable=too-many-instance-attributes
         self.__receiver.loop()
         self.__consumer.loop()
 
-        if not self.__stopped:
-            # Check is pairing enabled...
-            if self.__pairing_helper.is_enabled() is True:
-                self.__pairing_helper.loop()
+        if self.__stopped:
+            return
 
-            # Pairing is not enabled...
-            else:
-                # Check packets queue...
-                if self.__packets_to_be_sent == 0:
-                    # Continue processing devices
-                    self.__publisher.loop()
+        # Check is pairing enabled...
+        if self.__pairing_helper.is_enabled() is True:
+            self.__pairing_helper.loop()
 
-            self.__packets_to_be_sent = self.__client.loop()
+        # Pairing is not enabled...
+        else:
+            # Check packets queue...
+            if self.__packets_to_be_sent == 0:
+                # Continue processing devices
+                self.__publisher.loop()
+
+        self.__packets_to_be_sent = self.__client.loop()

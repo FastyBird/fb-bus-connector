@@ -211,10 +211,12 @@ class ApiV1Pairing(BasePairing):  # pylint: disable=too-many-instance-attributes
 
     def enable(self, client_id: Union[uuid.UUID, List[uuid.UUID], None] = None) -> None:
         """Enable devices pairing"""
+        self.__client_id = None
+
         if isinstance(client_id, uuid.UUID):
             self.__client_id = [client_id]
 
-        else:
+        if isinstance(client_id, List):
             self.__client_id = client_id
 
         self.__pairing_enabled = True
@@ -683,9 +685,14 @@ class ApiV1Pairing(BasePairing):  # pylint: disable=too-many-instance-attributes
 
         self._logger.debug("Preparing to broadcast search devices")
 
-        self.__client.broadcast_packet(
-            payload=output_content, waiting_time=self.__BROADCAST_WAITING_DELAY, client_id=self.__client_id
-        )
+        if isinstance(self.__client_id, List):
+            for client_id in self.__client_id:
+                self.__client.broadcast_packet(
+                    payload=output_content, waiting_time=self.__BROADCAST_WAITING_DELAY, client_id=client_id
+                )
+
+        else:
+            self.__client.broadcast_packet(payload=output_content, waiting_time=self.__BROADCAST_WAITING_DELAY)
 
     # -----------------------------------------------------------------------------
 
@@ -715,9 +722,14 @@ class ApiV1Pairing(BasePairing):  # pylint: disable=too-many-instance-attributes
 
         self._logger.debug("Preparing to broadcast write address packet")
 
-        self.__client.broadcast_packet(
-            payload=output_content, waiting_time=self.__BROADCAST_WAITING_DELAY, client_id=self.__client_id
-        )
+        if isinstance(self.__client_id, List):
+            for client_id in self.__client_id:
+                self.__client.broadcast_packet(
+                    payload=output_content, waiting_time=self.__BROADCAST_WAITING_DELAY, client_id=client_id
+                )
+
+        else:
+            self.__client.broadcast_packet(payload=output_content, waiting_time=self.__BROADCAST_WAITING_DELAY)
 
     # -----------------------------------------------------------------------------
 
@@ -737,11 +749,21 @@ class ApiV1Pairing(BasePairing):  # pylint: disable=too-many-instance-attributes
         # Add protocol version to data
         data.insert(0, ProtocolVersion.V1.value)
 
-        result = self.__client.send_packet(
-            address=address,
-            payload=data,
-            client_id=self.__client_id,
-        )
+        result = False
+
+        if isinstance(self.__client_id, List):
+            for client_id in self.__client_id:
+                result = self.__client.send_packet(
+                    address=address,
+                    payload=data,
+                    client_id=client_id,
+                )
+
+        else:
+            result = self.__client.send_packet(
+                address=address,
+                payload=data,
+            )
 
         if result is False:
             # Mark that gateway is not waiting any reply from device

@@ -20,7 +20,7 @@ FastyBird BUS connector plugin clients module proxy
 
 # Python base dependencies
 import uuid
-from typing import List, Optional, Set, Union
+from typing import List, Optional, Set
 
 # Library dependencies
 from kink import inject
@@ -54,19 +54,59 @@ class Client:
 
     # -----------------------------------------------------------------------------
 
+    def register_client(self, client: BaseClient) -> None:
+        """Register new client to proxy"""
+        self.__clients.add(client)
+
+    # -----------------------------------------------------------------------------
+
+    def remove_client(self, client_id: uuid.UUID) -> bool:
+        """Remove client from clients"""
+        for client in self.__clients:
+            if client_id.__eq__(client.id):
+                self.__clients.remove(client)
+
+        return False
+
+    # -----------------------------------------------------------------------------
+
+    def reset_clients(self) -> None:
+        """Reset registered clients"""
+        self.__clients = set()
+
+    # -----------------------------------------------------------------------------
+
+    def enable_client(self, client_id: Optional[uuid.UUID] = None) -> bool:
+        """Enable one or more clients"""
+        for client in self.__clients:
+            if client_id is None or client_id.__eq__(client.id):
+                return client.enable()
+
+        return False
+
+    # -----------------------------------------------------------------------------
+
+    def disable_client(self, client_id: Optional[uuid.UUID] = None) -> bool:
+        """Disable one or more clients"""
+        for client in self.__clients:
+            if client_id is None or client_id.__eq__(client.id):
+                return client.disable()
+
+        return False
+
+    # -----------------------------------------------------------------------------
+
     def broadcast_packet(
         self,
         payload: List[int],
         waiting_time: float = 0.0,
-        client_id: Union[uuid.UUID, List[uuid.UUID], None] = None,
+        client_id: Optional[uuid.UUID] = None,
     ) -> bool:
         """Broadcast packet to all devices"""
-        process_clients_ids = self.__build_clients_ids_list(client_id=client_id)
-
         result = True
 
         for client in self.__clients:
-            if (process_clients_ids is None or client.id in process_clients_ids) and client.enabled:
+            if (client_id is None or client_id.__eq__(client.id)) and client.enabled:
                 if not client.broadcast_packet(payload=payload, waiting_time=waiting_time):
                     result = False
 
@@ -79,15 +119,13 @@ class Client:
         address: int,
         payload: List[int],
         waiting_time: float = 0.0,
-        client_id: Union[uuid.UUID, List[uuid.UUID], None] = None,
+        client_id: Optional[uuid.UUID] = None,
     ) -> bool:
         """Send packet to specific device address"""
-        process_clients_ids = self.__build_clients_ids_list(client_id=client_id)
-
         result = True
 
         for client in self.__clients:
-            if (process_clients_ids is None or client.id in process_clients_ids) and client.enabled:
+            if (client_id is None or client_id.__eq__(client.id)) and client.enabled:
                 if not client.send_packet(address=address, payload=payload, waiting_time=waiting_time):
                     result = False
 
@@ -106,69 +144,6 @@ class Client:
                 packets_to_be_sent = packets_to_be_sent + client_packets_to_be_sent
 
         return packets_to_be_sent
-
-    # -----------------------------------------------------------------------------
-
-    def register_client(self, client: BaseClient) -> None:
-        """Register new client to proxy"""
-        self.__clients.add(client)
-
-    # -----------------------------------------------------------------------------
-
-    def remove_client(self, client_id: Union[uuid.UUID, List[uuid.UUID]]) -> bool:
-        """Remove client from clients"""
-        process_clients_ids = self.__build_clients_ids_list(client_id=client_id)
-
-        if process_clients_ids is None or len(process_clients_ids) == 0:
-            return False
-
-        for client in self.__clients:
-            if client.id in process_clients_ids:
-                self.__clients.remove(client)
-
-        return False
-
-    # -----------------------------------------------------------------------------
-
-    def reset_clients(self) -> None:
-        """Reset registered clients"""
-        self.__clients = set()
-
-    # -----------------------------------------------------------------------------
-
-    def enable_client(self, client_id: Union[uuid.UUID, List[uuid.UUID], None] = None) -> bool:
-        """Enable one or more clients"""
-        process_clients_ids = self.__build_clients_ids_list(client_id=client_id)
-
-        for client in self.__clients:
-            if process_clients_ids is None or client.id in process_clients_ids:
-                return client.enable()
-
-        return False
-
-    # -----------------------------------------------------------------------------
-
-    def disable_client(self, client_id: Union[uuid.UUID, List[uuid.UUID], None] = None) -> bool:
-        """Disable one or more clients"""
-        process_clients_ids = self.__build_clients_ids_list(client_id=client_id)
-
-        for client in self.__clients:
-            if process_clients_ids is None or client.id in process_clients_ids:
-                return client.disable()
-
-        return False
-
-    # -----------------------------------------------------------------------------
-
-    @staticmethod
-    def __build_clients_ids_list(client_id: Union[uuid.UUID, List[uuid.UUID], None]) -> Optional[List[uuid.UUID]]:
-        if isinstance(client_id, uuid.UUID):
-            return [client_id]
-
-        if isinstance(client_id, List):
-            return client_id
-
-        return None
 
 
 class ClientFactory:  # pylint: disable=too-few-public-methods
@@ -229,6 +204,13 @@ class ClientFactory:  # pylint: disable=too-few-public-methods
                 "Created PJON client: %s to interface: %s",
                 client_id.__str__(),
                 client_interface,
+                extra={
+                    "client_id": client_id.__str__(),
+                    "client_interface": client_interface,
+                    "client_address": client_address,
+                    "client_baud_rate": client_baud_rate,
+                    "protocol_version": protocol_version,
+                },
             )
 
             return

@@ -50,6 +50,7 @@ from fb_bus_connector_plugin.types import (
     ButtonPayloadType,
     ConnectionState,
     DeviceDataType,
+    ProtocolVersion,
     RegisterType,
     SwitchPayloadType,
 )
@@ -71,6 +72,8 @@ class V1Parser:
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
 
+    __validator: V1Validator
+
     __devices_registry: DevicesRegistry
     __registers_registry: RegistersRegistry
 
@@ -78,26 +81,30 @@ class V1Parser:
 
     def __init__(
         self,
+        validator: V1Validator,
         devices_registry: DevicesRegistry,
         registers_registry: RegistersRegistry,
     ) -> None:
+        self.__validator = validator
+
         self.__devices_registry = devices_registry
         self.__registers_registry = registers_registry
 
     # -----------------------------------------------------------------------------
 
-    def parse_message(  # pylint: disable=too-many-branches,too-many-return-statements
+    def parse_message(  # pylint: disable=too-many-branches,too-many-return-statements,too-many-arguments
         self,
         payload: bytearray,
         length: int,
         address: Optional[int],
         client_id: uuid.UUID,
+        protocol_version: ProtocolVersion,
     ) -> BaseEntity:
         """Parse received message content"""
-        if V1Validator.validate(payload=payload) is False:
+        if self.__validator.validate(payload=payload, protocol_version=protocol_version) is False:
             raise ParsePayloadException("Provided payload is not valid")
 
-        if V1Validator.validate_read_single_register(payload=payload) and address is not None:
+        if self.__validator.validate_read_single_register(payload=payload) and address is not None:
             return self.parse_read_single_register_value(
                 payload=payload,
                 length=length,
@@ -105,7 +112,7 @@ class V1Parser:
                 client_id=client_id,
             )
 
-        if V1Validator.validate_read_multiple_registers(payload=payload) and address is not None:
+        if self.__validator.validate_read_multiple_registers(payload=payload) and address is not None:
             return self.parse_read_multiple_registers_values(
                 payload=payload,
                 length=length,
@@ -113,7 +120,7 @@ class V1Parser:
                 client_id=client_id,
             )
 
-        if V1Validator.validate_write_single_register(payload=payload) and address is not None:
+        if self.__validator.validate_write_single_register(payload=payload) and address is not None:
             return self.parse_write_single_register_value(
                 payload=payload,
                 length=length,
@@ -121,7 +128,7 @@ class V1Parser:
                 client_id=client_id,
             )
 
-        if V1Validator.validate_write_multiple_registers(payload=payload) and address is not None:
+        if self.__validator.validate_write_multiple_registers(payload=payload) and address is not None:
             return self.parse_write_multiple_registers_values(
                 payload=payload,
                 length=length,
@@ -129,7 +136,7 @@ class V1Parser:
                 client_id=client_id,
             )
 
-        if V1Validator.validate_report_single_register(payload=payload) and address is not None:
+        if self.__validator.validate_report_single_register(payload=payload) and address is not None:
             return self.parse_report_single_register_value(
                 payload=payload,
                 length=length,
@@ -137,7 +144,7 @@ class V1Parser:
                 client_id=client_id,
             )
 
-        if V1Validator.validate_read_device_state(payload=payload) and address is not None:
+        if self.__validator.validate_read_device_state(payload=payload) and address is not None:
             return self.parse_read_device_state(
                 payload=payload,
                 length=length,
@@ -145,7 +152,7 @@ class V1Parser:
                 client_id=client_id,
             )
 
-        if V1Validator.validate_write_device_state(payload=payload) and address is not None:
+        if self.__validator.validate_write_device_state(payload=payload) and address is not None:
             return self.parse_write_device_state(
                 payload=payload,
                 length=length,
@@ -153,7 +160,7 @@ class V1Parser:
                 client_id=client_id,
             )
 
-        if V1Validator.validate_report_device_state(payload=payload) and address is not None:
+        if self.__validator.validate_report_device_state(payload=payload) and address is not None:
             return self.parse_report_device_state(
                 payload=payload,
                 length=length,
@@ -161,7 +168,7 @@ class V1Parser:
                 client_id=client_id,
             )
 
-        if V1Validator.validate_pub_sub_write_register_key(payload=payload) and address is not None:
+        if self.__validator.validate_pub_sub_write_register_key(payload=payload) and address is not None:
             return self.parse_pub_sub_write_register_key(
                 payload=payload,
                 length=length,
@@ -169,7 +176,7 @@ class V1Parser:
                 client_id=client_id,
             )
 
-        if V1Validator.validate_pub_sub_broadcast_register_value(payload=payload) and address is not None:
+        if self.__validator.validate_pub_sub_broadcast_register_value(payload=payload) and address is not None:
             return self.parse_pub_sub_broadcast_register_value(
                 payload=payload,
                 length=length,
@@ -177,14 +184,14 @@ class V1Parser:
                 client_id=client_id,
             )
 
-        if V1Validator.validate_pong_response(payload=payload) and address is not None:
+        if self.__validator.validate_pong_response(payload=payload) and address is not None:
             return self.parse_pong_response(
                 length=length,
                 address=address,
                 client_id=client_id,
             )
 
-        if V1Validator.validate_discover_device(payload=payload) and address is not None:
+        if self.__validator.validate_discover_device(payload=payload) and address is not None:
             return self.parse_device_pairing(
                 payload=payload,
                 length=length,
@@ -204,10 +211,10 @@ class V1Parser:
         client_id: uuid.UUID,
     ) -> BaseEntity:
         """Parse received pairing message content"""
-        if V1Validator.validate_discover_device(payload=payload) is False:
+        if self.__validator.validate_discover_device(payload=payload) is False:
             raise ParsePayloadException("Provided payload is not valid pairing payload")
 
-        if V1Validator.validate_pair_command_search_devices(payload=payload) and address is not None:
+        if self.__validator.validate_pair_command_search_devices(payload=payload) and address is not None:
             return self.parse_device_pairing_search_devices(
                 payload=payload,
                 length=length,
@@ -215,7 +222,7 @@ class V1Parser:
                 client_id=client_id,
             )
 
-        if V1Validator.validate_pair_command_write_address(payload=payload) and address is not None:
+        if self.__validator.validate_pair_command_write_address(payload=payload) and address is not None:
             return self.parse_device_pairing_write_address(
                 payload=payload,
                 length=length,
@@ -223,7 +230,7 @@ class V1Parser:
                 client_id=client_id,
             )
 
-        if V1Validator.validate_pair_command_provide_register_structure(payload=payload) and address is not None:
+        if self.__validator.validate_pair_command_provide_register_structure(payload=payload) and address is not None:
             return self.parse_device_pairing_provide_register_structure(
                 payload=payload,
                 length=length,
@@ -231,7 +238,7 @@ class V1Parser:
                 client_id=client_id,
             )
 
-        if V1Validator.validate_pair_command_pairing_finished(payload=payload) and address is not None:
+        if self.__validator.validate_pair_command_pairing_finished(payload=payload) and address is not None:
             return self.parse_device_pairing_finished(
                 payload=payload,
                 length=length,

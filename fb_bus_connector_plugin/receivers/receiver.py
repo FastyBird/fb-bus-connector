@@ -37,6 +37,7 @@ from fb_bus_connector_plugin.exceptions import (
 from fb_bus_connector_plugin.logger import Logger
 from fb_bus_connector_plugin.receivers.base import BaseReceiver
 from fb_bus_connector_plugin.receivers.entities import BaseEntity
+from fb_bus_connector_plugin.types import ProtocolVersion
 
 
 @inject
@@ -109,19 +110,24 @@ class Receiver:
 
     # -----------------------------------------------------------------------------
 
-    def on_message(
+    def on_message(  # pylint: disable=too-many-arguments
         self,
         payload: bytearray,
         length: int,
         address: Optional[int],
         client_id: uuid.UUID,
+        protocol_version: ProtocolVersion,
     ) -> None:
         """Handle received message"""
-        if self.__validator.validate_version(payload=payload) is False:
+        if self.__validator.validate_version(payload=payload, protocol_version=protocol_version) is False:
             return
 
-        if self.__validator.validate(payload=payload) is False:
-            self.__logger.warning("Received message is not valid FIB v1 convention message: %s", payload)
+        if self.__validator.validate(payload=payload, protocol_version=protocol_version) is False:
+            self.__logger.warning(
+                "Received message is not valid FIB %s convention message: %s",
+                protocol_version.value,
+                payload,
+            )
 
             return
 
@@ -131,6 +137,7 @@ class Receiver:
                 length=length,
                 address=address,
                 client_id=client_id,
+                protocol_version=protocol_version,
             )
 
         except ParsePayloadException as ex:
