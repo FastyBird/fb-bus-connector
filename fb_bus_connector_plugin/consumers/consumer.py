@@ -149,7 +149,7 @@ class Consumer:
                 hardware_version=device_record.hardware_version,
                 firmware_manufacturer=device_record.firmware_manufacturer,
                 firmware_version=device_record.firmware_version,
-            )
+            ),
         )
 
     # -----------------------------------------------------------------------------
@@ -160,7 +160,7 @@ class Consumer:
             entity=DeviceStateEntity(
                 device_id=device_record.id,
                 device_state=StateHelpers.transform_state_for_gateway(device_record.state),
-            )
+            ),
         )
 
     # -----------------------------------------------------------------------------
@@ -177,7 +177,7 @@ class Consumer:
                     register_key=register_record.key,
                     register_is_settable=register_record.settable,
                     register_is_queryable=register_record.queryable,
-                )
+                ),
             )
 
         elif register_record.type == RegisterType.OUTPUT:
@@ -190,7 +190,7 @@ class Consumer:
                     register_key=register_record.key,
                     register_is_settable=register_record.settable,
                     register_is_queryable=register_record.queryable,
-                )
+                ),
             )
 
         elif register_record.type == RegisterType.ATTRIBUTE:
@@ -203,7 +203,7 @@ class Consumer:
                     register_key=register_record.key,
                     register_is_settable=register_record.settable,
                     register_is_queryable=register_record.queryable,
-                )
+                ),
             )
 
         elif register_record.type == RegisterType.SETTING:
@@ -216,7 +216,7 @@ class Consumer:
                     register_key=register_record.key,
                     register_is_settable=register_record.settable,
                     register_is_queryable=register_record.queryable,
-                )
+                ),
             )
 
     # -----------------------------------------------------------------------------
@@ -232,7 +232,7 @@ class Consumer:
                         data_type=register_record.data_type,
                         value=register_record.actual_value,
                     ),
-                )
+                ),
             )
 
         elif register_record.type == RegisterType.OUTPUT:
@@ -244,7 +244,7 @@ class Consumer:
                         data_type=register_record.data_type,
                         value=register_record.actual_value,
                     ),
-                )
+                ),
             )
 
         elif register_record.type == RegisterType.ATTRIBUTE:
@@ -256,7 +256,7 @@ class Consumer:
                         data_type=register_record.data_type,
                         value=register_record.actual_value,
                     ),
-                )
+                ),
             )
 
         elif register_record.type == RegisterType.SETTING:
@@ -268,7 +268,7 @@ class Consumer:
                         data_type=register_record.data_type,
                         value=register_record.actual_value,
                     ),
-                )
+                ),
             )
 
     # -----------------------------------------------------------------------------
