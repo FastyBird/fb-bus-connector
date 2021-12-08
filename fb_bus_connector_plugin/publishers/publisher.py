@@ -28,7 +28,11 @@ from kink import inject
 # Library libs
 from fb_bus_connector_plugin.publishers.base import BasePublisher
 from fb_bus_connector_plugin.registry.model import DevicesRegistry
-from fb_bus_connector_plugin.types import ButtonPayloadType, SwitchPayloadType, DeviceDataType
+from fb_bus_connector_plugin.types import (
+    ButtonPayloadType,
+    DeviceDataType,
+    SwitchPayloadType,
+)
 
 
 @inject

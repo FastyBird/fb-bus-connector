@@ -24,7 +24,7 @@ from datetime import datetime
 from typing import Union
 
 # Library libs
-from modules_metadata.types import ButtonPayload, SwitchPayload, DataType
+from modules_metadata.types import ButtonPayload, DataType, SwitchPayload
 
 from fb_bus_connector_plugin.clients.client import Client, ClientFactory
 from fb_bus_connector_plugin.consumers.consumer import Consumer
@@ -40,7 +40,10 @@ from fb_bus_connector_plugin.types import (
     ProtocolVersion,
     SwitchPayloadType,
 )
-from fb_bus_connector_plugin.utilities.helpers import DataTransformHelpers, DataTypeHelpers
+from fb_bus_connector_plugin.utilities.helpers import (
+    DataTransformHelpers,
+    DataTypeHelpers,
+)
 
 
 class FbBusConnector:  # pylint: disable=too-many-instance-attributes
