@@ -43,6 +43,7 @@ from fb_bus_connector_plugin.types import (
     ProtocolVersion,
     RegisterType,
     SwitchPayloadType,
+    WriteKeyType,
 )
 from fb_bus_connector_plugin.utilities.helpers import (
     DataTransformHelpers,
@@ -50,7 +51,7 @@ from fb_bus_connector_plugin.utilities.helpers import (
 )
 
 
-class FbBusConnector:  # pylint: disable=too-many-instance-attributes
+class FbBusConnector:  # pylint: disable=too-many-instance-attributes,too-many-public-methods
     """
     FastyBird BUS connector
 
@@ -221,6 +222,13 @@ class FbBusConnector:  # pylint: disable=too-many-instance-attributes
     def remove_device(self, device_id: uuid.UUID) -> None:
         """Remove device from connector registry"""
         self.__devices_registry.remove(device_id=device_id)
+        self.__registers_registry.reset(device_id=device_id)
+
+    # -----------------------------------------------------------------------------
+
+    def reset_devices(self, client_id: Optional[uuid.UUID] = None) -> None:
+        """Reset devices registry to initial state"""
+        self.__devices_registry.reset(client_id=client_id)
 
     # -----------------------------------------------------------------------------
 
@@ -244,6 +252,12 @@ class FbBusConnector:  # pylint: disable=too-many-instance-attributes
 
     # -----------------------------------------------------------------------------
 
+    def reset_device_input_registers(self, device_id: Optional[uuid.UUID] = None) -> None:
+        """Reset devices input registers registry to initial state"""
+        self.__registers_registry.reset(device_id=device_id, registers_type=RegisterType.INPUT)
+
+    # -----------------------------------------------------------------------------
+
     def initialize_device_output_register(  # pylint: disable=too-many-arguments
         self,
         device_id: uuid.UUID,
@@ -261,6 +275,12 @@ class FbBusConnector:  # pylint: disable=too-many-instance-attributes
             register_data_type=register_data_type,
             register_type=RegisterType.OUTPUT,
         )
+
+    # -----------------------------------------------------------------------------
+
+    def reset_device_output_registers(self, device_id: Optional[uuid.UUID] = None) -> None:
+        """Reset devices output registers registry to initial state"""
+        self.__registers_registry.reset(device_id=device_id, registers_type=RegisterType.OUTPUT)
 
     # -----------------------------------------------------------------------------
 
@@ -290,6 +310,12 @@ class FbBusConnector:  # pylint: disable=too-many-instance-attributes
 
     # -----------------------------------------------------------------------------
 
+    def reset_device_attribute_registers(self, device_id: Optional[uuid.UUID] = None) -> None:
+        """Reset devices attribute registers registry to initial state"""
+        self.__registers_registry.reset(device_id=device_id, registers_type=RegisterType.ATTRIBUTE)
+
+    # -----------------------------------------------------------------------------
+
     def initialize_device_setting_register(  # pylint: disable=too-many-arguments
         self,
         device_id: uuid.UUID,
@@ -312,9 +338,21 @@ class FbBusConnector:  # pylint: disable=too-many-instance-attributes
 
     # -----------------------------------------------------------------------------
 
+    def reset_device_setting_registers(self, device_id: Optional[uuid.UUID] = None) -> None:
+        """Reset devices setting registers registry to initial state"""
+        self.__registers_registry.reset(device_id=device_id, registers_type=RegisterType.SETTING)
+
+    # -----------------------------------------------------------------------------
+
     def remove_register(self, register_id: uuid.UUID) -> None:
         """Remove device register from connector registry"""
         self.__registers_registry.remove(register_id=register_id)
+
+    # -----------------------------------------------------------------------------
+
+    def reset_device_registers(self, device_id: Optional[uuid.UUID] = None) -> None:
+        """Reset devices registers registry to initial state"""
+        self.__registers_registry.reset(device_id=device_id)
 
     # -----------------------------------------------------------------------------
 
@@ -452,6 +490,8 @@ class FbBusConnector:  # pylint: disable=too-many-instance-attributes
         if device_record is None:
             raise InvalidStateException("Device for given register is not registered. Call 'initialize_device' first")
 
+        register_record = self.__registers_registry.get_by_id(register_id=register_id)
+
         if register_type == RegisterType.INPUT:
             self.__registers_registry.initialize_input_register(
                 device_id=device_id,
@@ -459,7 +499,10 @@ class FbBusConnector:  # pylint: disable=too-many-instance-attributes
                 register_address=register_address,
                 register_key=register_key,
                 register_data_type=DataTypeHelpers.transform_for_device(data_type=register_data_type),
-                register_ready=True,
+                register_ready=register_record.ready if register_record is not None else True,
+                register_pubsub_key_written=register_record.pubsub_key_written
+                if register_record is not None
+                else WriteKeyType.NO,
             )
 
             return
@@ -471,7 +514,10 @@ class FbBusConnector:  # pylint: disable=too-many-instance-attributes
                 register_address=register_address,
                 register_key=register_key,
                 register_data_type=DataTypeHelpers.transform_for_device(data_type=register_data_type),
-                register_ready=True,
+                register_ready=register_record.ready if register_record is not None else True,
+                register_pubsub_key_written=register_record.pubsub_key_written
+                if register_record is not None
+                else WriteKeyType.NO,
             )
 
             return
@@ -486,7 +532,10 @@ class FbBusConnector:  # pylint: disable=too-many-instance-attributes
                 register_name=register_name,
                 register_queryable=register_queryable,
                 register_settable=register_settable,
-                register_ready=True,
+                register_ready=register_record.ready if register_record is not None else True,
+                register_pubsub_key_written=register_record.pubsub_key_written
+                if register_record is not None
+                else WriteKeyType.NO,
             )
 
             return
@@ -499,7 +548,10 @@ class FbBusConnector:  # pylint: disable=too-many-instance-attributes
                 register_key=register_key,
                 register_data_type=DataTypeHelpers.transform_for_device(data_type=register_data_type),
                 register_name=register_name,
-                register_ready=True,
+                register_ready=register_record.ready if register_record is not None else True,
+                register_pubsub_key_written=register_record.pubsub_key_written
+                if register_record is not None
+                else WriteKeyType.NO,
             )
 
         device_record = self.__devices_registry.get_by_id(device_id=device_id)
