@@ -25,13 +25,8 @@ from datetime import datetime
 from typing import Optional, Union
 
 # App dependencies
-from fb_bus_connector_plugin.types import (
-    ButtonPayloadType,
-    ConnectionState,
-    DeviceDataType,
-    RegisterType,
-    SwitchPayloadType,
-)
+from modules_metadata.devices_module import DeviceConnectionState
+from modules_metadata.types import ButtonPayload, DataType, SwitchPayload
 
 
 class BaseEntity(ABC):  # pylint: disable=too-few-public-methods
@@ -77,7 +72,7 @@ class DeviceEntity(BaseEntity):  # pylint: disable=too-many-instance-attributes
     __serial_number: str
     __address: int
     __max_packet_length: int
-    __state: ConnectionState
+    __state: DeviceConnectionState
 
     __pub_sub_pub_support: bool
     __pub_sub_sub_support: bool
@@ -99,7 +94,7 @@ class DeviceEntity(BaseEntity):  # pylint: disable=too-many-instance-attributes
         device_serial_number: str,
         device_address: int,
         device_max_packet_length: int,
-        device_state: ConnectionState,
+        device_state: DeviceConnectionState,
         device_pub_sub_pub_support: bool = False,
         device_pub_sub_sub_support: bool = False,
         device_pub_sub_sub_max_subscriptions: int = 0,
@@ -164,7 +159,7 @@ class DeviceEntity(BaseEntity):  # pylint: disable=too-many-instance-attributes
     # -----------------------------------------------------------------------------
 
     @property
-    def state(self) -> ConnectionState:
+    def state(self) -> DeviceConnectionState:
         """Device current state"""
         return self.__state
 
@@ -249,14 +244,14 @@ class DeviceStateEntity(BaseEntity):
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
 
-    __state: ConnectionState
+    __state: DeviceConnectionState
 
     # -----------------------------------------------------------------------------
 
     def __init__(
         self,
         device_id: uuid.UUID,
-        device_state: ConnectionState,
+        device_state: DeviceConnectionState,
     ) -> None:
         super().__init__(device_id=device_id)
 
@@ -265,7 +260,7 @@ class DeviceStateEntity(BaseEntity):
     # -----------------------------------------------------------------------------
 
     @property
-    def state(self) -> ConnectionState:
+    def state(self) -> DeviceConnectionState:
         """Device current state"""
         return self.__state
 
@@ -281,13 +276,12 @@ class RegisterEntity(BaseEntity):  # pylint: disable=too-many-instance-attribute
     """
 
     __id: uuid.UUID
-    __type: RegisterType
     __address: int
     __name: Optional[str]
     __key: Optional[str]
     __settable: bool
     __queryable: bool
-    __data_type: DeviceDataType
+    __data_type: DataType
 
     # -----------------------------------------------------------------------------
 
@@ -295,18 +289,16 @@ class RegisterEntity(BaseEntity):  # pylint: disable=too-many-instance-attribute
         self,
         device_id: uuid.UUID,
         register_id: uuid.UUID,
-        register_type: RegisterType,
         register_address: int,
         register_key: Optional[str],
         register_is_settable: bool,
         register_is_queryable: bool,
-        register_data_type: DeviceDataType,
+        register_data_type: DataType,
         register_name: Optional[str] = None,
     ) -> None:
         super().__init__(device_id=device_id)
 
         self.__id = register_id
-        self.__type = register_type
         self.__address = register_address
         self.__name = register_name
         self.__key = register_key
@@ -320,13 +312,6 @@ class RegisterEntity(BaseEntity):  # pylint: disable=too-many-instance-attribute
     def register_id(self) -> uuid.UUID:
         """Register unique identifier"""
         return self.__id
-
-    # -----------------------------------------------------------------------------
-
-    @property
-    def type(self) -> RegisterType:
-        """Register type"""
-        return self.__type
 
     # -----------------------------------------------------------------------------
 
@@ -366,9 +351,53 @@ class RegisterEntity(BaseEntity):  # pylint: disable=too-many-instance-attribute
     # -----------------------------------------------------------------------------
 
     @property
-    def data_type(self) -> DeviceDataType:
+    def data_type(self) -> DataType:
         """Register data type"""
         return self.__data_type
+
+
+class InputRegisterEntity(RegisterEntity):
+    """
+    Input register entity
+
+    @package        FastyBird:FbBusConnectorPlugin!
+    @module         consumers
+
+    @author         Adam Kadlec <adam.kadlec@fastybird.com>
+    """
+
+
+class OutputRegisterEntity(RegisterEntity):
+    """
+    Output register entity
+
+    @package        FastyBird:FbBusConnectorPlugin!
+    @module         consumers
+
+    @author         Adam Kadlec <adam.kadlec@fastybird.com>
+    """
+
+
+class AttributeRegisterEntity(RegisterEntity):
+    """
+    Attribute register entity
+
+    @package        FastyBird:FbBusConnectorPlugin!
+    @module         consumers
+
+    @author         Adam Kadlec <adam.kadlec@fastybird.com>
+    """
+
+
+class SettingRegisterEntity(RegisterEntity):
+    """
+    Setting register entity
+
+    @package        FastyBird:FbBusConnectorPlugin!
+    @module         consumers
+
+    @author         Adam Kadlec <adam.kadlec@fastybird.com>
+    """
 
 
 class RegisterActualValueEntity(BaseEntity):
@@ -382,8 +411,7 @@ class RegisterActualValueEntity(BaseEntity):
     """
 
     __id: uuid.UUID
-    __type: RegisterType
-    __value: Union[str, int, float, bool, ButtonPayloadType, SwitchPayloadType, datetime, None]
+    __value: Union[str, int, float, bool, ButtonPayload, SwitchPayload, datetime, None]
 
     # -----------------------------------------------------------------------------
 
@@ -391,13 +419,11 @@ class RegisterActualValueEntity(BaseEntity):
         self,
         device_id: uuid.UUID,
         register_id: uuid.UUID,
-        register_type: RegisterType,
-        register_value: Union[str, int, float, bool, ButtonPayloadType, SwitchPayloadType, datetime, None],
+        register_value: Union[str, int, float, bool, ButtonPayload, SwitchPayload, datetime, None],
     ) -> None:
         super().__init__(device_id=device_id)
 
         self.__id = register_id
-        self.__type = register_type
         self.__value = register_value
 
     # -----------------------------------------------------------------------------
@@ -410,13 +436,50 @@ class RegisterActualValueEntity(BaseEntity):
     # -----------------------------------------------------------------------------
 
     @property
-    def type(self) -> RegisterType:
-        """Register type"""
-        return self.__type
-
-    # -----------------------------------------------------------------------------
-
-    @property
-    def value(self) -> Union[str, int, float, bool, ButtonPayloadType, SwitchPayloadType, datetime, None]:
+    def value(self) -> Union[str, int, float, bool, ButtonPayload, SwitchPayload, datetime, None]:
         """Register actual value"""
         return self.__value
+
+
+class InputRegisterActualValueEntity(RegisterActualValueEntity):
+    """
+    Input register actual value entity
+
+    @package        FastyBird:FbBusConnectorPlugin!
+    @module         consumers
+
+    @author         Adam Kadlec <adam.kadlec@fastybird.com>
+    """
+
+
+class OutputRegisterActualValueEntity(RegisterActualValueEntity):
+    """
+    Output register actual value entity
+
+    @package        FastyBird:FbBusConnectorPlugin!
+    @module         consumers
+
+    @author         Adam Kadlec <adam.kadlec@fastybird.com>
+    """
+
+
+class AttributeRegisterActualValueEntity(RegisterActualValueEntity):
+    """
+    Attribute register actual value entity
+
+    @package        FastyBird:FbBusConnectorPlugin!
+    @module         consumers
+
+    @author         Adam Kadlec <adam.kadlec@fastybird.com>
+    """
+
+
+class SettingRegisterActualValueEntity(RegisterActualValueEntity):
+    """
+    Setting register actual value entity
+
+    @package        FastyBird:FbBusConnectorPlugin!
+    @module         consumers
+
+    @author         Adam Kadlec <adam.kadlec@fastybird.com>
+    """

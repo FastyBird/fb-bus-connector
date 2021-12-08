@@ -388,7 +388,8 @@ class DataTransformHelpers:
 
     @staticmethod
     def transform_for_device(  # pylint: disable=too-many-branches,too-many-return-statements
-        data_type: DeviceDataType, value: Union[str, int, float, bool, ButtonPayload, SwitchPayload, datetime, None]
+        data_type: DeviceDataType,
+        value: Union[str, int, float, bool, ButtonPayload, SwitchPayload, datetime, None],
     ) -> Union[str, int, float, bool, ButtonPayloadType, SwitchPayloadType, datetime, None]:
         """Transform gateway value to device value"""
         if value is None:
@@ -435,12 +436,137 @@ class DataTransformHelpers:
                 return None
 
         if data_type == DeviceDataType.BUTTON:
-            if ButtonPayloadType.has_value(int(str(value))):
+            if isinstance(value, ButtonPayload):
+                if value == ButtonPayload.PRESSED:
+                    return ButtonPayloadType.PRESS
+
+                if value == ButtonPayload.RELEASED:
+                    return ButtonPayloadType.RELEASE
+
+                if value == ButtonPayload.CLICKED:
+                    return ButtonPayloadType.CLICK
+
+                if value == ButtonPayload.DOUBLE_CLICKED:
+                    return ButtonPayloadType.DOUBLE_CLICK
+
+                if value == ButtonPayload.TRIPLE_CLICKED:
+                    return ButtonPayloadType.TRIPLE_CLICK
+
+                if value == ButtonPayload.LONG_CLICKED:
+                    return ButtonPayloadType.LONG_CLICK
+
+                if value == ButtonPayload.EXTRA_LONG_CLICKED:
+                    return ButtonPayloadType.LONG_LONG_CLICK
+
+            elif ButtonPayloadType.has_value(int(str(value))):
                 return ButtonPayloadType(int(str(value)))
 
         if data_type == DeviceDataType.SWITCH:
-            if SwitchPayloadType.has_value(int(str(value))):
+            if isinstance(value, SwitchPayload):
+                if value == SwitchPayload.ON:
+                    return SwitchPayloadType.ON
+
+                if value == SwitchPayload.OFF:
+                    return SwitchPayloadType.OFF
+
+                if value == SwitchPayload.TOGGLE:
+                    return SwitchPayloadType.TOGGLE
+
+            elif SwitchPayloadType.has_value(int(str(value))):
                 return SwitchPayloadType(int(str(value)))
+
+        return None
+
+    # -----------------------------------------------------------------------------
+
+    @staticmethod
+    def transform_for_gateway(  # pylint: disable=too-many-branches,too-many-return-statements
+        data_type: DeviceDataType,
+        value: Union[str, int, float, bool, ButtonPayloadType, SwitchPayloadType, datetime, None],
+    ) -> Union[str, int, float, bool, ButtonPayload, SwitchPayload, datetime, None]:
+        """Transform gateway value to device value"""
+        if value is None:
+            return None
+
+        if data_type == DeviceDataType.FLOAT32:
+            return value if isinstance(value, float) else fast_float(str(value))  # type: ignore[arg-type]
+
+        if data_type in (
+            DeviceDataType.UINT8,
+            DeviceDataType.INT8,
+            DeviceDataType.UINT16,
+            DeviceDataType.INT16,
+            DeviceDataType.UINT32,
+            DeviceDataType.INT32,
+        ):
+            return value if isinstance(value, int) else fast_int(str(value))  # type: ignore[arg-type]
+
+        if data_type == DeviceDataType.BOOLEAN:
+            return value if isinstance(value, bool) else bool(value)
+
+        if data_type == DeviceDataType.STRING:
+            return value if isinstance(value, str) else str(value)
+
+        if data_type == DeviceDataType.DATE:
+            try:
+                return value if isinstance(value, datetime) else datetime.strptime(str(value), "%Y-%m-%d")
+
+            except ValueError:
+                return None
+
+        if data_type == DeviceDataType.DATETIME:
+            try:
+                return value if isinstance(value, datetime) else datetime.strptime(str(value), r"%Y-%m-%d\T%H:%M:%S%z")
+
+            except ValueError:
+                return None
+
+        if data_type == DeviceDataType.TIME:
+            try:
+                return value if isinstance(value, datetime) else datetime.strptime(str(value), "%H:%M:%S%z")
+
+            except ValueError:
+                return None
+
+        if data_type == DeviceDataType.BUTTON:
+            if isinstance(value, ButtonPayloadType):
+                if value == ButtonPayloadType.PRESS:
+                    return ButtonPayload.PRESSED
+
+                if value == ButtonPayloadType.RELEASE:
+                    return ButtonPayload.RELEASED
+
+                if value == ButtonPayloadType.CLICK:
+                    return ButtonPayload.CLICKED
+
+                if value == ButtonPayloadType.DOUBLE_CLICK:
+                    return ButtonPayload.DOUBLE_CLICKED
+
+                if value == ButtonPayloadType.TRIPLE_CLICK:
+                    return ButtonPayload.TRIPLE_CLICKED
+
+                if value == ButtonPayloadType.LONG_CLICK:
+                    return ButtonPayload.LONG_CLICKED
+
+                if value == ButtonPayloadType.LONG_LONG_CLICK:
+                    return ButtonPayload.EXTRA_LONG_CLICKED
+
+            elif ButtonPayload.has_value(str(value)):
+                return ButtonPayload(str(value))
+
+        if data_type == DeviceDataType.SWITCH:
+            if isinstance(value, SwitchPayloadType):
+                if value == SwitchPayloadType.ON:
+                    return SwitchPayload.ON
+
+                if value == SwitchPayloadType.OFF:
+                    return SwitchPayload.OFF
+
+                if value == SwitchPayloadType.TOGGLE:
+                    return SwitchPayload.TOGGLE
+
+            elif SwitchPayload.has_value(str(value)):
+                return SwitchPayload(str(value))
 
         return None
 

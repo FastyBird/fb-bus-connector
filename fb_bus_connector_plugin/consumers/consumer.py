@@ -29,15 +29,27 @@ from kink import inject
 
 # Library libs
 from fb_bus_connector_plugin.consumers.entities import (
+    AttributeRegisterActualValueEntity,
+    AttributeRegisterEntity,
     BaseEntity,
     DeviceEntity,
     DeviceStateEntity,
-    RegisterActualValueEntity,
-    RegisterEntity,
+    InputRegisterActualValueEntity,
+    InputRegisterEntity,
+    OutputRegisterActualValueEntity,
+    OutputRegisterEntity,
+    SettingRegisterActualValueEntity,
+    SettingRegisterEntity,
 )
 from fb_bus_connector_plugin.exceptions import InvalidStateException
 from fb_bus_connector_plugin.logger import Logger
 from fb_bus_connector_plugin.registry.records import DeviceRecord, RegisterRecord
+from fb_bus_connector_plugin.types import RegisterType
+from fb_bus_connector_plugin.utilities.helpers import (
+    DataTransformHelpers,
+    DataTypeHelpers,
+    StateHelpers,
+)
 
 
 class IConsumer(ABC):  # pylint: disable=too-few-public-methods
@@ -126,7 +138,7 @@ class Consumer:
                 device_serial_number=device_record.serial_number,
                 device_address=device_record.address,
                 device_max_packet_length=device_record.max_packet_length,
-                device_state=device_record.state,
+                device_state=StateHelpers.transform_state_for_gateway(device_record.state),
                 device_pub_sub_pub_support=device_record.pub_sub_pub_support,
                 device_pub_sub_sub_support=device_record.pub_sub_sub_support,
                 device_pub_sub_sub_max_subscriptions=device_record.pub_sub_sub_max_subscriptions,
@@ -147,7 +159,7 @@ class Consumer:
         self.__append(
             entity=DeviceStateEntity(
                 device_id=device_record.id,
-                device_state=device_record.state,
+                device_state=StateHelpers.transform_state_for_gateway(device_record.state),
             )
         )
 
@@ -155,31 +167,109 @@ class Consumer:
 
     def propagate_register_record(self, register_record: RegisterRecord) -> None:
         """Propagate repository register record"""
-        self.__append(
-            entity=RegisterEntity(
-                device_id=register_record.device_id,
-                register_id=register_record.id,
-                register_type=register_record.type,
-                register_data_type=register_record.data_type,
-                register_address=register_record.address,
-                register_key=register_record.key,
-                register_is_settable=register_record.settable,
-                register_is_queryable=register_record.queryable,
+        if register_record.type == RegisterType.INPUT:
+            self.__append(
+                entity=InputRegisterEntity(
+                    device_id=register_record.device_id,
+                    register_id=register_record.id,
+                    register_data_type=DataTypeHelpers.transform_for_gateway(register_record.data_type),
+                    register_address=register_record.address,
+                    register_key=register_record.key,
+                    register_is_settable=register_record.settable,
+                    register_is_queryable=register_record.queryable,
+                )
             )
-        )
+
+        elif register_record.type == RegisterType.OUTPUT:
+            self.__append(
+                entity=OutputRegisterEntity(
+                    device_id=register_record.device_id,
+                    register_id=register_record.id,
+                    register_data_type=DataTypeHelpers.transform_for_gateway(register_record.data_type),
+                    register_address=register_record.address,
+                    register_key=register_record.key,
+                    register_is_settable=register_record.settable,
+                    register_is_queryable=register_record.queryable,
+                )
+            )
+
+        elif register_record.type == RegisterType.ATTRIBUTE:
+            self.__append(
+                entity=AttributeRegisterEntity(
+                    device_id=register_record.device_id,
+                    register_id=register_record.id,
+                    register_data_type=DataTypeHelpers.transform_for_gateway(register_record.data_type),
+                    register_address=register_record.address,
+                    register_key=register_record.key,
+                    register_is_settable=register_record.settable,
+                    register_is_queryable=register_record.queryable,
+                )
+            )
+
+        elif register_record.type == RegisterType.SETTING:
+            self.__append(
+                entity=SettingRegisterEntity(
+                    device_id=register_record.device_id,
+                    register_id=register_record.id,
+                    register_data_type=DataTypeHelpers.transform_for_gateway(register_record.data_type),
+                    register_address=register_record.address,
+                    register_key=register_record.key,
+                    register_is_settable=register_record.settable,
+                    register_is_queryable=register_record.queryable,
+                )
+            )
 
     # -----------------------------------------------------------------------------
 
     def propagate_register_record_value(self, register_record: RegisterRecord) -> None:
         """Propagate repository register record value"""
-        self.__append(
-            entity=RegisterActualValueEntity(
-                device_id=register_record.device_id,
-                register_id=register_record.id,
-                register_type=register_record.type,
-                register_value=register_record.actual_value,
+        if register_record.type == RegisterType.INPUT:
+            self.__append(
+                entity=InputRegisterActualValueEntity(
+                    device_id=register_record.device_id,
+                    register_id=register_record.id,
+                    register_value=DataTransformHelpers.transform_for_gateway(
+                        data_type=register_record.data_type,
+                        value=register_record.actual_value,
+                    ),
+                )
             )
-        )
+
+        elif register_record.type == RegisterType.OUTPUT:
+            self.__append(
+                entity=OutputRegisterActualValueEntity(
+                    device_id=register_record.device_id,
+                    register_id=register_record.id,
+                    register_value=DataTransformHelpers.transform_for_gateway(
+                        data_type=register_record.data_type,
+                        value=register_record.actual_value,
+                    ),
+                )
+            )
+
+        elif register_record.type == RegisterType.ATTRIBUTE:
+            self.__append(
+                entity=AttributeRegisterActualValueEntity(
+                    device_id=register_record.device_id,
+                    register_id=register_record.id,
+                    register_value=DataTransformHelpers.transform_for_gateway(
+                        data_type=register_record.data_type,
+                        value=register_record.actual_value,
+                    ),
+                )
+            )
+
+        elif register_record.type == RegisterType.SETTING:
+            self.__append(
+                entity=SettingRegisterActualValueEntity(
+                    device_id=register_record.device_id,
+                    register_id=register_record.id,
+                    register_value=DataTransformHelpers.transform_for_gateway(
+                        data_type=register_record.data_type,
+                        value=register_record.actual_value,
+                    ),
+                )
+            )
 
     # -----------------------------------------------------------------------------
 
