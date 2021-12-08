@@ -35,6 +35,7 @@ from fb_bus_connector_plugin.pairing.pairing import DevicesPairing
 from fb_bus_connector_plugin.publishers.publisher import Publisher
 from fb_bus_connector_plugin.receivers.receiver import Receiver
 from fb_bus_connector_plugin.registry.model import DevicesRegistry, RegistersRegistry
+from fb_bus_connector_plugin.registry.records import DeviceRecord
 from fb_bus_connector_plugin.types import (
     ButtonPayloadType,
     ClientType,
@@ -106,7 +107,7 @@ class FbBusConnector:  # pylint: disable=too-many-instance-attributes
 
     # -----------------------------------------------------------------------------
 
-    def configure_client(  # pylint: disable=too-many-arguments
+    def initialize_client(  # pylint: disable=too-many-arguments
         self,
         client_id: uuid.UUID,
         client_type: ClientType = ClientType.PJON,
@@ -127,7 +128,25 @@ class FbBusConnector:  # pylint: disable=too-many-instance-attributes
 
     # -----------------------------------------------------------------------------
 
-    def configure_device(  # pylint: disable=too-many-arguments,too-many-locals
+    def enable_client(self, client_id: uuid.UUID) -> bool:
+        """Enable client"""
+        return self.__client.enable_client(client_id=client_id)
+
+    # -----------------------------------------------------------------------------
+
+    def disable_client(self, client_id: uuid.UUID) -> bool:
+        """Disable client connector"""
+        return self.__client.disable_client(client_id=client_id)
+
+    # -----------------------------------------------------------------------------
+
+    def remove_client(self, client_id: uuid.UUID) -> bool:
+        """Remove client from connector"""
+        return self.__client.remove_client(client_id=client_id)
+
+    # -----------------------------------------------------------------------------
+
+    def initialize_device(  # pylint: disable=too-many-arguments,too-many-locals
         self,
         client_id: uuid.UUID,
         device_id: uuid.UUID,
@@ -147,7 +166,15 @@ class FbBusConnector:  # pylint: disable=too-many-instance-attributes
         firmware_version: Optional[str] = None,
     ) -> None:
         """Configure device connector record"""
-        self.__devices_registry.append(
+        device_record = self.__devices_registry.get_by_id(device_id=device_id)
+
+        if device_record is not None:
+            is_ready = self.__check_device_record_ready(device_record=device_record)
+
+        else:
+            is_ready = True
+
+        self.__devices_registry.initialize(
             client_id=client_id,
             device_id=device_id,
             device_address=device_address,
@@ -164,12 +191,40 @@ class FbBusConnector:  # pylint: disable=too-many-instance-attributes
             hardware_version=hardware_version,
             firmware_manufacturer=firmware_manufacturer,
             firmware_version=firmware_version,
-            device_ready=True,
+            device_ready=is_ready,
         )
 
     # -----------------------------------------------------------------------------
 
-    def configure_device_input_register(  # pylint: disable=too-many-arguments
+    def enable_device(self, device_id: uuid.UUID) -> bool:
+        """Enable device"""
+        device_record = self.__devices_registry.get_by_id(device_id=device_id)
+
+        if device_record is None:
+            raise InvalidStateException("Device for given register is not registered. Call 'initialize_device' first")
+
+        return isinstance(self.__devices_registry.enable(device=device_record), DeviceRecord)
+
+    # -----------------------------------------------------------------------------
+
+    def disable_device(self, device_id: uuid.UUID) -> bool:
+        """Disable device"""
+        device_record = self.__devices_registry.get_by_id(device_id=device_id)
+
+        if device_record is None:
+            raise InvalidStateException("Device for given register is not registered. Call 'initialize_device' first")
+
+        return isinstance(self.__devices_registry.disable(device=device_record), DeviceRecord)
+
+    # -----------------------------------------------------------------------------
+
+    def remove_device(self, device_id: uuid.UUID) -> None:
+        """Remove device from connector registry"""
+        self.__devices_registry.remove(device_id=device_id)
+
+    # -----------------------------------------------------------------------------
+
+    def initialize_device_input_register(  # pylint: disable=too-many-arguments
         self,
         device_id: uuid.UUID,
         register_id: uuid.UUID,
@@ -178,7 +233,7 @@ class FbBusConnector:  # pylint: disable=too-many-instance-attributes
         register_data_type: DataType,
     ) -> None:
         """Configure device input register connector record"""
-        self.__configure_device_register(
+        self.__initialize_device_register(
             device_id=device_id,
             register_id=register_id,
             register_address=register_address,
@@ -189,7 +244,7 @@ class FbBusConnector:  # pylint: disable=too-many-instance-attributes
 
     # -----------------------------------------------------------------------------
 
-    def configure_device_output_register(  # pylint: disable=too-many-arguments
+    def initialize_device_output_register(  # pylint: disable=too-many-arguments
         self,
         device_id: uuid.UUID,
         register_id: uuid.UUID,
@@ -198,7 +253,7 @@ class FbBusConnector:  # pylint: disable=too-many-instance-attributes
         register_data_type: DataType,
     ) -> None:
         """Configure device output register connector record"""
-        self.__configure_device_register(
+        self.__initialize_device_register(
             device_id=device_id,
             register_id=register_id,
             register_address=register_address,
@@ -209,7 +264,7 @@ class FbBusConnector:  # pylint: disable=too-many-instance-attributes
 
     # -----------------------------------------------------------------------------
 
-    def configure_device_attribute_register(  # pylint: disable=too-many-arguments
+    def initialize_device_attribute_register(  # pylint: disable=too-many-arguments
         self,
         device_id: uuid.UUID,
         register_id: uuid.UUID,
@@ -221,7 +276,7 @@ class FbBusConnector:  # pylint: disable=too-many-instance-attributes
         register_queryable: bool,
     ) -> None:
         """Configure device attribute register connector record"""
-        self.__configure_device_register(
+        self.__initialize_device_register(
             device_id=device_id,
             register_id=register_id,
             register_address=register_address,
@@ -235,7 +290,7 @@ class FbBusConnector:  # pylint: disable=too-many-instance-attributes
 
     # -----------------------------------------------------------------------------
 
-    def configure_device_setting_register(  # pylint: disable=too-many-arguments
+    def initialize_device_setting_register(  # pylint: disable=too-many-arguments
         self,
         device_id: uuid.UUID,
         register_id: uuid.UUID,
@@ -245,7 +300,7 @@ class FbBusConnector:  # pylint: disable=too-many-instance-attributes
         register_name: str,
     ) -> None:
         """Configure device setting register connector record"""
-        self.__configure_device_register(
+        self.__initialize_device_register(
             device_id=device_id,
             register_id=register_id,
             register_address=register_address,
@@ -257,21 +312,9 @@ class FbBusConnector:  # pylint: disable=too-many-instance-attributes
 
     # -----------------------------------------------------------------------------
 
-    def enable_client(self, client_id: uuid.UUID) -> bool:
-        """Enable client"""
-        return self.__client.enable_client(client_id=client_id)
-
-    # -----------------------------------------------------------------------------
-
-    def disable_client(self, client_id: uuid.UUID) -> bool:
-        """Disable client connector"""
-        return self.__client.disable_client(client_id=client_id)
-
-    # -----------------------------------------------------------------------------
-
-    def remove_client(self, client_id: uuid.UUID) -> bool:
-        """Remove client from connector"""
-        return self.__client.remove_client(client_id=client_id)
+    def remove_register(self, register_id: uuid.UUID) -> None:
+        """Remove device register from connector registry"""
+        self.__registers_registry.remove(register_id=register_id)
 
     # -----------------------------------------------------------------------------
 
@@ -392,7 +435,7 @@ class FbBusConnector:  # pylint: disable=too-many-instance-attributes
 
     # -----------------------------------------------------------------------------
 
-    def __configure_device_register(  # pylint: disable=too-many-arguments
+    def __initialize_device_register(  # pylint: disable=too-many-arguments
         self,
         device_id: uuid.UUID,
         register_id: uuid.UUID,
@@ -407,10 +450,10 @@ class FbBusConnector:  # pylint: disable=too-many-instance-attributes
         device_record = self.__devices_registry.get_by_id(device_id=device_id)
 
         if device_record is None:
-            raise InvalidStateException("Device for given register is not registered. Call 'configure_device' first")
+            raise InvalidStateException("Device for given register is not registered. Call 'initialize_device' first")
 
         if register_type == RegisterType.INPUT:
-            self.__registers_registry.append_input_register(
+            self.__registers_registry.initialize_input_register(
                 device_id=device_id,
                 register_id=register_id,
                 register_address=register_address,
@@ -422,7 +465,7 @@ class FbBusConnector:  # pylint: disable=too-many-instance-attributes
             return
 
         if register_type == RegisterType.OUTPUT:
-            self.__registers_registry.append_output_register(
+            self.__registers_registry.initialize_output_register(
                 device_id=device_id,
                 register_id=register_id,
                 register_address=register_address,
@@ -434,7 +477,7 @@ class FbBusConnector:  # pylint: disable=too-many-instance-attributes
             return
 
         if register_type == RegisterType.ATTRIBUTE:
-            self.__registers_registry.append_attribute_register(
+            self.__registers_registry.initialize_attribute_register(
                 device_id=device_id,
                 register_id=register_id,
                 register_address=register_address,
@@ -449,7 +492,7 @@ class FbBusConnector:  # pylint: disable=too-many-instance-attributes
             return
 
         if register_type == RegisterType.SETTING:
-            self.__registers_registry.append_setting_register(
+            self.__registers_registry.initialize_setting_register(
                 device_id=device_id,
                 register_id=register_id,
                 register_address=register_address,
@@ -458,3 +501,22 @@ class FbBusConnector:  # pylint: disable=too-many-instance-attributes
                 register_name=register_name,
                 register_ready=True,
             )
+
+        device_record = self.__devices_registry.get_by_id(device_id=device_id)
+
+        if device_record is not None and not device_record.ready:
+            is_ready = self.__check_device_record_ready(device_record=device_record)
+
+            if is_ready:
+                self.__devices_registry.set_ready(device=device_record, ready=True)
+
+    # -----------------------------------------------------------------------------
+
+    def __check_device_record_ready(self, device_record: DeviceRecord) -> bool:
+        registers_ready = True
+
+        for register in self.__registers_registry.get_all_for_device(device_id=device_record.id):
+            if not register.ready:
+                registers_ready = False
+
+        return registers_ready

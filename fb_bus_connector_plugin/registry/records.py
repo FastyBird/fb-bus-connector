@@ -177,6 +177,13 @@ class DeviceRecord:  # pylint: disable=too-many-public-methods,too-many-instance
 
     # -----------------------------------------------------------------------------
 
+    @enabled.setter
+    def enabled(self, enabled: bool) -> None:
+        """Enable or disable device"""
+        self.__enabled = enabled
+
+    # -----------------------------------------------------------------------------
+
     @property
     def pub_sub_pub_support(self) -> bool:
         """Has device PUB/SUB publish support?"""

@@ -116,7 +116,7 @@ class DevicesRegistry:
 
     # -----------------------------------------------------------------------------
 
-    def append(  # pylint: disable=too-many-arguments,too-many-locals
+    def initialize(  # pylint: disable=too-many-arguments,too-many-locals
         self,
         client_id: uuid.UUID,
         device_id: uuid.UUID,
@@ -184,7 +184,7 @@ class DevicesRegistry:
         firmware_version: Optional[str] = None,
     ) -> DeviceRecord:
         """Create new attribute record"""
-        device_record = self.append(
+        device_record = self.initialize(
             client_id=client_id,
             device_id=device_id,
             device_address=device_address,
@@ -244,6 +244,40 @@ class DevicesRegistry:
 
         if updated_device is None:
             raise InvalidStateException("Device record could not be re-fetched from registry after update")
+
+        return updated_device
+
+    # -----------------------------------------------------------------------------
+
+    def enable(self, device: DeviceRecord) -> DeviceRecord:
+        """Enable device for communication"""
+        device.enabled = True
+
+        self.__update(updated_device=device)
+
+        updated_device = self.get_by_id(device.id)
+
+        if updated_device is None:
+            raise InvalidStateException("Device record could not be re-fetched from registry after update")
+
+        self.__consumer.propagate_device_record_state(device_record=updated_device)
+
+        return updated_device
+
+    # -----------------------------------------------------------------------------
+
+    def disable(self, device: DeviceRecord) -> DeviceRecord:
+        """Enable device for communication"""
+        device.enabled = False
+
+        self.__update(updated_device=device)
+
+        updated_device = self.get_by_id(device.id)
+
+        if updated_device is None:
+            raise InvalidStateException("Device record could not be re-fetched from registry after update")
+
+        self.__consumer.propagate_device_record_state(device_record=updated_device)
 
         return updated_device
 
@@ -469,7 +503,7 @@ class RegistersRegistry:
 
     # -----------------------------------------------------------------------------
 
-    def append_input_register(  # pylint: disable=too-many-arguments
+    def initialize_input_register(  # pylint: disable=too-many-arguments
         self,
         device_id: uuid.UUID,
         register_id: uuid.UUID,
@@ -496,7 +530,7 @@ class RegistersRegistry:
 
     # -----------------------------------------------------------------------------
 
-    def append_output_register(  # pylint: disable=too-many-arguments
+    def initialize_output_register(  # pylint: disable=too-many-arguments
         self,
         device_id: uuid.UUID,
         register_id: uuid.UUID,
@@ -523,7 +557,7 @@ class RegistersRegistry:
 
     # -----------------------------------------------------------------------------
 
-    def append_attribute_register(  # pylint: disable=too-many-arguments
+    def initialize_attribute_register(  # pylint: disable=too-many-arguments
         self,
         device_id: uuid.UUID,
         register_id: uuid.UUID,
@@ -556,7 +590,7 @@ class RegistersRegistry:
 
     # -----------------------------------------------------------------------------
 
-    def append_setting_register(  # pylint: disable=too-many-arguments
+    def initialize_setting_register(  # pylint: disable=too-many-arguments
         self,
         device_id: uuid.UUID,
         register_id: uuid.UUID,
@@ -601,7 +635,7 @@ class RegistersRegistry:
     ) -> RegisterRecord:
         """Create new register record"""
         if register_type == RegisterType.INPUT:
-            input_register = self.append_input_register(
+            input_register = self.initialize_input_register(
                 device_id=device_id,
                 register_id=register_id,
                 register_address=register_address,
@@ -616,7 +650,7 @@ class RegistersRegistry:
             return input_register
 
         if register_type == RegisterType.OUTPUT:
-            output_register = self.append_output_register(
+            output_register = self.initialize_output_register(
                 device_id=device_id,
                 register_id=register_id,
                 register_address=register_address,
@@ -631,7 +665,7 @@ class RegistersRegistry:
             return output_register
 
         if register_type == RegisterType.ATTRIBUTE:
-            attribute_register = self.append_attribute_register(
+            attribute_register = self.initialize_attribute_register(
                 device_id=device_id,
                 register_id=register_id,
                 register_address=register_address,
@@ -649,7 +683,7 @@ class RegistersRegistry:
             return attribute_register
 
         if register_type == RegisterType.SETTING:
-            setting_register = self.append_setting_register(
+            setting_register = self.initialize_setting_register(
                 device_id=device_id,
                 register_id=register_id,
                 register_address=register_address,
