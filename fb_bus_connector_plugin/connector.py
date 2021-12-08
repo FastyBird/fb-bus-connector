@@ -75,7 +75,7 @@ class FbBusConnector:  # pylint: disable=too-many-instance-attributes,too-many-p
     __client: Client
     __client_factory: ClientFactory
 
-    __pairing_helper: DevicesPairing
+    __pairing: DevicesPairing
 
     __logger: Logger
 
@@ -90,19 +90,19 @@ class FbBusConnector:  # pylint: disable=too-many-instance-attributes,too-many-p
         registers_registry: RegistersRegistry,
         client: Client,
         client_factory: ClientFactory,
-        pairing_handler: DevicesPairing,
+        pairing: DevicesPairing,
         logger: Logger,
     ) -> None:
         self.__receiver = receiver
         self.__publisher = publisher
         self.__consumer = consumer
+        self.__pairing = pairing
 
         self.__devices_registry = devices_registry
         self.__registers_registry = registers_registry
 
         self.__client = client
         self.__client_factory = client_factory
-        self.__pairing_helper = pairing_handler
 
         self.__logger = logger
 
@@ -459,8 +459,8 @@ class FbBusConnector:  # pylint: disable=too-many-instance-attributes,too-many-p
             return
 
         # Check is pairing enabled...
-        if self.__pairing_helper.is_enabled() is True:
-            self.__pairing_helper.loop()
+        if self.__pairing.is_enabled() is True:
+            self.__pairing.loop()
 
         # Pairing is not enabled...
         else:

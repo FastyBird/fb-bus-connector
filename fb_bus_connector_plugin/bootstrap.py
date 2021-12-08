@@ -69,7 +69,7 @@ def create_container(logger: logging.Logger = logging.getLogger("dummy")) -> Non
     )
     di["fb-bus-connector-plugin_api-v1-parser"] = di[V1Parser]
 
-    # BUS client
+    # Communication client
     di[Client] = Client()
     di["fb-bus-connector-plugin_data-client-proxy"] = di[Client]
 
@@ -85,17 +85,15 @@ def create_container(logger: logging.Logger = logging.getLogger("dummy")) -> Non
     di[DevicesPairing] = DevicesPairing()  # type: ignore[call-arg]
     di["fb-bus-connector-plugin_devices-pairing-proxy"] = di[DevicesPairing]
 
-    # Clients receivers
+    # Communication receivers
     di[RegisterItemReceiver] = RegisterItemReceiver(
         devices_registry=di[DevicesRegistry],
         registers_registry=di[RegistersRegistry],
         logger=di[Logger],
     )
     di["fb-bus-connector-plugin_registers-receiver"] = di[RegisterItemReceiver]
-
     di[DeviceItemReceiver] = DeviceItemReceiver(devices_registry=di[DevicesRegistry], logger=di[Logger])
     di["fb-bus-connector-plugin_device-receiver"] = di[DeviceItemReceiver]
-
     di[PairingReceiver] = PairingReceiver(
         devices_registry=di[DevicesRegistry],
         registers_registry=di[RegistersRegistry],
@@ -107,7 +105,7 @@ def create_container(logger: logging.Logger = logging.getLogger("dummy")) -> Non
     di[Receiver] = Receiver(parser=di[V1Parser], logger=di[Logger])
     di["fb-bus-connector-plugin_receiver-proxy"] = di[Receiver]
 
-    # Clients publishers
+    # Data publishers
     di[ApiV1Publisher] = ApiV1Publisher(
         devices_registry=di[DevicesRegistry],
         registers_registry=di[RegistersRegistry],
@@ -119,7 +117,7 @@ def create_container(logger: logging.Logger = logging.getLogger("dummy")) -> Non
     di[Publisher] = Publisher()  # type: ignore[call-arg]
     di["fb-bus-connector-plugin_publisher-proxy"] = di[Publisher]
 
-    # Connector clients factory
+    # Communication client factory
     di[ClientFactory] = ClientFactory(
         client=di[Client],
         receiver=di[Receiver],
@@ -136,7 +134,7 @@ def create_container(logger: logging.Logger = logging.getLogger("dummy")) -> Non
         registers_registry=di[RegistersRegistry],
         client=di[Client],
         client_factory=di[ClientFactory],
-        pairing_handler=di[DevicesPairing],
+        pairing=di[DevicesPairing],
         logger=di[Logger],
     )
     di["fb-bus-connector-plugin_connector"] = di[FbBusConnector]
