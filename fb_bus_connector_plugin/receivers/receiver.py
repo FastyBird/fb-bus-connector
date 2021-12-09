@@ -139,7 +139,6 @@ class Receiver:
                         length=length,
                         address=address,
                         client_id=client_id,
-                        protocol_version=protocol_version,
                     ),
                 )
 
