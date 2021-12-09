@@ -447,12 +447,11 @@ class ApiV1Publisher(BasePublisher):  # pylint: disable=too-few-public-methods
     # -----------------------------------------------------------------------------
 
     def __validate_result(self, result: bool, packet_type: Packet, device: DeviceRecord) -> None:
-        if result is True:
-            # Mark that gateway is waiting for reply from device...
-            self.__devices_registry.set_waiting_for_packet(device=device, packet_type=packet_type)
+        # Mark that gateway is waiting for reply from device...
+        self.__devices_registry.set_waiting_for_packet(device=device, packet_type=packet_type)
 
-        else:
-            # Mark that gateway is waiting for reply from device...
+        if not result:
+            # ...but packet was not received by device, mark that gateway is not waiting for reply from device
             self.__devices_registry.set_waiting_for_packet(device=device, packet_type=None)
 
     # -----------------------------------------------------------------------------
