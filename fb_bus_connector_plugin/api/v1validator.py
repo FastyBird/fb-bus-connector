@@ -34,6 +34,7 @@ class V1Validator:
 
     @property
     def version(self) -> ProtocolVersion:
+        """Validator protocol version number"""
         return ProtocolVersion.V1
 
     # -----------------------------------------------------------------------------
@@ -72,7 +73,7 @@ class V1Validator:
     # -----------------------------------------------------------------------------
 
     @staticmethod
-    def validate_version(payload: bytearray, protocol_version: ProtocolVersion) -> bool:
+    def validate_version(payload: bytearray) -> bool:
         """Validate payload against version definition"""
         return ProtocolVersion(int(payload[0])) == ProtocolVersion.V1
 

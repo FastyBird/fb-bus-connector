@@ -94,6 +94,7 @@ class V1Parser:
 
     @property
     def version(self) -> ProtocolVersion:
+        """Parser protocol version number"""
         return ProtocolVersion.V1
 
     # -----------------------------------------------------------------------------
@@ -104,7 +105,6 @@ class V1Parser:
         length: int,
         address: Optional[int],
         client_id: uuid.UUID,
-        protocol_version: ProtocolVersion,
     ) -> BaseEntity:
         """Parse received message content"""
         if self.__validator.validate(payload=payload) is False:

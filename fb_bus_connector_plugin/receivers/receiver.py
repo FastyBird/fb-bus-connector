@@ -119,7 +119,7 @@ class Receiver:
         protocol_version: ProtocolVersion,
     ) -> None:
         """Handle received message"""
-        if self.__validator.validate_version(payload=payload, protocol_version=protocol_version) is False:
+        if self.__validator.version == protocol_version and self.__validator.validate_version(payload=payload) is False:
             return
 
         if self.__validator.version == protocol_version and self.__validator.validate(payload=payload) is False:
