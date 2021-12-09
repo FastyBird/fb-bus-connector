@@ -32,9 +32,15 @@ class V1Validator:
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
 
-    def validate(self, payload: bytearray, protocol_version: ProtocolVersion) -> bool:
+    @property
+    def version(self) -> ProtocolVersion:
+        return ProtocolVersion.V1
+
+    # -----------------------------------------------------------------------------
+
+    def validate(self, payload: bytearray) -> bool:
         """Validate topic against sets of regular expressions"""
-        if not self.validate_version(payload=payload, protocol_version=protocol_version):
+        if not self.validate_version(payload=payload):
             return False
 
         if self.validate_discover_device(payload=payload):
@@ -68,7 +74,7 @@ class V1Validator:
     @staticmethod
     def validate_version(payload: bytearray, protocol_version: ProtocolVersion) -> bool:
         """Validate payload against version definition"""
-        return ProtocolVersion(int(payload[0])) == protocol_version
+        return ProtocolVersion(int(payload[0])) == ProtocolVersion.V1
 
     # -----------------------------------------------------------------------------
 

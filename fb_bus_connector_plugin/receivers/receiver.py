@@ -122,9 +122,9 @@ class Receiver:
         if self.__validator.validate_version(payload=payload, protocol_version=protocol_version) is False:
             return
 
-        if self.__validator.validate(payload=payload, protocol_version=protocol_version) is False:
+        if self.__validator.version == protocol_version and self.__validator.validate(payload=payload) is False:
             self.__logger.warning(
-                "Received message is not valid FIB %s convention message: %s",
+                "Received message is not valid FIB v%s convention message: %s",
                 protocol_version.value,
                 payload,
             )
@@ -132,18 +132,19 @@ class Receiver:
             return
 
         try:
-            entity = self.__parser.parse_message(
-                payload=payload,
-                length=length,
-                address=address,
-                client_id=client_id,
-                protocol_version=protocol_version,
-            )
+            if self.__validator.version == protocol_version:
+                self.append(
+                    entity=self.__parser.parse_message(
+                        payload=payload,
+                        length=length,
+                        address=address,
+                        client_id=client_id,
+                        protocol_version=protocol_version,
+                    ),
+                )
 
         except ParsePayloadException as ex:
             self.__logger.error("Received message could not be successfully parsed to entity")
             self.__logger.exception(ex)
 
             return
-
-        self.append(entity=entity)

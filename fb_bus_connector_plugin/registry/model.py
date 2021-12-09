@@ -392,8 +392,6 @@ class DevicesRegistry:
 
     def __update(self, updated_device: DeviceRecord) -> bool:
         """Update device record"""
-        self.remove(device_id=updated_device.id)
-
         self.__items[updated_device.id.__str__()] = updated_device
 
         return True
@@ -835,7 +833,6 @@ class RegistersRegistry:
     def __update(self, register: RegisterRecord) -> bool:
         for record in self.__items.values():
             if record.id == register.id:
-                self.remove(register_id=record.id)
                 self.__items[register.id.__str__()] = register
 
                 return True

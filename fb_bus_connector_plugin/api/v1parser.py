@@ -92,6 +92,12 @@ class V1Parser:
 
     # -----------------------------------------------------------------------------
 
+    @property
+    def version(self) -> ProtocolVersion:
+        return ProtocolVersion.V1
+
+    # -----------------------------------------------------------------------------
+
     def parse_message(  # pylint: disable=too-many-branches,too-many-return-statements,too-many-arguments
         self,
         payload: bytearray,
@@ -101,7 +107,7 @@ class V1Parser:
         protocol_version: ProtocolVersion,
     ) -> BaseEntity:
         """Parse received message content"""
-        if self.__validator.validate(payload=payload, protocol_version=protocol_version) is False:
+        if self.__validator.validate(payload=payload) is False:
             raise ParsePayloadException("Provided payload is not valid")
 
         if self.__validator.validate_read_single_register(payload=payload) and address is not None:
