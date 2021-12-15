@@ -216,7 +216,7 @@ class ApiV1Pairing(BasePairing):  # pylint: disable=too-many-instance-attributes
         if isinstance(client_id, uuid.UUID):
             self.__client_id = [client_id]
 
-        if isinstance(client_id, List):
+        if isinstance(client_id, list):
             self.__client_id = client_id
 
         self.__pairing_enabled = True
@@ -685,7 +685,7 @@ class ApiV1Pairing(BasePairing):  # pylint: disable=too-many-instance-attributes
 
         self._logger.debug("Preparing to broadcast search devices")
 
-        if isinstance(self.__client_id, List):
+        if isinstance(self.__client_id, list):
             for client_id in self.__client_id:
                 self.__client.broadcast_packet(
                     payload=output_content, waiting_time=self.__BROADCAST_WAITING_DELAY, client_id=client_id
@@ -722,7 +722,7 @@ class ApiV1Pairing(BasePairing):  # pylint: disable=too-many-instance-attributes
 
         self._logger.debug("Preparing to broadcast write address packet")
 
-        if isinstance(self.__client_id, List):
+        if isinstance(self.__client_id, list):
             for client_id in self.__client_id:
                 self.__client.broadcast_packet(
                     payload=output_content, waiting_time=self.__BROADCAST_WAITING_DELAY, client_id=client_id
@@ -751,7 +751,7 @@ class ApiV1Pairing(BasePairing):  # pylint: disable=too-many-instance-attributes
 
         result = False
 
-        if isinstance(self.__client_id, List):
+        if isinstance(self.__client_id, list):
             for client_id in self.__client_id:
                 result = self.__client.send_packet(
                     address=address,

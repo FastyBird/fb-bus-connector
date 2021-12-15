@@ -418,6 +418,11 @@ class DeviceRecord:  # pylint: disable=too-many-public-methods,too-many-instance
         """Get reading register time stamp"""
         return self.__reading_registers_timestamp
 
+    # -----------------------------------------------------------------------------
+
+    def __hash__(self) -> int:
+        return self.__id.__hash__()
+
 
 class RegisterRecord(ABC):  # pylint: disable=too-many-instance-attributes
     """
@@ -646,6 +651,11 @@ class RegisterRecord(ABC):  # pylint: disable=too-many-instance-attributes
     def waiting_for_data(self, waiting_for_data: bool) -> None:
         """Set waiting for data flag"""
         self.__waiting_for_data = waiting_for_data
+
+    # -----------------------------------------------------------------------------
+
+    def __hash__(self) -> int:
+        return self.__id.__hash__()
 
 
 class InputRegisterRecord(RegisterRecord):
@@ -1069,8 +1079,13 @@ class PairingDeviceRecord:  # pylint: disable=too-many-instance-attributes
         """Maximum pub/sub actions supported count"""
         return self.__max_subscription_actions
 
+    # -----------------------------------------------------------------------------
 
-class PairingRegisterRecord:
+    def __hash__(self) -> int:
+        return self.__id.__hash__()
+
+
+class PairingRegisterRecord(ABC):
     """
     Pairing base register record
 
@@ -1157,6 +1172,11 @@ class PairingRegisterRecord:
     def queryable(self) -> bool:
         """Is register queryable?"""
         return self.__queryable
+
+    # -----------------------------------------------------------------------------
+
+    def __hash__(self) -> int:
+        return self.__id.__hash__()
 
 
 class PairingInputRegisterRecord(PairingRegisterRecord):

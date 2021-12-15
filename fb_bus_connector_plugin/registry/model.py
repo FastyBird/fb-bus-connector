@@ -214,9 +214,13 @@ class DevicesRegistry:
         """Remove device from registry"""
         for record in self.__items.values():
             if device_id.__eq__(record.id):
-                del self.__items[record.id.__str__()]
+                try:
+                    del self.__items[record.id.__str__()]
 
-                return
+                except KeyError:
+                    pass
+
+                break
 
     # -----------------------------------------------------------------------------
 
@@ -226,8 +230,6 @@ class DevicesRegistry:
             for record in self.__items.values():
                 if client_id.__eq__(record.client_id):
                     self.remove(device_id=record.id)
-
-                    break
 
         else:
             self.__items = {}
@@ -704,9 +706,13 @@ class RegistersRegistry:
         """Remove register from registry"""
         for record in self.__items.values():
             if register_id.__eq__(record.id):
-                del self.__items[record.id.__str__()]
+                try:
+                    del self.__items[record.id.__str__()]
 
-                return
+                except KeyError:
+                    pass
+
+                break
 
     # -----------------------------------------------------------------------------
 
@@ -718,8 +724,6 @@ class RegistersRegistry:
                     registers_type is None or record.type == registers_type
                 ):
                     self.remove(register_id=record.id)
-
-                    break
 
         else:
             self.__items = {}
