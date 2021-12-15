@@ -82,8 +82,10 @@ class DevicesRegistry:
 
     def get_by_id(self, device_id: uuid.UUID) -> Optional[DeviceRecord]:
         """Find device in registry by given unique identifier"""
+        items = self.__items.copy()
+
         return next(
-            iter([record for record in self.__items.values() if device_id.__eq__(record.id)]),
+            iter([record for record in items.values() if device_id.__eq__(record.id)]),
             None,
         )
 
@@ -91,11 +93,13 @@ class DevicesRegistry:
 
     def get_by_address(self, client_id: uuid.UUID, address: int) -> Optional[DeviceRecord]:
         """Find device in registry by given unique address"""
+        items = self.__items.copy()
+
         return next(
             iter(
                 [
                     record
-                    for record in self.__items.values()
+                    for record in items.values()
                     if record.address == address and client_id.__eq__(record.client_id)
                 ]
             ),
@@ -106,13 +110,17 @@ class DevicesRegistry:
 
     def get_by_serial_number(self, serial_number: str) -> Optional[DeviceRecord]:
         """Find device in registry by given unique serial number"""
-        return next(iter([record for record in self.__items.values() if record.serial_number == serial_number]), None)
+        items = self.__items.copy()
+
+        return next(iter([record for record in items.values() if record.serial_number == serial_number]), None)
 
     # -----------------------------------------------------------------------------
 
     def get_all_for_connector(self, client_id: uuid.UUID) -> List[DeviceRecord]:
         """Get all devices by connector"""
-        return [record for record in self.__items.values() if client_id.__eq__(record.client_id)]
+        items = self.__items.copy()
+
+        return [record for record in items.values() if client_id.__eq__(record.client_id)]
 
     # -----------------------------------------------------------------------------
 
@@ -212,7 +220,9 @@ class DevicesRegistry:
 
     def remove(self, device_id: uuid.UUID) -> None:
         """Remove device from registry"""
-        for record in self.__items.values():
+        items = self.__items.copy()
+
+        for record in items.values():
             if device_id.__eq__(record.id):
                 try:
                     del self.__items[record.id.__str__()]
@@ -226,8 +236,10 @@ class DevicesRegistry:
 
     def reset(self, client_id: Optional[uuid.UUID] = None) -> None:
         """Reset devices registry to initial state"""
+        items = self.__items.copy()
+
         if client_id is not None:
-            for record in self.__items.values():
+            for record in items.values():
                 if client_id.__eq__(record.client_id):
                     self.remove(device_id=record.id)
 
@@ -461,9 +473,11 @@ class RegistersRegistry:
         register_type: Optional[RegisterType] = None,
     ) -> List[RegisterRecord]:
         """Get all registers for device by type"""
+        items = self.__items.copy()
+
         return [
             record
-            for record in self.__items.values()
+            for record in items.values()
             if device_id.__eq__(record.device_id) and (register_type is None or record.type == register_type)
         ]
 
@@ -471,7 +485,9 @@ class RegistersRegistry:
 
     def get_by_id(self, register_id: uuid.UUID) -> Optional[RegisterRecord]:
         """Get register by identifier"""
-        return next(iter([record for record in self.__items.values() if register_id.__eq__(record.id)]), None)
+        items = self.__items.copy()
+
+        return next(iter([record for record in items.values() if register_id.__eq__(record.id)]), None)
 
     # -----------------------------------------------------------------------------
 
@@ -482,11 +498,13 @@ class RegistersRegistry:
         register_address: int,
     ) -> Optional[RegisterRecord]:
         """Get register by its address"""
+        items = self.__items.copy()
+
         return next(
             iter(
                 [
                     record
-                    for record in self.__items.values()
+                    for record in items.values()
                     if device_id.__eq__(record.device_id)
                     and record.address == register_address
                     and record.type == register_type
@@ -499,7 +517,9 @@ class RegistersRegistry:
 
     def get_by_key(self, register_key: str) -> Optional[RegisterRecord]:
         """Get register by its unique key"""
-        return next(iter([record for record in self.__items.values() if record.key == register_key]), None)
+        items = self.__items.copy()
+
+        return next(iter([record for record in items.values() if record.key == register_key]), None)
 
     # -----------------------------------------------------------------------------
 
@@ -704,7 +724,9 @@ class RegistersRegistry:
 
     def remove(self, register_id: uuid.UUID) -> None:
         """Remove register from registry"""
-        for record in self.__items.values():
+        items = self.__items.copy()
+
+        for record in items.values():
             if register_id.__eq__(record.id):
                 try:
                     del self.__items[record.id.__str__()]
@@ -718,8 +740,10 @@ class RegistersRegistry:
 
     def reset(self, device_id: Optional[uuid.UUID] = None, registers_type: Optional[RegisterType] = None) -> None:
         """Reset registers registry"""
+        items = self.__items.copy()
+
         if device_id is not None or registers_type is not None:
-            for record in self.__items.values():
+            for record in items.values():
                 if (device_id is None or device_id.__eq__(record.device_id)) and (
                     registers_type is None or record.type == registers_type
                 ):
@@ -835,7 +859,9 @@ class RegistersRegistry:
     # -----------------------------------------------------------------------------
 
     def __update(self, register: RegisterRecord) -> bool:
-        for record in self.__items.values():
+        items = self.__items.copy()
+
+        for record in items.values():
             if record.id == register.id:
                 self.__items[register.id.__str__()] = register
 
