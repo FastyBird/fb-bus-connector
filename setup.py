@@ -53,7 +53,7 @@ setup(
     author="FastyBird",
     author_email="code@fastybird.com",
     license="Apache Software License (Apache Software License 2.0)",
-    description="FastyBird FB BUS connector",
+    description="FastyBird IoT connector for FB BUS devices",
     url="https://github.com/FastyBird/fb-bus-connector",
     long_description=long_description,
     long_description_content_type="text/markdown",
