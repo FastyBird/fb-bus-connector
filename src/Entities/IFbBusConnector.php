@@ -15,6 +15,8 @@
 
 namespace FastyBird\FbBusConnector\Entities;
 
+use FastyBird\DevicesModule\Entities as DevicesModuleEntities;
+
 /**
  * FastyBird BUS connector entity interface
  *
@@ -23,7 +25,7 @@ namespace FastyBird\FbBusConnector\Entities;
  *
  * @author         Adam Kadlec <adam.kadlec@fastybird.com>
  */
-interface IFbBusConnector extends IConnector
+interface IFbBusConnector extends DevicesModuleEntities\Connectors\IConnector
 {
 
 	/**
