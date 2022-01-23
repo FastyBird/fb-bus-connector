@@ -15,5 +15,5 @@
 #     limitations under the License.
 
 """
-FB BUS connector tests
+FastyBird BUS connector publishers module
 """

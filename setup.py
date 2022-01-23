@@ -44,31 +44,34 @@ def find_version(*file_paths):
     raise RuntimeError("Unable to find version string.")
 
 
-VERSION: str = find_version("fb_bus_connector_plugin", "__init__.py")
+VERSION: str = find_version("fastybird_fb_bus_connector", "__init__.py")
 
 
 setup(
     version=VERSION,
-    name="fastybird-fb-bus-connector-plugin",
+    name="fastybird-fb-bus-connector",
     author="FastyBird",
     author_email="code@fastybird.com",
     license="Apache Software License (Apache Software License 2.0)",
-    description="FastyBird FB BUS connector plugin",
-    url="https://github.com/FastyBird/fb-bus-connector-plugin",
+    description="FastyBird FB BUS connector",
+    url="https://github.com/FastyBird/fb-bus-connector",
     long_description=long_description,
     long_description_content_type="text/markdown",
     python_requires=">=3.7",
     packages=find_packages(),
-    package_data={"fb_bus_connector_plugin": ["py.typed"]},
+    package_data={"fastybird_fb_bus_connector": ["py.typed"]},
     install_requires=[
+        "fastnumbers",
+        "fastybird-devices-module",
+        "fastybird-metadata",
+        "inflection",
         "kink",
         "libscrc",
         "pjon_cython",
         "setuptools",
-        "fastnumbers",
-        "fastybird-modules-metadata",
+        "whistle"
     ],
-    download_url="https://github.com/FastyBird/fb-bus-connector-plugin/archive/%s.tar.gz" % VERSION,
+    download_url="https://github.com/FastyBird/fb-bus-connector/archive/%s.tar.gz" % VERSION,
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Environment :: Console",

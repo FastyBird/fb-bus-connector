@@ -15,5 +15,7 @@
 #     limitations under the License.
 
 """
-FB BUS connector tests
+FastyBird BUS connector module
 """
+
+__version__ = "0.4.0"

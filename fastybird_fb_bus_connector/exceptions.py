@@ -15,5 +15,27 @@
 #     limitations under the License.
 
 """
-FB BUS connector tests
+FastyBird BUS connector plugin exceptions
 """
+
+
+class InvalidStateException(Exception):
+    """
+    Service state is not valid
+
+    @package        FastyBird:FbBusConnector!
+    @module         exceptions
+
+    @author         Adam Kadlec <adam.kadlec@fastybird.com>
+    """
+
+
+class ParsePayloadException(Exception):
+    """
+    Parsing payload failed
+
+    @package        FastyBird:FbBusConnector!
+    @module         exceptions
+
+    @author         Adam Kadlec <adam.kadlec@fastybird.com>
+    """
