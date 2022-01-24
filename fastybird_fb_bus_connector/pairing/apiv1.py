@@ -148,7 +148,7 @@ class ApiV1Pairing(IPairing):  # pylint: disable=too-many-instance-attributes
 
     # -----------------------------------------------------------------------------
 
-    def loop(self) -> None:
+    def handle(self) -> None:
         """Handle pairing process"""
         if self.__pairing_enabled is False:
             return

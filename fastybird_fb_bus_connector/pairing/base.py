@@ -38,7 +38,7 @@ class IPairing(ABC):  # pylint: disable=too-few-public-methods
     # -----------------------------------------------------------------------------
 
     @abstractmethod
-    def loop(self) -> None:
+    def handle(self) -> None:
         """Handle pairing messages"""
 
     # -----------------------------------------------------------------------------

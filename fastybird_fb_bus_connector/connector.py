@@ -414,21 +414,21 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
 
             return
 
-        self.__receiver.loop()
+        self.__receiver.handle()
 
         if self.__stopped:
             return
 
         # Check is pairing enabled...
         if self.__pairing.is_enabled() is True:
-            self.__pairing.loop()
+            self.__pairing.handle()
 
         # Pairing is not enabled...
         else:
             # Check packets queue...
             if self.__packets_to_be_sent == 0:
                 # Continue processing devices
-                self.__publisher.loop()
+                self.__publisher.handle()
 
         self.__packets_to_be_sent = self.__client.handle()
 

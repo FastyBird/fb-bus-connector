@@ -87,7 +87,7 @@ class Receiver:
 
     # -----------------------------------------------------------------------------
 
-    def loop(self) -> None:
+    def handle(self) -> None:
         """Process received message"""
         try:
             if not self.__queue.empty():
