@@ -398,25 +398,25 @@ class PacketsHelpers:  # pylint: disable=too-few-public-methods
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
 
-    PACKET_NAMES: Dict[Packet, str] = {
-        Packet.PING: "FB_PACKET_PING",
-        Packet.PONG: "FB_PACKET_PONG",
-        Packet.EXCEPTION: "FB_PACKET_EXCEPTION",
-        Packet.DISCOVER: "FB_PACKET_DISCOVER",
-        Packet.READ_SINGLE_REGISTER: "FB_PACKET_READ_SINGLE_REGISTER",
-        Packet.READ_MULTIPLE_REGISTERS: "FB_PACKET_READ_MULTIPLE_REGISTERS",
-        Packet.WRITE_SINGLE_REGISTER: "FB_PACKET_WRITE_SINGLE_REGISTER",
-        Packet.WRITE_MULTIPLE_REGISTERS: "FB_PACKET_WRITE_MULTIPLE_REGISTERS",
-        Packet.REPORT_SINGLE_REGISTER: "FB_PACKET_REPORT_SINGLE_REGISTER",
-        Packet.READ_STATE: "FB_PACKET_READ_STATE",
-        Packet.WRITE_STATE: "FB_PACKET_WRITE_STATE",
-        Packet.REPORT_STATE: "FB_PACKET_REPORT_STATE",
+    PACKET_NAMES: Dict[int, str] = {
+        Packet.PING.value: "FB_PACKET_PING",
+        Packet.PONG.value: "FB_PACKET_PONG",
+        Packet.EXCEPTION.value: "FB_PACKET_EXCEPTION",
+        Packet.DISCOVER.value: "FB_PACKET_DISCOVER",
+        Packet.READ_SINGLE_REGISTER.value: "FB_PACKET_READ_SINGLE_REGISTER",
+        Packet.READ_MULTIPLE_REGISTERS.value: "FB_PACKET_READ_MULTIPLE_REGISTERS",
+        Packet.WRITE_SINGLE_REGISTER.value: "FB_PACKET_WRITE_SINGLE_REGISTER",
+        Packet.WRITE_MULTIPLE_REGISTERS.value: "FB_PACKET_WRITE_MULTIPLE_REGISTERS",
+        Packet.REPORT_SINGLE_REGISTER.value: "FB_PACKET_REPORT_SINGLE_REGISTER",
+        Packet.READ_STATE.value: "FB_PACKET_READ_STATE",
+        Packet.WRITE_STATE.value: "FB_PACKET_WRITE_STATE",
+        Packet.REPORT_STATE.value: "FB_PACKET_REPORT_STATE",
     }
 
     @classmethod
     def get_packet_name(cls, packet: Packet) -> str:
         """Transform packet value to text representation"""
-        if packet in cls.PACKET_NAMES:
-            return cls.PACKET_NAMES[packet]
+        if packet.value in cls.PACKET_NAMES:
+            return cls.PACKET_NAMES[packet.value]
 
         return "UNKNOWN"
