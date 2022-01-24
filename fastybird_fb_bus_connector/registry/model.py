@@ -27,7 +27,6 @@ from typing import Dict, List, Optional, Union
 # Library dependencies
 from fastybird_metadata.devices_module import ConnectionState
 from fastybird_metadata.types import ButtonPayload, DataType, SwitchPayload
-from kink import inject
 from whistle import EventDispatcher
 
 # Library libs
@@ -51,7 +50,6 @@ from fastybird_fb_bus_connector.registry.records import (
 from fastybird_fb_bus_connector.types import DeviceAttribute, Packet, RegisterType
 
 
-@inject
 class DevicesRegistry:
     """
     Devices registry

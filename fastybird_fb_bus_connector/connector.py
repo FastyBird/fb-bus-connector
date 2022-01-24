@@ -53,7 +53,7 @@ from kink import inject
 
 # Library libs
 from fastybird_fb_bus_connector.clients.client import Client
-from fastybird_fb_bus_connector.entities import FbBusConnectorEntity, FbBusDeviceEntity
+from fastybird_fb_bus_connector.entities import FbBusDeviceEntity
 from fastybird_fb_bus_connector.logger import Logger
 from fastybird_fb_bus_connector.pairing.pairing import DevicesPairing
 from fastybird_fb_bus_connector.publishers.publisher import Publisher
@@ -63,7 +63,11 @@ from fastybird_fb_bus_connector.registry.model import (
     DevicesRegistry,
     RegistersRegistry,
 )
-from fastybird_fb_bus_connector.types import DeviceAttribute, RegisterType
+from fastybird_fb_bus_connector.types import (
+    DeviceAttribute,
+    ProtocolVersion,
+    RegisterType,
+)
 
 
 @inject(alias=IConnector)
@@ -79,7 +83,7 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
 
     __stopped: bool = False
 
-    __connector: FbBusConnectorEntity
+    __connector_id: uuid.UUID
 
     __devices_repository: DevicesRepository
 
@@ -102,7 +106,7 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
 
     def __init__(  # pylint: disable=too-many-arguments
         self,
-        connector: FbBusConnectorEntity,
+        connector_id: uuid.UUID,
         devices_repository: DevicesRepository,
         receiver: Receiver,
         publisher: Publisher,
@@ -113,7 +117,7 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
         pairing: DevicesPairing,
         logger: Logger,
     ) -> None:
-        self.__connector = connector
+        self.__connector_id = connector_id
 
         self.__devices_repository = devices_repository
 
@@ -131,17 +135,30 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
 
     # -----------------------------------------------------------------------------
 
-    def initialize(self) -> None:
+    def initialize(self, settings: Optional[Dict] = None) -> None:
         """Set connector to initial state"""
+        connector_settings = settings if settings is not None else {}
+        connector_settings = {
+            **connector_settings,
+            **{
+                "address": 255,
+                "baud_rate": 38400,
+                "interface": "/dev/ttyAMA0",
+                "protocol_version": ProtocolVersion.V1,
+            },
+        }
+
+        protocol_version = connector_settings.get("protocol_version")
+
         self.__client.initialize(
-            address=self.__connector.address,
-            baud_rate=self.__connector.baud_rate,
-            interface=self.__connector.interface,
-            protocol_version=self.__connector.protocol_version,
+            address=int(str(connector_settings.get("address"))),
+            baud_rate=int(str(connector_settings.get("baud_rate"))),
+            interface=str(connector_settings.get("interface")),
+            protocol_version=protocol_version if isinstance(protocol_version, ProtocolVersion) else ProtocolVersion.V1,
         )
         self.__devices_registry.reset()
 
-        for device in self.__devices_repository.get_all_by_connector(connector_id=self.__connector.id):
+        for device in self.__devices_repository.get_all_by_connector(connector_id=self.__connector_id):
             self.initialize_device(device=device)
 
     # -----------------------------------------------------------------------------

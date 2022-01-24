@@ -20,10 +20,10 @@ FastyBird BUS connector logger module
 
 # Python base dependencies
 import logging
+import uuid
 from typing import Dict
 
 # Library libs
-from fastybird_fb_bus_connector.entities import FbBusConnectorEntity
 from fastybird_fb_bus_connector.types import CONNECTOR_NAME
 
 
@@ -37,7 +37,7 @@ class Logger:
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
 
-    __connector: FbBusConnectorEntity
+    __connector_id: uuid.UUID
 
     __logger: logging.Logger
 
@@ -45,10 +45,10 @@ class Logger:
 
     def __init__(
         self,
-        connector: FbBusConnectorEntity,
+        connector_id: uuid.UUID,
         logger: logging.Logger = logging.getLogger("dummy"),
     ) -> None:
-        self.__connector = connector
+        self.__connector_id = connector_id
 
         self.__logger = logger
 
@@ -118,6 +118,6 @@ class Logger:
         return {
             "connector": {
                 "type": CONNECTOR_NAME,
-                "id": self.__connector.id.__str__(),
+                "id": self.__connector_id.__str__(),
             },
         }

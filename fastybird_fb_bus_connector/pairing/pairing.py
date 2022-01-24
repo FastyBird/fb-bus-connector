@@ -21,9 +21,6 @@ FastyBird BUS connector pairing module proxy
 # Python base dependencies
 from typing import List
 
-# Library dependencies
-from kink import inject
-
 # Library libs
 from fastybird_fb_bus_connector.pairing.base import IPairing
 
@@ -42,7 +39,6 @@ class DevicesPairing:  # pylint: disable=too-few-public-methods
 
     # -----------------------------------------------------------------------------
 
-    @inject
     def __init__(
         self,
         pairing: List[IPairing],

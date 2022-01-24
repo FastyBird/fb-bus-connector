@@ -23,9 +23,6 @@ from queue import Full as QueueFull
 from queue import Queue
 from typing import List, Optional, Set
 
-# Library dependencies
-from kink import inject
-
 # Library libs
 from fastybird_fb_bus_connector.api.v1parser import V1Parser
 from fastybird_fb_bus_connector.api.v1validator import V1Validator
@@ -39,7 +36,6 @@ from fastybird_fb_bus_connector.receivers.entities import BaseEntity
 from fastybird_fb_bus_connector.types import ProtocolVersion
 
 
-@inject
 class Receiver:
     """
     BUS messages receivers proxy
@@ -59,7 +55,6 @@ class Receiver:
 
     # -----------------------------------------------------------------------------
 
-    @inject
     def __init__(
         self,
         receivers: List[IReceiver],

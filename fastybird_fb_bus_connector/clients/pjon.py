@@ -57,6 +57,7 @@ class PjonClient(IClient, pjon.ThroughSerialAsync):  # pylint: disable=no-member
 
     # -----------------------------------------------------------------------------
 
+    @inject
     def __init__(  # pylint: disable=too-many-arguments
         self,
         client_address: Optional[int],

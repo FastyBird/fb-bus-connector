@@ -19,16 +19,11 @@ FastyBird BUS connector clients module proxy
 """
 
 # Python base dependencies
-from typing import List, Optional, Set
-
-# Library dependencies
-from kink import inject
+from typing import List, Set
 
 # Library libs
 from fastybird_fb_bus_connector.clients.base import IClient
 from fastybird_fb_bus_connector.clients.pjon import PjonClient
-from fastybird_fb_bus_connector.logger import Logger
-from fastybird_fb_bus_connector.receivers.receiver import Receiver
 from fastybird_fb_bus_connector.types import ProtocolVersion
 
 
@@ -44,41 +39,29 @@ class Client:
 
     __clients: Set[IClient]
 
-    __receiver: Receiver
-
-    __logger: Logger
-
     # -----------------------------------------------------------------------------
 
-    @inject
     def __init__(
         self,
-        receiver: Receiver,
-        logger: Logger,
     ) -> None:
         self.__clients = set()
-        self.__receiver = receiver
-
-        self.__logger = logger
 
     # -----------------------------------------------------------------------------
 
     def initialize(
         self,
-        address: Optional[int],
-        baud_rate: Optional[int],
-        interface: Optional[str],
-        protocol_version: ProtocolVersion,
+        address: int,
+        baud_rate: int,
+        interface: str,
+        protocol_version: ProtocolVersion = ProtocolVersion.V1,
     ) -> None:
         """Register new client to proxy"""
         self.__clients.add(
-            PjonClient(
+            PjonClient(  # pylint: disable=no-value-for-parameter
                 client_address=address,
                 client_baud_rate=baud_rate,
                 client_interface=interface,
                 protocol_version=protocol_version,
-                receiver=self.__receiver,
-                logger=self.__logger,
             )
         )
 

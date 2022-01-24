@@ -18,4 +18,12 @@
 FastyBird BUS connector module
 """
 
-__version__ = "0.4.0"
+from .bootstrap import create_connector
+
+__version__ = "0.5.0"
+
+__all__ = ["connector", "bootstrap"]
+
+__connector_name__ = "FastyBird BUS connector"
+
+__connector_version__ = __version__

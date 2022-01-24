@@ -18,6 +18,9 @@
 FastyBird BUS connector events module listeners
 """
 
+# Python base dependencies
+import uuid
+
 # Library dependencies
 import inflection
 from fastybird_devices_module.entities.channel import ChannelDynamicPropertyEntity
@@ -43,11 +46,10 @@ from fastybird_devices_module.repositories.device import (
     DevicesRepository,
 )
 from fastybird_devices_module.repositories.state import IChannelPropertyStateRepository
-from kink import inject
 from whistle import Event, EventDispatcher
 
 # Library libs
-from fastybird_fb_bus_connector.entities import FbBusConnectorEntity, FbBusDeviceEntity
+from fastybird_fb_bus_connector.entities import FbBusDeviceEntity
 from fastybird_fb_bus_connector.events.events import (
     AttributeActualValueEvent,
     AttributeRecordCreatedOrUpdatedEvent,
@@ -73,7 +75,7 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
 
-    __connector: FbBusConnectorEntity
+    __connector_id: uuid.UUID
 
     __devices_repository: DevicesRepository
     __devices_manager: DevicesManager
@@ -95,10 +97,9 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
 
     # -----------------------------------------------------------------------------
 
-    @inject
     def __init__(  # pylint: disable=too-many-arguments
         self,
-        connector: FbBusConnectorEntity,
+        connector_id: uuid.UUID,
         devices_repository: DevicesRepository,
         devices_manager: DevicesManager,
         devices_properties_repository: DevicesPropertiesRepository,
@@ -112,7 +113,7 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
         event_dispatcher: EventDispatcher,
         logger: Logger,
     ) -> None:
-        self.__connector = connector
+        self.__connector_id = connector_id
 
         self.__devices_repository = devices_repository
         self.__devices_manager = devices_manager
@@ -220,7 +221,7 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
 
         if device is None:
             # Define relation between device and it's connector
-            device_data["connector_id"] = self.__connector.id
+            device_data["connector_id"] = self.__connector_id
 
             device = self.__devices_manager.create(
                 data=device_data,

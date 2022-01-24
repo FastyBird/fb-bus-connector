@@ -55,7 +55,7 @@ def create_connector(
     logger: logging.Logger = logging.getLogger("dummy"),
 ) -> FbBusConnector:
     """Create FB BUS connector services"""
-    di[Logger] = Logger(connector=connector, logger=logger)
+    di[Logger] = Logger(connector_id=connector.id, logger=logger)
     di["fb-bus-connector_logger"] = di[Logger]
 
     di[EventDispatcher] = EventDispatcher()
@@ -155,7 +155,7 @@ def create_connector(
 
     # Plugin main connector service
     connector_service = FbBusConnector(  # type: ignore[call-arg]
-        connector=connector,
+        connector_id=connector.id,
         receiver=di[Receiver],
         publisher=di[Publisher],
         devices_registry=di[DevicesRegistry],
