@@ -34,6 +34,7 @@ from fastybird_fb_bus_connector.api.v1validator import V1Validator
 from fastybird_fb_bus_connector.clients.client import Client
 from fastybird_fb_bus_connector.connector import FbBusConnector
 from fastybird_fb_bus_connector.entities import FbBusConnectorEntity
+from fastybird_fb_bus_connector.events.listeners import EventsListener
 from fastybird_fb_bus_connector.logger import Logger
 from fastybird_fb_bus_connector.pairing.apiv1 import ApiV1Pairing
 from fastybird_fb_bus_connector.pairing.pairing import DevicesPairing
@@ -152,6 +153,14 @@ def create_connector(
         devices_registry=di[DevicesRegistry],
     )
     di["fb-bus-connector_publisher-proxy"] = di[Publisher]
+
+    # Inner events system
+    di[EventsListener] = EventsListener(  # type: ignore[call-arg]
+        connector_id=connector.id,
+        event_dispatcher=di[EventDispatcher],
+        logger=di[Logger],
+    )
+    di["shelly-connector_clients-proxy"] = di[EventsListener]
 
     # Plugin main connector service
     connector_service = FbBusConnector(  # type: ignore[call-arg]

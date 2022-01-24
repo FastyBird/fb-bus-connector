@@ -46,6 +46,7 @@ from fastybird_devices_module.repositories.device import (
     DevicesRepository,
 )
 from fastybird_devices_module.repositories.state import IChannelPropertyStateRepository
+from kink import inject
 from whistle import Event, EventDispatcher
 
 # Library libs
@@ -65,6 +66,7 @@ from fastybird_fb_bus_connector.registry.records import (
 )
 
 
+@inject
 class EventsListener:  # pylint: disable=too-many-instance-attributes
     """
     Plugin events listener
