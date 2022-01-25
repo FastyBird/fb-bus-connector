@@ -212,6 +212,7 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
         device_data = {
             "id": event.record.id,
             "identifier": event.record.serial_number,
+            "name": f"{event.record.hardware_manufacturer} {event.record.hardware_model}",
             "enabled": event.record.enabled,
             "hardware_manufacturer": event.record.hardware_manufacturer,
             "hardware_model": event.record.hardware_model,
@@ -385,7 +386,7 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
                 "Creating new device property",
                 extra={
                     "device": {
-                        "id": device_property.device.device.id.__str__(),
+                        "id": device_property.device.id.__str__(),
                     },
                     "property": {
                         "id": device_property.id.__str__(),

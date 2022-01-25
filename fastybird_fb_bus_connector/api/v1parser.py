@@ -27,7 +27,7 @@ from typing import List, Optional, Tuple, Union
 
 # Library dependencies
 from fastybird_metadata.devices_module import ConnectionState
-from fastybird_metadata.types import ButtonPayload, SwitchPayload
+from fastybird_metadata.types import ButtonPayload, SwitchPayload, DataType
 
 # Library libs
 from fastybird_fb_bus_connector.api.v1validator import V1Validator
@@ -811,18 +811,18 @@ class V1Parser:
             )
 
         if register_record.data_type in (
-            DeviceDataType.UINT8,
-            DeviceDataType.UINT16,
-            DeviceDataType.UINT32,
-            DeviceDataType.INT8,
-            DeviceDataType.INT16,
-            DeviceDataType.INT32,
-            DeviceDataType.FLOAT32,
-            DeviceDataType.BOOLEAN,
-            DeviceDataType.TIME,
-            DeviceDataType.DATE,
-            DeviceDataType.DATETIME,
-            DeviceDataType.STRING,
+            DataType.UCHAR,
+            DataType.USHORT,
+            DataType.UINT,
+            DataType.CHAR,
+            DataType.SHORT,
+            DataType.INT,
+            DataType.FLOAT,
+            DataType.BOOLEAN,
+            DataType.TIME,
+            DataType.DATE,
+            DataType.DATETIME,
+            DataType.STRING,
         ):
             return register_type, (
                 register_address,
@@ -887,18 +887,18 @@ class V1Parser:
                 )
 
             if register_record.data_type in (
-                DeviceDataType.UINT8,
-                DeviceDataType.UINT16,
-                DeviceDataType.UINT32,
-                DeviceDataType.INT8,
-                DeviceDataType.INT16,
-                DeviceDataType.INT32,
-                DeviceDataType.FLOAT32,
-                DeviceDataType.BOOLEAN,
-                DeviceDataType.TIME,
-                DeviceDataType.DATE,
-                DeviceDataType.DATETIME,
-                DeviceDataType.STRING,
+                DataType.UCHAR,
+                DataType.USHORT,
+                DataType.UINT,
+                DataType.CHAR,
+                DataType.SHORT,
+                DataType.INT,
+                DataType.FLOAT,
+                DataType.BOOLEAN,
+                DataType.TIME,
+                DataType.DATE,
+                DataType.DATETIME,
+                DataType.STRING,
             ):
                 parsed_value = list(map(int, payload[position_byte:]))
 

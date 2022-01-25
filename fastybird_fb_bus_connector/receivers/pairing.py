@@ -322,7 +322,16 @@ class PairingReceiver(IReceiver):  # pylint: disable=too-few-public-methods
                 )
 
         # Device initialization is finished, enable it for communication
-        self.__devices_registry.enable(device=device_record)
+        self.__devices_registry.create_or_update(
+            device_id=device_record.id,
+            device_serial_number=device_record.serial_number,
+            device_enabled=True,
+            hardware_manufacturer=device_record.hardware_manufacturer,
+            hardware_model=device_record.hardware_model,
+            hardware_version=device_record.hardware_version,
+            firmware_manufacturer=device_record.firmware_manufacturer,
+            firmware_version=device_record.firmware_version,
+        )
 
         # Disable pairing
         self.__device_pairing.discover_device()
