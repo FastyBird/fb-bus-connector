@@ -22,7 +22,6 @@ FastyBird BUS connector types module
 from enum import Enum, unique
 
 # Library dependencies
-from fastybird_metadata.devices_module import DevicePropertyName
 from fastybird_metadata.enum import ExtendedEnum
 
 CONNECTOR_NAME: str = "fb-bus"
@@ -45,15 +44,13 @@ class Packet(Enum):
     EXCEPTION: int = 0x03
     DISCOVER: int = 0x04
 
-    READ_SINGLE_REGISTER: int = 0x21
-    READ_MULTIPLE_REGISTERS: int = 0x22
-    WRITE_SINGLE_REGISTER: int = 0x23
-    WRITE_MULTIPLE_REGISTERS: int = 0x24
-    REPORT_SINGLE_REGISTER: int = 0x25
-
-    READ_STATE: int = 0x31
-    WRITE_STATE: int = 0x32
-    REPORT_STATE: int = 0x33
+    READ_SINGLE_REGISTER_VALUE: int = 0x21
+    READ_MULTIPLE_REGISTERS_VALUES: int = 0x22
+    WRITE_SINGLE_REGISTER_VALUE: int = 0x23
+    WRITE_MULTIPLE_REGISTERS_VALUES: int = 0x24
+    READ_SINGLE_REGISTER_STRUCTURE: int = 0x25
+    READ_MULTIPLE_REGISTERS_STRUCTURE: int = 0x26
+    REPORT_SINGLE_REGISTER_VALUE: int = 0x27
 
     # -----------------------------------------------------------------------------
 
@@ -157,7 +154,6 @@ class DeviceConnectionState(Enum):
 
     RUNNING: int = 0x01
     STOPPED: int = 0x02
-    PAIRING: int = 0x03
     ERROR: int = 0x0A
     STOPPED_BY_OPERATOR: int = 0x0B
 
@@ -243,78 +239,6 @@ class RegisterType(Enum):
     INPUT: int = 0x01
     OUTPUT: int = 0x02
     ATTRIBUTE: int = 0x03
-    SETTING: int = 0x04
-
-    # -----------------------------------------------------------------------------
-
-    @classmethod
-    def has_value(cls, value: int) -> bool:
-        """Check if provided value is valid enum value"""
-        return value in cls._value2member_map_  # pylint: disable=no-member
-
-    # -----------------------------------------------------------------------------
-
-    def __str__(self) -> str:
-        """Transform enum to string"""
-        return str(self.value)
-
-    # -----------------------------------------------------------------------------
-
-    def __eq__(self, other: object) -> bool:
-        """Compare two enums"""
-        return str(self) == str(other)
-
-
-@unique
-class PairingCommand(Enum):
-    """
-    Pairing commands
-
-    @package        FastyBird:FbBusConnector!
-    @module         types
-
-    @author         Adam Kadlec <adam.kadlec@fastybird.com>
-    """
-
-    SEARCH: int = 0x01
-    PROVIDE_REGISTER_STRUCTURE: int = 0x05
-    PAIRING_FINISHED: int = 0x07
-
-    # -----------------------------------------------------------------------------
-
-    @classmethod
-    def has_value(cls, value: int) -> bool:
-        """Check if provided value is valid enum value"""
-        return value in cls._value2member_map_  # pylint: disable=no-member
-
-    # -----------------------------------------------------------------------------
-
-    def __str__(self) -> str:
-        """Transform enum to string"""
-        return str(self.value)
-
-    # -----------------------------------------------------------------------------
-
-    def __eq__(self, other: object) -> bool:
-        """Compare two enums"""
-        return str(self) == str(other)
-
-
-@unique
-class PairingResponse(Enum):
-    """
-    Pairing commands responses
-
-    @package        FastyBird:FbBusConnector!
-    @module         types
-
-    @author         Adam Kadlec <adam.kadlec@fastybird.com>
-    """
-
-    SEARCH: int = 0x51
-    WRITE_ADDRESS: int = 0x53
-    PROVIDE_REGISTER_STRUCTURE: int = 0x55
-    PAIRING_FINISHED: int = 0x57
 
     # -----------------------------------------------------------------------------
 
@@ -414,7 +338,7 @@ class SwitchPayloadType(Enum):
 @unique
 class DeviceAttribute(ExtendedEnum, Enum):
     """
-    Devices attribute name
+    Known devices attribute name
 
     @package        FastyBird:FbBusConnector!
     @module         types
@@ -422,10 +346,9 @@ class DeviceAttribute(ExtendedEnum, Enum):
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
 
-    STATE: str = DevicePropertyName.STATE.value
-    ADDRESS: str = "address"
-    MAX_PACKET_LENGTH: str = "max-packet-length"
-    SAMPLING_TIME: str = "sampling-time"
+    STATE: str = "state"
+    ADDRESS: str = "addr"
+    MAX_PACKET_LENGTH: str = "mpl"
 
     # -----------------------------------------------------------------------------
 

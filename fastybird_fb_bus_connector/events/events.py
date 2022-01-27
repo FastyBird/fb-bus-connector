@@ -26,7 +26,6 @@ from whistle import Event
 
 # Library libs
 from fastybird_fb_bus_connector.registry.records import (
-    AttributeRecord,
     AttributeRegisterRecord,
     DeviceRecord,
     InputRegisterRecord,
@@ -114,69 +113,6 @@ class AttributeRegisterRecordCreatedOrUpdatedEvent(Event):  # pylint: disable=to
     def record(self) -> AttributeRegisterRecord:
         """Created or updated register record"""
         return self.__record
-
-
-class AttributeRecordCreatedOrUpdatedEvent(Event):  # pylint: disable=too-few-public-methods
-    """
-    Device's attribute record was created or updated in registry
-
-    @package        FastyBird:FbBusConnector!
-    @module         events/events
-
-    @author         Adam Kadlec <adam.kadlec@fastybird.com>
-    """
-
-    __record: AttributeRecord
-
-    EVENT_NAME: str = "registry.attributeRecordCreatedOrUpdated"
-
-    # -----------------------------------------------------------------------------
-
-    def __init__(self, record: AttributeRecord) -> None:
-        self.__record = record
-
-    # -----------------------------------------------------------------------------
-
-    @property
-    def record(self) -> AttributeRecord:
-        """Created or updated attribute record"""
-        return self.__record
-
-
-class AttributeActualValueEvent(Event):
-    """
-    Attribute record actual value was updated in registry
-
-    @package        FastyBird:FbBusConnector!
-    @module         events/events
-
-    @author         Adam Kadlec <adam.kadlec@fastybird.com>
-    """
-
-    __original_record: Optional[AttributeRecord]
-    __updated_record: AttributeRecord
-
-    EVENT_NAME: str = "registry.attributeRecordActualValueUpdated"
-
-    # -----------------------------------------------------------------------------
-
-    def __init__(self, original_record: Optional[AttributeRecord], updated_record: AttributeRecord) -> None:
-        self.__original_record = original_record
-        self.__updated_record = updated_record
-
-    # -----------------------------------------------------------------------------
-
-    @property
-    def original_record(self) -> Optional[AttributeRecord]:
-        """Original attribute record"""
-        return self.__original_record
-
-    # -----------------------------------------------------------------------------
-
-    @property
-    def updated_record(self) -> AttributeRecord:
-        """Updated attribute record"""
-        return self.__updated_record
 
 
 class RegisterActualValueEvent(Event):

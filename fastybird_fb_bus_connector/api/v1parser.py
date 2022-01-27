@@ -27,27 +27,26 @@ from typing import List, Optional, Tuple, Union
 
 # Library dependencies
 from fastybird_metadata.devices_module import ConnectionState
-from fastybird_metadata.types import ButtonPayload, SwitchPayload, DataType
+from fastybird_metadata.types import ButtonPayload, DataType, SwitchPayload
 
 # Library libs
 from fastybird_fb_bus_connector.api.v1validator import V1Validator
 from fastybird_fb_bus_connector.exceptions import ParsePayloadException
 from fastybird_fb_bus_connector.receivers.entities import (
     BaseEntity,
-    DeviceSearchEntity,
-    GetDeviceStateEntity,
-    PairingFinishedEntity,
+    DeviceDiscoveryEntity,
+    PongEntity,
     ReadMultipleRegistersEntity,
     ReadSingleRegisterEntity,
     RegisterStructureEntity,
-    ReportDeviceStateEntity,
     ReportSingleRegisterEntity,
-    SetDeviceStateEntity,
     WriteMultipleRegistersEntity,
     WriteSingleRegisterEntity,
 )
 from fastybird_fb_bus_connector.registry.model import DevicesRegistry, RegistersRegistry
+from fastybird_fb_bus_connector.registry.records import AttributeRegisterRecord
 from fastybird_fb_bus_connector.types import (
+    DeviceAttribute,
     DeviceConnectionState,
     DeviceDataType,
     ProtocolVersion,
@@ -113,57 +112,43 @@ class V1Parser:
         if self.__validator.validate(payload=payload) is False:
             raise ParsePayloadException("Provided payload is not valid")
 
-        if self.__validator.validate_read_single_register(payload=payload) and address is not None:
+        if self.__validator.validate_read_single_register_value(payload=payload) and address is not None:
             return self.parse_read_single_register_value(
                 payload=payload,
                 length=length,
                 address=address,
             )
 
-        if self.__validator.validate_read_multiple_registers(payload=payload) and address is not None:
+        if self.__validator.validate_read_multiple_registers_values(payload=payload) and address is not None:
             return self.parse_read_multiple_registers_values(
                 payload=payload,
                 length=length,
                 address=address,
             )
 
-        if self.__validator.validate_write_single_register(payload=payload) and address is not None:
+        if self.__validator.validate_write_single_register_value(payload=payload) and address is not None:
             return self.parse_write_single_register_value(
                 payload=payload,
                 length=length,
                 address=address,
             )
 
-        if self.__validator.validate_write_multiple_registers(payload=payload) and address is not None:
+        if self.__validator.validate_write_multiple_registers_values(payload=payload) and address is not None:
             return self.parse_write_multiple_registers_values(
                 payload=payload,
                 length=length,
                 address=address,
             )
 
-        if self.__validator.validate_report_single_register(payload=payload) and address is not None:
+        if self.__validator.validate_report_single_register_value(payload=payload) and address is not None:
             return self.parse_report_single_register_value(
                 payload=payload,
                 length=length,
                 address=address,
             )
 
-        if self.__validator.validate_read_device_state(payload=payload) and address is not None:
-            return self.parse_read_device_state(
-                payload=payload,
-                length=length,
-                address=address,
-            )
-
-        if self.__validator.validate_write_device_state(payload=payload) and address is not None:
-            return self.parse_write_device_state(
-                payload=payload,
-                length=length,
-                address=address,
-            )
-
-        if self.__validator.validate_report_device_state(payload=payload) and address is not None:
-            return self.parse_report_device_state(
+        if self.__validator.validate_read_single_register_structure(payload=payload) and address is not None:
+            return self.parse_read_single_register_structure(
                 payload=payload,
                 length=length,
                 address=address,
@@ -176,48 +161,13 @@ class V1Parser:
             )
 
         if self.__validator.validate_discover_device(payload=payload) and address is not None:
-            return self.parse_device_pairing(
+            return self.parse_device_discovery(
                 payload=payload,
                 length=length,
                 address=address,
             )
 
         raise ParsePayloadException("Provided payload is not valid")
-
-    # -----------------------------------------------------------------------------
-
-    def parse_device_pairing(
-        self,
-        payload: bytearray,
-        length: int,
-        address: Optional[int],
-    ) -> BaseEntity:
-        """Parse received pairing message content"""
-        if self.__validator.validate_discover_device(payload=payload) is False:
-            raise ParsePayloadException("Provided payload is not valid pairing payload")
-
-        if self.__validator.validate_pair_command_search_devices(payload=payload) and address is not None:
-            return self.parse_device_pairing_search_devices(
-                payload=payload,
-                length=length,
-                address=address,
-            )
-
-        if self.__validator.validate_pair_command_provide_register_structure(payload=payload) and address is not None:
-            return self.parse_device_pairing_provide_register_structure(
-                payload=payload,
-                length=length,
-                address=address,
-            )
-
-        if self.__validator.validate_pair_command_pairing_finished(payload=payload) and address is not None:
-            return self.parse_device_pairing_finished(
-                payload=payload,
-                length=length,
-                address=address,
-            )
-
-        raise ParsePayloadException("Provided pairing payload is not valid")
 
     # -----------------------------------------------------------------------------
 
@@ -275,7 +225,7 @@ class V1Parser:
         3       => High byte of register address
         4       => Low byte of register address
         5       => Count of registers
-        6-n     => Packet data
+        6-n     => Registers data
         """
         if length < 10:
             raise ParsePayloadException(
@@ -355,7 +305,7 @@ class V1Parser:
         3       => High byte of register address
         4       => Low byte of register address
         5       => Count of registers
-        6-n     => Register data
+        6-n     => Registers data
         """
         if length < 10:
             raise ParsePayloadException(
@@ -419,150 +369,143 @@ class V1Parser:
 
     # -----------------------------------------------------------------------------
 
-    def parse_read_device_state(
-        self,
+    @staticmethod
+    def parse_read_single_register_structure(
         payload: bytearray,
         length: int,
         address: int,
-    ) -> GetDeviceStateEntity:
+    ) -> RegisterStructureEntity:
         """
-        Parse get device state
+        Parse pairing command response provide register structure
 
         PAYLOAD:
         0       => Protocol version
         1       => Packet identifier
-        2       => Device current state     => RUNNING | STOPPED | PAIRING | ERROR | UNKNOWN
+        2       => Register type                    => INPUT | OUTPUT | ATTRIBUTE
+        3       => High byte of register address    => 0-255
+        4       => Low byte of register address     => 0-255
+        5       => Register data type               => 0-255
+
+        ATTRIBUTE
+        6       => High byte of attribute settable  => 0-255
+        7       => High byte of attribute settable  => 0-255
+        8       => High byte of attribute queryable => 0-255
+        9       => High byte of attribute queryable => 0-255
+        10      => Attribute name length            => 0-255
+        12-n    => Attribute name                   => char array(a, b, c, ...)
         """
-        if length != 3:
-            raise ParsePayloadException(f"Invalid packet length. Expected: 3 but actual length is {length}")
+        if length < 6:
+            raise ParsePayloadException(
+                f"Invalid packet length. Minimal length expected: 7 but actual length is {length}",
+            )
 
-        device_state = self.__parse_device_state(payload=payload[2:])
+        if not validate_register_type(int(payload[2])):
+            raise ParsePayloadException("Received packet payload with invalid register type")
 
-        return GetDeviceStateEntity(
+        if not DeviceDataType.has_value(int(payload[5])):
+            raise ParsePayloadException("Received packet payload with invalid data type type")
+
+        # Extract register type from payload
+        register_type = RegisterType(int(payload[2]))
+
+        # Extract register data type from payload
+        register_data_type = DataTypeTransformHelpers.transform_from_device(data_type=DeviceDataType(int(payload[5])))
+
+        # Extract register address from payload
+        register_address = (int(payload[3]) << 8) | int(payload[4])
+
+        register_settable = False
+        register_queryable = False
+        register_name: Optional[str] = None
+
+        if register_type == RegisterType.INPUT:
+            register_settable = False
+            register_queryable = True
+
+        if register_type == RegisterType.OUTPUT:
+            register_settable = True
+            register_queryable = True
+
+        if register_type == RegisterType.ATTRIBUTE:
+            register_settable = ((int(payload[6]) << 8) | int(payload[7])) == 0xFF00
+            register_queryable = ((int(payload[8]) << 8) | int(payload[9])) == 0xFF00
+
+            # Extract register type from payload
+            register_name_length = int(payload[10])
+
+            # Extract register name
+            register_name = TextHelpers.extract_text_from_payload(
+                payload=payload,
+                start_pointer=11,
+                length=register_name_length,
+            )
+
+            # SPECIAL TRANSFORMING FOR STATE ATTRIBUTE
+            if register_name == DeviceAttribute.STATE.value:
+                register_data_type = DataType.ENUM
+
+        return RegisterStructureEntity(
             device_address=address,
-            device_state=device_state,
-        )
-
-    # -----------------------------------------------------------------------------
-
-    def parse_write_device_state(
-        self,
-        payload: bytearray,
-        length: int,
-        address: int,
-    ) -> SetDeviceStateEntity:
-        """
-        Parse set device state response
-
-        PAYLOAD:
-        0       => Protocol version
-        1       => Packet identifier
-        2       => Device current state     => RUNNING | STOPPED | PAIRING | ERROR | UNKNOWN
-        """
-        if length != 3:
-            raise ParsePayloadException(f"Invalid packet length. Expected: 3 but actual length is {length}")
-
-        device_state = self.__parse_device_state(payload=payload[2:])
-
-        return SetDeviceStateEntity(
-            device_address=address,
-            device_state=device_state,
-        )
-
-    # -----------------------------------------------------------------------------
-
-    def parse_report_device_state(
-        self,
-        payload: bytearray,
-        length: int,
-        address: int,
-    ) -> ReportDeviceStateEntity:
-        """
-        Parse report device state
-
-        PAYLOAD:
-        0       => Protocol version
-        1       => Packet identifier
-        2       => Device current state     => RUNNING | STOPPED | PAIRING | ERROR | UNKNOWN
-        """
-        if length != 3:
-            raise ParsePayloadException(f"Invalid packet length. Expected: 3 but actual length is {length}")
-
-        device_state = self.__parse_device_state(payload=payload[2:])
-
-        return ReportDeviceStateEntity(
-            device_address=address,
-            device_state=device_state,
+            register_type=register_type,
+            register_data_type=register_data_type,
+            register_address=register_address,
+            register_settable=register_settable,
+            register_queryable=register_queryable,
+            register_name=register_name,
         )
 
     # -----------------------------------------------------------------------------
 
     @staticmethod
-    def parse_pong_response(
-        length: int,
-        address: int,
-    ) -> ReportDeviceStateEntity:
-        """
-        Parse pong response
-
-        PAYLOAD:
-        0       => Protocol version
-        1       => Packet identifier
-        """
-        if length != 2:
-            raise ParsePayloadException(f"Invalid packet length. Expected: 2 but actual length is {length}")
-
-        return ReportDeviceStateEntity(
-            device_address=address,
-            device_state=ConnectionState.UNKNOWN,
-        )
-
-    # -----------------------------------------------------------------------------
-
-    @staticmethod
-    def parse_device_pairing_search_devices(  # pylint: disable=too-many-locals
+    def parse_device_discovery(  # pylint: disable=too-many-locals
         payload: bytearray,
         length: int,
         address: int,
-    ) -> DeviceSearchEntity:
+    ) -> DeviceDiscoveryEntity:
         """
         Parse search for new device response
 
         PAYLOAD:
         0       => Protocol version
         1       => Packet identifier
-        2       => Cmd response
-        3       => Device configured address                            => 1-253
-        4       => Max packet length                                    => 1-255
+        2       => Device communication address                         => 1-250
+        3       => Packet max length                                    => 1-255
+        4       => Device status                                        => 1-255
         5       => SN length                                            => 1-255
         6-m     => Device parsed SN                                     => char array (a,b,c,...)
-        m+1     => Device hardware version length                       => 1-255
+        m+1     => Device hardware version length                       => 0-255
         m+2-n   => Device hardware version                              => char array (a,b,c,...)
-        n+1     => Device hardware model length                         => 1-255
+        n+1     => Device hardware model length                         => 0-255
         n+2-o   => Device hardware model                                => char array (a,b,c,...)
-        o+1     => Device hardware manufacturer length                  => 1-255
+        o+1     => Device hardware manufacturer length                  => 0-255
         o+2-p   => Device hardware manufacturer                         => char array (a,b,c,...)
-        p+1     => Device firmware version length                       => 1-255
+        p+1     => Device firmware version length                       => 0-255
         p+2-q   => Device firmware version                              => char array (a,b,c,...)
-        q+1     => Device firmware manufacturer length                  => 1-255
+        q+1     => Device firmware manufacturer length                  => 0-255
         q+2-r   => Device firmware manufacturer                         => char array (a,b,c,...)
-        r+1     => Device inputs size                                   => 1-255
-        r+2     => Device outputs size                                  => 1-255
-        r+3     => Device attributes size                               => 1-255
+        r+1     => Device inputs size                                   => 0-255
+        r+2     => Device outputs size                                  => 0-255
+        r+3     => Device attributes size                               => 0-255
         """
-        if length < 22:
+        if length < 20:
             raise ParsePayloadException(
-                f"Invalid packet length. Minimal length expected: 21 but actual length is {length}",
+                f"Invalid packet length. Minimal length expected: 20 but actual length is {length}",
             )
 
         # Extract sender configured address from payload
-        device_current_address = int(payload[3])
+        device_current_address = int(payload[2])
 
         if device_current_address != address:
             raise ParsePayloadException(f"Received packet with address mismatch: {address} vs {device_current_address}")
 
         # Extract max packet length
-        max_packet_length = int(payload[4])
+        max_packet_length = int(payload[3])
+
+        # Extract device current state
+        if not DeviceConnectionState.has_value(int(payload[4])):
+            raise ParsePayloadException("Unknown device state received")
+
+        device_state = StateTransformHelpers.transform_from_device(device_state=DeviceConnectionState(int(payload[4])))
 
         # Extract SN length
         serial_number_length = int(payload[5])
@@ -658,9 +601,10 @@ class V1Parser:
 
         byte_position += 1
 
-        return DeviceSearchEntity(
+        return DeviceDiscoveryEntity(
             device_address=address,
             device_max_packet_length=max_packet_length,
+            device_state=device_state,
             device_serial_number=serial_number,
             device_hardware_version=hardware_version,
             device_hardware_model=hardware_model,
@@ -675,104 +619,23 @@ class V1Parser:
     # -----------------------------------------------------------------------------
 
     @staticmethod
-    def parse_device_pairing_provide_register_structure(
-        payload: bytearray,
+    def parse_pong_response(
         length: int,
         address: int,
-    ) -> RegisterStructureEntity:
+    ) -> PongEntity:
         """
-        Parse pairing command response provide register structure
+        Parse pong response
 
         PAYLOAD:
         0       => Protocol version
         1       => Packet identifier
-        2       => Cmd response
-        3       => Register type                    => FB_REGISTER_INPUT | FB_REGISTER_OUTPUT
-        4       => High byte of register address    => 0-255
-        5       => Low byte of register address     => 0-255
-        6       => Register data type               => 0-255
-
-        ATTRIBUTE
-        7       => High byte of attribute settable  => 0-255
-        8       => High byte of attribute settable  => 0-255
-        9       => High byte of attribute queryable => 0-255
-        10      => High byte of attribute queryable => 0-255
-        11      => Attribute name length            => 0-255
-        12-n    => Attribute name                   => char array(a, b, c, ...)
         """
-        if length < 7:
-            raise ParsePayloadException(
-                f"Invalid packet length. Minimal length expected: 7 but actual length is {length}",
-            )
+        if length != 2:
+            raise ParsePayloadException(f"Invalid packet length. Expected: 2 but actual length is {length}")
 
-        if not validate_register_type(int(payload[3])):
-            raise ParsePayloadException("Received packet payload with invalid register type")
-
-        if not DeviceDataType.has_value(int(payload[6])):
-            raise ParsePayloadException("Received packet payload with invalid data type type")
-
-        # Extract register type from payload
-        register_type = RegisterType(int(payload[3]))
-
-        # Extract register data type from payload
-        register_data_type = DataTypeTransformHelpers.transform_from_device(data_type=DeviceDataType(int(payload[6])))
-
-        # Extract register address from payload
-        register_address = (int(payload[4]) << 8) | int(payload[5])
-
-        register_settable = False
-        register_queryable = False
-        register_name: Optional[str] = None
-
-        if register_type == RegisterType.ATTRIBUTE:
-            register_settable = ((int(payload[7]) << 8) | int(payload[8])) == 0xFF00
-            register_queryable = ((int(payload[9]) << 8) | int(payload[10])) == 0xFF00
-
-            # Extract register type from payload
-            register_name_length = int(payload[11])
-
-            # Extract register name
-            register_name = TextHelpers.extract_text_from_payload(
-                payload=payload,
-                start_pointer=12,
-                length=register_name_length,
-            )
-
-        return RegisterStructureEntity(
+        return PongEntity(
             device_address=address,
-            register_type=register_type,
-            register_data_type=register_data_type,
-            register_address=register_address,
-            register_settable=register_settable,
-            register_queryable=register_queryable,
-            register_name=register_name,
-        )
-
-    # -----------------------------------------------------------------------------
-
-    def parse_device_pairing_finished(
-        self,
-        payload: bytearray,
-        length: int,
-        address: int,
-    ) -> PairingFinishedEntity:
-        """
-        Parse pairing command response pairing finished
-
-        PAYLOAD:
-        0       => Protocol version
-        1       => Packet identifier
-        2       => Cmd response         => FB_PAIRING_RESPONSE_FINISHED
-        3       => Device actual state  => RUNNING | STOPPED | PAIRING | ERROR | UNKNOWN
-        """
-        if length != 4:
-            raise ParsePayloadException(f"Invalid packet length. Expected: 4 but actual length is {length}")
-
-        device_state = self.__parse_device_state(payload=payload[3:])
-
-        return PairingFinishedEntity(
-            device_address=address,
-            device_state=device_state,
+            device_state=ConnectionState.UNKNOWN,
         )
 
     # -----------------------------------------------------------------------------
@@ -819,10 +682,6 @@ class V1Parser:
             DataType.INT,
             DataType.FLOAT,
             DataType.BOOLEAN,
-            DataType.TIME,
-            DataType.DATE,
-            DataType.DATETIME,
-            DataType.STRING,
         ):
             return register_type, (
                 register_address,
@@ -830,6 +689,28 @@ class V1Parser:
                     data_type=register_record.data_type,
                     value=list(map(int, payload[3:])),
                 ),
+            )
+
+        # SPECIAL TRANSFORMING FOR STATE ATTRIBUTE
+        if (
+            register_record.data_type == DataType.ENUM
+            and isinstance(register_record, AttributeRegisterRecord)
+            and register_record.name == DeviceAttribute.STATE.value
+        ):
+            return register_type, (
+                register_address,
+                StateTransformHelpers.transform_from_device(
+                    device_state=DeviceConnectionState(
+                        int(
+                            str(
+                                ValueTransformHelpers.transform_from_bytes(
+                                    data_type=DataType.SHORT,
+                                    value=list(map(int, payload[3:])),
+                                )
+                            )
+                        )
+                    ),
+                ).value,
             )
 
         raise ParsePayloadException("Register value could not be extracted from payload")
@@ -895,10 +776,6 @@ class V1Parser:
                 DataType.INT,
                 DataType.FLOAT,
                 DataType.BOOLEAN,
-                DataType.TIME,
-                DataType.DATE,
-                DataType.DATETIME,
-                DataType.STRING,
             ):
                 parsed_value = list(map(int, payload[position_byte:]))
 
@@ -918,6 +795,34 @@ class V1Parser:
                 else:
                     position_byte += 4
 
+            # SPECIAL TRANSFORMING FOR STATE ATTRIBUTE
+            elif (
+                register_record.data_type == DataType.ENUM
+                and isinstance(register_record, AttributeRegisterRecord)
+                and register_record.name == DeviceAttribute.STATE.value
+            ):
+                parsed_value = list(map(int, payload[position_byte:]))
+
+                values.append(
+                    (
+                        register_address,
+                        StateTransformHelpers.transform_from_device(
+                            device_state=DeviceConnectionState(
+                                int(
+                                    str(
+                                        ValueTransformHelpers.transform_from_bytes(
+                                            data_type=register_record.data_type,
+                                            value=parsed_value,
+                                        )
+                                    )
+                                )
+                            ),
+                        ).value,
+                    )
+                )
+
+                position_byte += 4
+
             else:
                 raise ParsePayloadException("Register value could not be extracted from payload")
 
@@ -925,17 +830,3 @@ class V1Parser:
             processed_registers_count += 1
 
         return register_type, values
-
-    # -----------------------------------------------------------------------------
-
-    @staticmethod
-    def __parse_device_state(payload: bytearray) -> ConnectionState:
-        """
-        Parse device state value from payload
-
-        0       => Device current state
-        """
-        if not DeviceConnectionState.has_value(int(payload[0])):
-            raise ParsePayloadException("Unknown device state received")
-
-        return StateTransformHelpers.transform_from_device(device_state=DeviceConnectionState(int(payload[0])))

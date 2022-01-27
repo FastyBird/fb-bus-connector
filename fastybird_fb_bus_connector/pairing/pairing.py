@@ -25,7 +25,7 @@ from typing import List
 from fastybird_fb_bus_connector.pairing.base import IPairing
 
 
-class DevicesPairing:  # pylint: disable=too-few-public-methods
+class Pairing:  # pylint: disable=too-few-public-methods
     """
     BUS pairing handler proxy
 

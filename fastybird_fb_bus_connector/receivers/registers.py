@@ -19,6 +19,7 @@ FastyBird BUS connector receivers module receiver for registers messages
 """
 
 # Python base dependencies
+import logging
 from datetime import datetime
 from typing import Union
 
@@ -57,7 +58,7 @@ class RegisterItemReceiver(IReceiver):  # pylint: disable=too-few-public-methods
     __devices_registry: DevicesRegistry
     __registers_registry: RegistersRegistry
 
-    __logger: Logger
+    __logger: Union[Logger, logging.Logger]
 
     # -----------------------------------------------------------------------------
 
@@ -65,7 +66,7 @@ class RegisterItemReceiver(IReceiver):  # pylint: disable=too-few-public-methods
         self,
         devices_registry: DevicesRegistry,
         registers_registry: RegistersRegistry,
-        logger: Logger,
+        logger: Union[Logger, logging.Logger] = logging.getLogger("dummy"),
     ) -> None:
         self.__devices_registry = devices_registry
         self.__registers_registry = registers_registry

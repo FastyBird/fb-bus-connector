@@ -19,7 +19,7 @@ FastyBird BUS connector api module validator for API v1
 """
 
 # Library libs
-from fastybird_fb_bus_connector.types import Packet, PairingResponse, ProtocolVersion
+from fastybird_fb_bus_connector.types import Packet, ProtocolVersion
 
 
 class V1Validator:
@@ -44,23 +44,13 @@ class V1Validator:
         if not self.validate_version(payload=payload):
             return False
 
-        if self.validate_discover_device(payload=payload):
-            if (
-                self.validate_pair_command_search_devices(payload=payload)
-                or self.validate_pair_command_provide_register_structure(payload=payload)
-                or self.validate_pair_command_pairing_finished(payload=payload)
-            ):
-                return True
-
         if (
-            self.validate_read_single_register(payload=payload)  # pylint: disable=too-many-boolean-expressions
-            or self.validate_read_multiple_registers(payload=payload)
-            or self.validate_write_single_register(payload=payload)
-            or self.validate_write_multiple_registers(payload=payload)
-            or self.validate_report_single_register(payload=payload)
-            or self.validate_read_device_state(payload=payload)
-            or self.validate_write_device_state(payload=payload)
-            or self.validate_report_device_state(payload=payload)
+            self.validate_read_single_register_value(payload=payload)  # pylint: disable=too-many-boolean-expressions
+            or self.validate_read_multiple_registers_values(payload=payload)
+            or self.validate_write_single_register_value(payload=payload)
+            or self.validate_write_multiple_registers_values(payload=payload)
+            or self.validate_read_single_register_structure(payload=payload)
+            or self.validate_report_single_register_value(payload=payload)
             or self.validate_pong_response(payload=payload)
         ):
             return True
@@ -77,58 +67,44 @@ class V1Validator:
     # -----------------------------------------------------------------------------
 
     @staticmethod
-    def validate_read_single_register(payload: bytearray) -> bool:
+    def validate_read_single_register_value(payload: bytearray) -> bool:
         """Validate payload against read single register packet structure"""
-        return Packet(int(payload[1])) == Packet.READ_SINGLE_REGISTER
+        return Packet(int(payload[1])) == Packet.READ_SINGLE_REGISTER_VALUE
 
     # -----------------------------------------------------------------------------
 
     @staticmethod
-    def validate_read_multiple_registers(payload: bytearray) -> bool:
+    def validate_read_multiple_registers_values(payload: bytearray) -> bool:
         """Validate payload against read multiple registers packet structure"""
-        return Packet(int(payload[1])) == Packet.READ_MULTIPLE_REGISTERS
+        return Packet(int(payload[1])) == Packet.READ_MULTIPLE_REGISTERS_VALUES
 
     # -----------------------------------------------------------------------------
 
     @staticmethod
-    def validate_write_single_register(payload: bytearray) -> bool:
+    def validate_write_single_register_value(payload: bytearray) -> bool:
         """Validate payload against write single register packet structure"""
-        return Packet(int(payload[1])) == Packet.WRITE_SINGLE_REGISTER
+        return Packet(int(payload[1])) == Packet.WRITE_SINGLE_REGISTER_VALUE
 
     # -----------------------------------------------------------------------------
 
     @staticmethod
-    def validate_write_multiple_registers(payload: bytearray) -> bool:
+    def validate_write_multiple_registers_values(payload: bytearray) -> bool:
         """Validate payload against write multiple registers packet structure"""
-        return Packet(int(payload[1])) == Packet.WRITE_MULTIPLE_REGISTERS
+        return Packet(int(payload[1])) == Packet.WRITE_MULTIPLE_REGISTERS_VALUES
 
     # -----------------------------------------------------------------------------
 
     @staticmethod
-    def validate_report_single_register(payload: bytearray) -> bool:
+    def validate_read_single_register_structure(payload: bytearray) -> bool:
+        """Validate payload against read single register structure packet structure"""
+        return Packet(int(payload[1])) == Packet.READ_SINGLE_REGISTER_STRUCTURE
+
+    # -----------------------------------------------------------------------------
+
+    @staticmethod
+    def validate_report_single_register_value(payload: bytearray) -> bool:
         """Validate payload against report single register packet structure"""
-        return Packet(int(payload[1])) == Packet.REPORT_SINGLE_REGISTER
-
-    # -----------------------------------------------------------------------------
-
-    @staticmethod
-    def validate_read_device_state(payload: bytearray) -> bool:
-        """Validate payload against get device state packet structure"""
-        return Packet(int(payload[1])) == Packet.READ_STATE
-
-    # -----------------------------------------------------------------------------
-
-    @staticmethod
-    def validate_write_device_state(payload: bytearray) -> bool:
-        """Validate payload against set device state packet structure"""
-        return Packet(int(payload[1])) == Packet.WRITE_STATE
-
-    # -----------------------------------------------------------------------------
-
-    @staticmethod
-    def validate_report_device_state(payload: bytearray) -> bool:
-        """Validate payload against report device state packet structure"""
-        return Packet(int(payload[1])) == Packet.REPORT_STATE
+        return Packet(int(payload[1])) == Packet.REPORT_SINGLE_REGISTER_VALUE
 
     # -----------------------------------------------------------------------------
 
@@ -143,24 +119,3 @@ class V1Validator:
     def validate_discover_device(payload: bytearray) -> bool:
         """Validate payload against pair device packet structure"""
         return Packet(int(payload[1])) == Packet.DISCOVER
-
-    # -----------------------------------------------------------------------------
-
-    @staticmethod
-    def validate_pair_command_search_devices(payload: bytearray) -> bool:
-        """Validate payload against search devices response packet structure"""
-        return PairingResponse(int(payload[2])) == PairingResponse.SEARCH
-
-    # -----------------------------------------------------------------------------
-
-    @staticmethod
-    def validate_pair_command_provide_register_structure(payload: bytearray) -> bool:
-        """Validate payload against pair device command provide register structure packet structure"""
-        return PairingResponse(int(payload[2])) == PairingResponse.PROVIDE_REGISTER_STRUCTURE
-
-    # -----------------------------------------------------------------------------
-
-    @staticmethod
-    def validate_pair_command_pairing_finished(payload: bytearray) -> bool:
-        """Validate payload against pair device command pairing finished packet structure"""
-        return PairingResponse(int(payload[2])) == PairingResponse.PAIRING_FINISHED

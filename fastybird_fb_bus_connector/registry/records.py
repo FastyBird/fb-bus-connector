@@ -18,21 +18,18 @@
 FastyBird BUS connector registry module records
 """
 
-# pylint: disable=too-many-lines
-
 # Python base dependencies
 import time
 import uuid
 from abc import ABC
 from datetime import datetime
-from typing import List, Optional, Tuple, Union
+from typing import Optional, Tuple, Union
 
 # Library dependencies
-from fastybird_metadata.devices_module import ConnectionState
 from fastybird_metadata.types import ButtonPayload, DataType, SwitchPayload
 
 # Library libs
-from fastybird_fb_bus_connector.types import DeviceAttribute, Packet, RegisterType
+from fastybird_fb_bus_connector.types import Packet, RegisterType
 
 
 class DeviceRecord:  # pylint: disable=too-many-public-methods,too-many-instance-attributes
@@ -505,9 +502,9 @@ class OutputRegisterRecord(RegisterRecord):
         )
 
 
-class NamedRegisterRecord(RegisterRecord):
+class AttributeRegisterRecord(RegisterRecord):
     """
-    Named register record
+    Attribute register record
 
     @package        FastyBird:FbBusConnector!
     @module         registry
@@ -518,47 +515,6 @@ class NamedRegisterRecord(RegisterRecord):
     __name: Optional[str] = None
 
     # -----------------------------------------------------------------------------
-
-    def __init__(  # pylint: disable=too-many-arguments
-        self,
-        device_id: uuid.UUID,
-        register_id: uuid.UUID,
-        register_address: int,
-        register_type: RegisterType,
-        register_data_type: DataType,
-        register_name: Optional[str],
-        register_settable: bool = False,
-        register_queryable: bool = False,
-    ) -> None:
-        super().__init__(
-            device_id=device_id,
-            register_id=register_id,
-            register_address=register_address,
-            register_type=register_type,
-            register_data_type=register_data_type,
-            register_settable=register_settable,
-            register_queryable=register_queryable,
-        )
-
-        self.__name = register_name
-
-    # -----------------------------------------------------------------------------
-
-    @property
-    def name(self) -> Optional[str]:
-        """Register name"""
-        return self.__name
-
-
-class AttributeRegisterRecord(NamedRegisterRecord):
-    """
-    Attribute register record
-
-    @package        FastyBird:FbBusConnector!
-    @module         registry
-
-    @author         Adam Kadlec <adam.kadlec@fastybird.com>
-    """
 
     def __init__(  # pylint: disable=too-many-arguments
         self,
@@ -576,139 +532,23 @@ class AttributeRegisterRecord(NamedRegisterRecord):
             register_address=register_address,
             register_type=RegisterType.ATTRIBUTE,
             register_data_type=register_data_type,
-            register_name=register_name,
             register_settable=register_settable,
             register_queryable=register_queryable,
         )
 
+        self.__name = register_name
 
-class AttributeRecord:  # pylint: disable=too-many-public-methods,too-many-instance-attributes
+    # -----------------------------------------------------------------------------
+
+    @property
+    def name(self) -> Optional[str]:
+        """Register name"""
+        return self.__name
+
+
+class DiscoveredDeviceRecord:  # pylint: disable=too-many-instance-attributes
     """
-    Device attribute record
-
-    @package        FastyBird:FbBusConnector!
-    @module         registry/records
-
-    @author         Adam Kadlec <adam.kadlec@fastybird.com>
-    """
-
-    __device_id: uuid.UUID
-
-    __id: uuid.UUID
-    __type: DeviceAttribute
-    __value: Union[int, float, str, bool, datetime, ButtonPayload, SwitchPayload, None] = None
-
-    # -----------------------------------------------------------------------------
-
-    def __init__(  # pylint: disable=too-many-arguments
-        self,
-        device_id: uuid.UUID,
-        attribute_id: uuid.UUID,
-        attribute_type: DeviceAttribute,
-        attribute_value: Union[int, float, str, bool, datetime, ButtonPayload, SwitchPayload, None] = None,
-    ) -> None:
-        self.__device_id = device_id
-
-        self.__id = attribute_id
-        self.__type = attribute_type
-        self.__value = attribute_value
-
-    # -----------------------------------------------------------------------------
-
-    @property
-    def device_id(self) -> uuid.UUID:
-        """Device unique identifier"""
-        return self.__device_id
-
-    # -----------------------------------------------------------------------------
-
-    @property
-    def id(self) -> uuid.UUID:  # pylint: disable=invalid-name
-        """Attribute unique identifier"""
-        return self.__id
-
-    # -----------------------------------------------------------------------------
-
-    @property
-    def type(self) -> DeviceAttribute:
-        """Attribute type"""
-        return self.__type
-
-    # -----------------------------------------------------------------------------
-
-    @property
-    def value(self) -> Union[int, float, str, bool, datetime, ButtonPayload, SwitchPayload, None]:
-        """Attribute value"""
-        return self.__value
-
-    # -----------------------------------------------------------------------------
-
-    @value.setter
-    def value(self, value: Union[int, float, str, bool, datetime, ButtonPayload, SwitchPayload, None]) -> None:
-        """Set attribute value"""
-        self.__value = value
-
-    # -----------------------------------------------------------------------------
-
-    @property
-    def data_type(self) -> Optional[DataType]:
-        """Attribute data type"""
-        if self.type == DeviceAttribute.STATE:
-            return DataType.ENUM
-
-        if self.type == DeviceAttribute.ADDRESS:
-            return DataType.UCHAR
-
-        if self.type == DeviceAttribute.MAX_PACKET_LENGTH:
-            return DataType.UCHAR
-
-        return DataType.STRING
-
-    # -----------------------------------------------------------------------------
-
-    @property
-    def format(
-        self,
-    ) -> Union[List[str], Tuple[Optional[int], Optional[int]], Tuple[Optional[float], Optional[float]], None]:
-        """Attribute format"""
-        if self.type == DeviceAttribute.STATE:
-            return [
-                ConnectionState.RUNNING.value,
-                ConnectionState.STOPPED.value,
-                ConnectionState.CONNECTED.value,
-                ConnectionState.DISCONNECTED.value,
-                ConnectionState.INIT.value,
-                ConnectionState.LOST.value,
-                ConnectionState.ALERT.value,
-                ConnectionState.UNKNOWN.value,
-            ]
-
-        return None
-
-    # -----------------------------------------------------------------------------
-
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, AttributeRecord):
-            return False
-
-        return (
-            self.device_id == other.device_id
-            and self.id == other.id
-            and self.type == other.type
-            and self.data_type == other.data_type
-            and self.format == other.format
-            and self.value == other.value
-        )
-
-    # -----------------------------------------------------------------------------
-
-    def __hash__(self) -> int:
-        return self.__id.__hash__()
-
-
-class PairingDeviceRecord:  # pylint: disable=too-many-instance-attributes
-    """
-    Pairing device record
+    Discovered device record
 
     @package        FastyBird:FbBusConnector!
     @module         registry
@@ -864,7 +704,7 @@ class PairingDeviceRecord:  # pylint: disable=too-many-instance-attributes
         return self.__id.__hash__()
 
 
-class PairingRegisterRecord(ABC):
+class DiscoveredRegisterRecord(ABC):
     """
     Pairing base register record
 
@@ -948,7 +788,7 @@ class PairingRegisterRecord(ABC):
         return self.__id.__hash__()
 
 
-class PairingInputRegisterRecord(PairingRegisterRecord):
+class DiscoveredInputRegisterRecord(DiscoveredRegisterRecord):
     """
     Pairing input register record
 
@@ -974,7 +814,7 @@ class PairingInputRegisterRecord(PairingRegisterRecord):
         )
 
 
-class PairingOutputRegisterRecord(PairingRegisterRecord):
+class DiscoveredOutputRegisterRecord(DiscoveredRegisterRecord):
     """
     Pairing output register record
 
@@ -1000,9 +840,9 @@ class PairingOutputRegisterRecord(PairingRegisterRecord):
         )
 
 
-class PairingNamedRegisterRecord(PairingRegisterRecord):
+class DiscoveredAttributeRegisterRecord(DiscoveredRegisterRecord):
     """
-    Pairing named register record
+    Pairing attribute register record
 
     @package        FastyBird:FbBusConnector!
     @module         registry
@@ -1012,44 +852,7 @@ class PairingNamedRegisterRecord(PairingRegisterRecord):
 
     __name: Optional[str]
 
-    def __init__(  # pylint: disable=too-many-branches,too-many-arguments
-        self,
-        register_id: uuid.UUID,
-        register_address: int,
-        register_type: RegisterType,
-        register_data_type: DataType,
-        register_name: Optional[str],
-        register_settable: bool = False,
-        register_queryable: bool = False,
-    ):
-        super().__init__(
-            register_id=register_id,
-            register_address=register_address,
-            register_type=register_type,
-            register_data_type=register_data_type,
-            register_queryable=register_settable,
-            register_settable=register_queryable,
-        )
-
-        self.__name = register_name
-
     # -----------------------------------------------------------------------------
-
-    @property
-    def name(self) -> Optional[str]:
-        """Register name"""
-        return self.__name
-
-
-class PairingAttributeRegisterRecord(PairingNamedRegisterRecord):
-    """
-    Pairing attribute register record
-
-    @package        FastyBird:FbBusConnector!
-    @module         registry
-
-    @author         Adam Kadlec <adam.kadlec@fastybird.com>
-    """
 
     def __init__(  # pylint: disable=too-many-branches,too-many-arguments
         self,
@@ -1064,36 +867,16 @@ class PairingAttributeRegisterRecord(PairingNamedRegisterRecord):
             register_id=register_id,
             register_address=register_address,
             register_type=RegisterType.ATTRIBUTE,
-            register_name=register_name,
             register_data_type=register_data_type,
             register_queryable=register_settable,
             register_settable=register_queryable,
         )
 
+        self.__name = register_name
 
-class PairingSettingRegisterRecord(PairingNamedRegisterRecord):
-    """
-    Pairing setting register record
+    # -----------------------------------------------------------------------------
 
-    @package        FastyBird:FbBusConnector!
-    @module         registry
-
-    @author         Adam Kadlec <adam.kadlec@fastybird.com>
-    """
-
-    def __init__(  # pylint: disable=too-many-branches,too-many-arguments
-        self,
-        register_id: uuid.UUID,
-        register_address: int,
-        register_data_type: DataType,
-        register_name: Optional[str],
-    ):
-        super().__init__(
-            register_id=register_id,
-            register_address=register_address,
-            register_type=RegisterType.SETTING,
-            register_data_type=register_data_type,
-            register_name=register_name,
-            register_queryable=True,
-            register_settable=True,
-        )
+    @property
+    def name(self) -> Optional[str]:
+        """Register name"""
+        return self.__name

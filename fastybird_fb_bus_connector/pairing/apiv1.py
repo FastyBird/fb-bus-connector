@@ -19,9 +19,10 @@ FastyBird BUS connector pairing module handler for API v1
 """
 
 # Python base dependencies
+import logging
 import time
 import uuid
-from typing import List, Optional, Set
+from typing import List, Optional, Set, Union
 
 # Library dependencies
 from fastybird_metadata.devices_module import ConnectionState
@@ -32,26 +33,23 @@ from kink import inject
 from fastybird_fb_bus_connector.clients.client import Client
 from fastybird_fb_bus_connector.logger import Logger
 from fastybird_fb_bus_connector.pairing.base import IPairing
-from fastybird_fb_bus_connector.registry.model import (
-    AttributesRegistry,
-    DevicesRegistry,
-    RegistersRegistry,
-)
+from fastybird_fb_bus_connector.registry.model import DevicesRegistry, RegistersRegistry
 from fastybird_fb_bus_connector.registry.records import (
-    AttributeRegisterRecord,
-    PairingAttributeRegisterRecord,
-    PairingDeviceRecord,
-    PairingInputRegisterRecord,
-    PairingOutputRegisterRecord,
-    PairingRegisterRecord,
+    DiscoveredAttributeRegisterRecord,
+    DiscoveredDeviceRecord,
+    DiscoveredInputRegisterRecord,
+    DiscoveredOutputRegisterRecord,
+    DiscoveredRegisterRecord,
 )
 from fastybird_fb_bus_connector.types import (
     DeviceAttribute,
     Packet,
-    PairingCommand,
-    PairingResponse,
     ProtocolVersion,
     RegisterType,
+)
+from fastybird_fb_bus_connector.utilities.helpers import (
+    StateTransformHelpers,
+    ValueTransformHelpers,
 )
 
 
@@ -66,59 +64,50 @@ class ApiV1Pairing(IPairing):  # pylint: disable=too-many-instance-attributes
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
 
-    __found_devices: Set[PairingDeviceRecord] = set()
+    __enabled: bool = True
 
-    __pairing_device: Optional[PairingDeviceRecord] = None
-    __pairing_device_registers: Set[PairingRegisterRecord] = set()
+    __discovered_devices: Set[DiscoveredDeviceRecord] = set()
+
+    __pairing_device: Optional[DiscoveredDeviceRecord] = None
+    __pairing_device_registers: Set[DiscoveredRegisterRecord] = set()
 
     __last_request_send_timestamp: float = 0.0
 
-    __waiting_for_packet: Optional[Packet] = None
-    __attempts: int = 0
+    __waiting_for_reply: bool = False
+    __discovery_attempts: int = 0
+    __device_attempts: int = 0
     __total_attempts: int = 0
 
-    __pairing_enabled: bool = False
+    __broadcasting_discovery_finished: bool = False
 
-    __pairing_cmd: Optional[PairingCommand] = None
-
-    __processing_register_address: Optional[int] = None
-    __processing_register_type: Optional[RegisterType] = None
-
-    __broadcasting_search_finished: bool = False
-
-    __finished_cmd: List[PairingCommand] = []
-
-    __MAX_SEARCHING_ATTEMPTS: int = 5  # Maxim count of sending search device packets
-    __MAX_TRANSMIT_ATTEMPTS: int = 5  # Maximum count of packets before gateway mark paring as unsuccessful
+    __MAX_DISCOVERY_ATTEMPTS: int = 5  # Maxim count of sending search device packets
+    __MAX_DEVICE_ATTEMPTS: int = 5  # Maximum count of packets before gateway mark paring as unsuccessful
     __MAX_TOTAL_TRANSMIT_ATTEMPTS: int = (
         100  # Maximum total count of packets before gateway mark paring as unsuccessful
     )
-    __SEARCHING_DELAY: float = 2.0  # Waiting delay before another broadcast is sent
+    __DISCOVERY_BROADCAST_DELAY: float = 2.0  # Waiting delay before another broadcast is sent
     __MAX_PAIRING_DELAY: float = 5.0  # Waiting delay paring is marked as unsuccessful
     __BROADCAST_WAITING_DELAY: float = 2.0  # Maximum time gateway will wait for reply during broadcasting
 
     __ADDRESS_NOT_ASSIGNED: int = 255
 
     __devices_registry: DevicesRegistry
-    __attributes_registry: AttributesRegistry
     __registers_registry: RegistersRegistry
 
     __client: Client
 
-    __logger: Logger
+    __logger: Union[Logger, logging.Logger]
 
     # -----------------------------------------------------------------------------
 
     def __init__(  # pylint: disable=too-many-arguments
         self,
         devices_registry: DevicesRegistry,
-        attributes_registry: AttributesRegistry,
         registers_registry: RegistersRegistry,
         client: Client,
-        logger: Logger,
+        logger: Union[Logger, logging.Logger] = logging.getLogger("dummy"),
     ) -> None:
         self.__devices_registry = devices_registry
-        self.__attributes_registry = attributes_registry
         self.__registers_registry = registers_registry
 
         self.__client = client
@@ -127,69 +116,44 @@ class ApiV1Pairing(IPairing):  # pylint: disable=too-many-instance-attributes
 
     # -----------------------------------------------------------------------------
 
-    @property
-    def found_devices(self) -> Set[PairingDeviceRecord]:
-        """Get found devices records"""
-        return self.__found_devices
-
-    # -----------------------------------------------------------------------------
-
-    @property
-    def pairing_device(self) -> Optional[PairingDeviceRecord]:
-        """Get pairing device record"""
-        return self.__pairing_device
-
-    # -----------------------------------------------------------------------------
-
-    @property
-    def pairing_device_registers(self) -> Set[PairingRegisterRecord]:
-        """Get pairing device registers records"""
-        return self.__pairing_device_registers
-
-    # -----------------------------------------------------------------------------
-
     def handle(self) -> None:
         """Handle pairing process"""
-        if self.__pairing_enabled is False:
+        if self.__enabled is False:
             return
 
         # Pairing gateway protection
         if self.__total_attempts >= self.__MAX_TOTAL_TRANSMIT_ATTEMPTS:
             self.disable()
 
-            self.__logger.info("Maximum total attempts reached. Paring was disabled to prevent infinite loop")
+            self.__logger.info("Maximum attempts reached. Disabling pairing procedure to prevent infinite loop")
 
-        # No device assigned for pairing
-        if not self.__broadcasting_search_finished:
+        if not self.__broadcasting_discovery_finished:
             # Check if search counter is reached
-            if self.__attempts < self.__MAX_SEARCHING_ATTEMPTS:
+            if self.__discovery_attempts < self.__MAX_DISCOVERY_ATTEMPTS:
                 # Search timeout is not reached, new devices could be searched
                 if (
-                    self.__waiting_for_packet is None
-                    or self.__last_request_send_timestamp == 0
-                    or (
-                        self.__waiting_for_packet is not None
-                        and time.time() - self.__last_request_send_timestamp >= self.__SEARCHING_DELAY
-                    )
+                    self.__last_request_send_timestamp == 0
+                    or time.time() - self.__last_request_send_timestamp >= self.__DISCOVERY_BROADCAST_DELAY
                 ):
                     # Broadcast pairing request for new device
-                    self.__broadcast_search_devices_handler()
+                    self.__broadcast_discover_devices_handler()
 
             # Searching for devices finished
             else:
-                self.__broadcasting_search_finished = True
+                self.__broadcasting_discovery_finished = True
 
-                self.discover_device()
+                # Move to device for pairing
+                self.__process_discovered_device()
 
         # Device for pairing is assigned
         elif self.__pairing_device is not None:
             # Max pairing attempts were reached
             if (
-                self.__attempts >= self.__MAX_TRANSMIT_ATTEMPTS
+                self.__device_attempts >= self.__MAX_DEVICE_ATTEMPTS
                 or time.time() - self.__last_request_send_timestamp >= self.__MAX_PAIRING_DELAY
             ):
                 self.__logger.warning(
-                    "Pairing could not be finished, device: %s is lost. Disabling pairing procedure",
+                    "Pairing could not be finished, device: %s is lost. Moving to next device in queue",
                     self.__pairing_device.serial_number,
                     extra={
                         "device": {
@@ -199,27 +163,37 @@ class ApiV1Pairing(IPairing):  # pylint: disable=too-many-instance-attributes
                 )
 
                 # Move to next device in queue
-                self.discover_device()
+                self.__process_discovered_device()
 
                 return
 
             # Packet was sent to device, waiting for device reply
-            if self.__waiting_for_packet is not None:
+            if self.__waiting_for_reply:
                 return
 
-            self.__move_to_next_cmd()
+            # Check if are some registers left for initialization
+            register_record = next(
+                iter(
+                    [register for register in self.__pairing_device_registers if register.data_type == DataType.UNKNOWN]
+                ),
+                None,
+            )
 
-            if self.__pairing_cmd == PairingCommand.PROVIDE_REGISTER_STRUCTURE:
-                self.__send_provide_register_structure_handler(device=self.__pairing_device)
+            if register_record is not None:
+                self.__send_provide_register_structure_handler(
+                    discovered_device=self.__pairing_device,
+                    discovered_register=register_record,
+                )
 
-            if self.__pairing_cmd == PairingCommand.PAIRING_FINISHED:
-                self.__send_finalize_pairing_handler(device=self.__pairing_device)
+            # Set device to operating mode
+            else:
+                self.__send_finalize_discovery_handler(discovered_device=self.__pairing_device)
 
     # -----------------------------------------------------------------------------
 
     def enable(self) -> None:
         """Enable devices pairing"""
-        self.__pairing_enabled = True
+        self.__enabled = True
 
         self.__reset_pointers()
 
@@ -229,7 +203,7 @@ class ApiV1Pairing(IPairing):  # pylint: disable=too-many-instance-attributes
 
     def disable(self) -> None:
         """Disable devices pairing"""
-        self.__pairing_enabled = False
+        self.__enabled = False
 
         self.__reset_pointers()
 
@@ -239,7 +213,7 @@ class ApiV1Pairing(IPairing):  # pylint: disable=too-many-instance-attributes
 
     def is_enabled(self) -> bool:
         """Check if pairing is enabled"""
-        return self.__pairing_enabled is True
+        return self.__enabled is True
 
     # -----------------------------------------------------------------------------
 
@@ -251,7 +225,6 @@ class ApiV1Pairing(IPairing):  # pylint: disable=too-many-instance-attributes
 
     def append_device(  # pylint: disable=too-many-locals,too-many-arguments
         self,
-        device_id: uuid.UUID,
         device_address: int,
         device_max_packet_length: int,
         device_serial_number: str,
@@ -263,165 +236,284 @@ class ApiV1Pairing(IPairing):  # pylint: disable=too-many-instance-attributes
         input_registers_size: int,
         output_registers_size: int,
         attributes_registers_size: int,
-    ) -> PairingDeviceRecord:
+    ) -> None:
         """Set pairing device data"""
-        self.__waiting_for_packet = None
-
         in_register = next(
-            iter([record for record in self.__found_devices if device_serial_number == record.serial_number]),
+            iter([record for record in self.__discovered_devices if device_serial_number == record.serial_number]),
             None,
         )
 
         if in_register is not None:
-            return in_register
+            return
 
-        device_record = PairingDeviceRecord(
-            device_id=device_id,
-            device_address=device_address,
-            device_max_packet_length=device_max_packet_length,
-            device_serial_number=device_serial_number,
-            device_hardware_version=device_hardware_version,
-            device_hardware_model=device_hardware_model,
-            device_hardware_manufacturer=device_hardware_manufacturer,
-            device_firmware_version=device_firmware_version,
-            device_firmware_manufacturer=device_firmware_manufacturer,
-            input_registers_size=input_registers_size,
-            output_registers_size=output_registers_size,
-            attributes_registers_size=attributes_registers_size,
+        # Check if device by serial number is stored in connector registry
+        device_record = self.__devices_registry.get_by_serial_number(serial_number=device_serial_number)
+
+        self.__discovered_devices.add(
+            DiscoveredDeviceRecord(
+                device_id=device_record.id if device_record is not None else uuid.uuid4(),
+                device_address=device_address,
+                device_max_packet_length=device_max_packet_length,
+                device_serial_number=device_serial_number,
+                device_hardware_version=device_hardware_version,
+                device_hardware_model=device_hardware_model,
+                device_hardware_manufacturer=device_hardware_manufacturer,
+                device_firmware_version=device_firmware_version,
+                device_firmware_manufacturer=device_firmware_manufacturer,
+                input_registers_size=input_registers_size,
+                output_registers_size=output_registers_size,
+                attributes_registers_size=attributes_registers_size,
+            )
         )
 
-        self.__found_devices.add(device_record)
-
-        return device_record
+        self.__logger.debug(
+            "Discovered device %s[%d] %s[%s]:%s",
+            device_serial_number,
+            device_address,
+            device_hardware_version,
+            device_hardware_model,
+            device_firmware_version,
+        )
 
     # -----------------------------------------------------------------------------
 
     def append_input_register(
         self,
-        register_id: uuid.UUID,
         register_address: int,
         register_data_type: DataType,
     ) -> None:
-        """Append pairing device register"""
+        """Append discovered device register"""
+        self.__waiting_for_reply = False
+
+        if self.__pairing_device is None:
+            return
+
+        discovered_register = next(
+            iter(
+                [
+                    register
+                    for register in self.__pairing_device_registers
+                    if register.type == RegisterType.INPUT and register.address == register_address
+                ]
+            ),
+            None,
+        )
+
+        if discovered_register is None:
+            self.__logger.warning(
+                "Register: %d[%s] for device: %s could not be found in registry",
+                register_address,
+                RegisterType.INPUT,
+                self.__pairing_device.serial_number,
+                extra={
+                    "device": {
+                        "address": self.__pairing_device.address,
+                        "serial_number": self.__pairing_device.serial_number,
+                    },
+                },
+            )
+
+            return
+
         for register in self.__pairing_device_registers:
-            if register.id == register_id:
+            if register.id == discovered_register.id:
                 self.__pairing_device_registers.remove(register)
 
                 break
 
         self.__pairing_device_registers.add(
-            PairingInputRegisterRecord(
-                register_id=register_id,
+            DiscoveredInputRegisterRecord(
+                register_id=discovered_register.id,
                 register_address=register_address,
                 register_data_type=register_data_type,
             )
+        )
+
+        self.__logger.debug(
+            "Configured register: %d[%d] for device: %s",
+            register_address,
+            RegisterType.INPUT,
+            self.__pairing_device.serial_number,
+            extra={
+                "device": {
+                    "address": self.__pairing_device.address,
+                    "serial_number": self.__pairing_device.serial_number,
+                },
+            },
         )
 
     # -----------------------------------------------------------------------------
 
     def append_output_register(
         self,
-        register_id: uuid.UUID,
         register_address: int,
         register_data_type: DataType,
     ) -> None:
-        """Append pairing device output register"""
+        """Append discovered device output register"""
+        self.__waiting_for_reply = False
+
+        if self.__pairing_device is None:
+            return
+
+        discovered_register = next(
+            iter(
+                [
+                    register
+                    for register in self.__pairing_device_registers
+                    if register.type == RegisterType.OUTPUT and register.address == register_address
+                ]
+            ),
+            None,
+        )
+
+        if discovered_register is None:
+            self.__logger.warning(
+                "Register: %d[%s] for device: %s could not be found in registry",
+                register_address,
+                RegisterType.OUTPUT,
+                self.__pairing_device.serial_number,
+                extra={
+                    "device": {
+                        "address": self.__pairing_device.address,
+                        "serial_number": self.__pairing_device.serial_number,
+                    },
+                },
+            )
+
+            return
+
         for register in self.__pairing_device_registers:
-            if register.id == register_id:
+            if register.id == discovered_register.id:
                 self.__pairing_device_registers.remove(register)
 
                 break
 
         self.__pairing_device_registers.add(
-            PairingOutputRegisterRecord(
-                register_id=register_id,
+            DiscoveredOutputRegisterRecord(
+                register_id=discovered_register.id,
                 register_address=register_address,
                 register_data_type=register_data_type,
             )
         )
 
-    # -----------------------------------------------------------------------------
-
-    def append_attribute(  # pylint: disable=too-many-arguments
-        self,
-        attribute_id: uuid.UUID,
-        attribute_address: int,
-        attribute_name: Optional[str],
-        attribute_data_type: DataType,
-        attribute_settable: bool,
-        attribute_queryable: bool,
-    ) -> None:
-        """Append pairing device attribute"""
-        for attribute in self.__pairing_device_registers:
-            if attribute.id == attribute_id:
-                self.__pairing_device_registers.remove(attribute)
-
-                break
-
-        self.__pairing_device_registers.add(
-            PairingAttributeRegisterRecord(
-                register_id=attribute_id,
-                register_address=attribute_address,
-                register_name=attribute_name,
-                register_data_type=attribute_data_type,
-                register_settable=attribute_settable,
-                register_queryable=attribute_queryable,
-            )
+        self.__logger.debug(
+            "Configured register: %d[%d] for device: %s",
+            register_address,
+            RegisterType.OUTPUT,
+            self.__pairing_device.serial_number,
+            extra={
+                "device": {
+                    "address": self.__pairing_device.address,
+                    "serial_number": self.__pairing_device.serial_number,
+                },
+            },
         )
 
     # -----------------------------------------------------------------------------
 
-    def append_pairing_cmd(self, command: PairingCommand) -> None:
-        """Append finished pairing command"""
-        self.__finished_cmd.append(command)
+    def append_attribute_register(  # pylint: disable=too-many-arguments
+        self,
+        register_address: int,
+        register_name: Optional[str],
+        register_data_type: DataType,
+        register_settable: bool,
+        register_queryable: bool,
+    ) -> None:
+        """Append discovered device attribute"""
+        self.__waiting_for_reply = False
 
-        self.__waiting_for_packet = None
-        self.__attempts = 0
+        if self.__pairing_device is None:
+            return
+
+        discovered_register = next(
+            iter(
+                [
+                    register
+                    for register in self.__pairing_device_registers
+                    if register.type == RegisterType.ATTRIBUTE and register.address == register_address
+                ]
+            ),
+            None,
+        )
+
+        if discovered_register is None:
+            self.__logger.warning(
+                "Register: %d[%s] for device: %s could not be found in registry",
+                register_address,
+                RegisterType.ATTRIBUTE,
+                self.__pairing_device.serial_number,
+                extra={
+                    "device": {
+                        "address": self.__pairing_device.address,
+                        "serial_number": self.__pairing_device.serial_number,
+                    },
+                },
+            )
+
+            return
+
+        for register in self.__pairing_device_registers:
+            if register.id == discovered_register.id:
+                self.__pairing_device_registers.remove(register)
+
+                break
+
+        self.__pairing_device_registers.add(
+            DiscoveredAttributeRegisterRecord(
+                register_id=discovered_register.id,
+                register_address=register_address,
+                register_name=register_name,
+                register_data_type=register_data_type,
+                register_settable=register_settable,
+                register_queryable=register_queryable,
+            )
+        )
+
+        self.__logger.debug(
+            "Configured register: %d[%d] for device: %s",
+            register_address,
+            RegisterType.ATTRIBUTE,
+            self.__pairing_device.serial_number,
+            extra={
+                "device": {
+                    "address": self.__pairing_device.address,
+                    "serial_number": self.__pairing_device.serial_number,
+                },
+            },
+        )
 
     # -----------------------------------------------------------------------------
 
-    def move_to_next_register_for_init(self) -> bool:
-        """Move to next register for initialize structure"""
-        # Set reading to default
-        self.__processing_register_type = None
-        self.__processing_register_address = None
+    def __reset_pointers(self) -> None:
+        self.__discovered_devices = set()
 
-        if self.__has_registers_to_init():
-            for register in self.__pairing_device_registers:
-                if register.data_type == DataType.UNKNOWN and register.type in (
-                    RegisterType.INPUT,
-                    RegisterType.OUTPUT,
-                ):
-                    # Set register reading address for next register type
-                    self.__processing_register_type = register.type
-                    self.__processing_register_address = register.address
+        self.__pairing_device = None
+        self.__pairing_device_registers = set()
 
-                    self.__waiting_for_packet = None
-                    self.__attempts = 0
+        self.__last_request_send_timestamp = 0.0
 
-                    return True
+        self.__waiting_for_reply = False
+        self.__discovery_attempts = 0
+        self.__device_attempts = 0
+        self.__total_attempts = 0
 
-            for attribute in self.__pairing_device_registers:
-                if attribute.data_type == DataType.UNKNOWN and attribute.type == RegisterType.ATTRIBUTE:
-                    # Set register reading address for next register type
-                    self.__processing_register_type = RegisterType.ATTRIBUTE
-                    self.__processing_register_address = attribute.address
-
-                    self.__waiting_for_packet = None
-                    self.__attempts = 0
-
-                    return True
-
-        return False
+        self.__broadcasting_discovery_finished = False
 
     # -----------------------------------------------------------------------------
 
-    def discover_device(self) -> None:
-        """Pick one device from found devices and try to finish device discovery process"""
-        self.__reset_device_pointers()
+    def __process_discovered_device(self) -> None:
+        """Pick one device from discovered devices and try to finish device discovery process"""
+        # Reset counters & flags...
+        self.__device_attempts = 0
+        self.__total_attempts = 0
+
+        self.__pairing_device = None
+        self.__pairing_device_registers = set()
+
+        self.__waiting_for_reply = False
 
         try:
-            self.__pairing_device = self.__found_devices.pop()
+            self.__pairing_device = self.__discovered_devices.pop()
 
         except KeyError:
             self.disable()
@@ -430,30 +522,29 @@ class ApiV1Pairing(IPairing):  # pylint: disable=too-many-instance-attributes
 
             return
 
-        # Reset counters
-        self.__attempts = 0
-        self.__total_attempts = 0
-
         # Try to find device in registry
-        device_record = self.__devices_registry.get_by_id(device_id=self.__pairing_device.id)
+        device_record = self.__devices_registry.get_by_serial_number(serial_number=self.__pairing_device.serial_number)
 
         # Pairing new device...
         if device_record is None:
-            addresses_attributes = self.__attributes_registry.get_all_by_type(attribute_type=DeviceAttribute.ADDRESS)
+            # Check if device has address or not
+            if self.__pairing_device.address != self.__ADDRESS_NOT_ASSIGNED:
+                # Check if other device with same address is present in registry
+                device_by_address = self.__devices_registry.get_by_address(address=self.__pairing_device.address)
 
-            for address_attribute in addresses_attributes:
-                if self.__pairing_device.address == address_attribute.value:
+                if device_by_address is not None:
                     self.__logger.warning(
                         "Device address is assigned to other other device",
                         extra={
                             "device": {
+                                "address": self.__pairing_device.address,
                                 "serial_number": self.__pairing_device.serial_number,
                             },
                         },
                     )
 
                     # Move to next device in queue
-                    self.discover_device()
+                    self.__process_discovered_device()
 
                     return
 
@@ -471,25 +562,24 @@ class ApiV1Pairing(IPairing):  # pylint: disable=too-many-instance-attributes
 
         # Pairing existing device...
         else:
-            addresses_attributes = self.__attributes_registry.get_all_by_type(attribute_type=DeviceAttribute.ADDRESS)
+            # Check if other device with same address is present in registry
+            device_by_address = self.__devices_registry.get_by_address(address=self.__pairing_device.address)
 
-            for address_attribute in addresses_attributes:
-                if self.__pairing_device.address == address_attribute.value and not address_attribute.device_id.__eq__(
-                    self.__pairing_device.id
-                ):
-                    self.__logger.warning(
-                        "Device address is assigned to other other device",
-                        extra={
-                            "device": {
-                                "serial_number": self.__pairing_device.serial_number,
-                            },
+            if device_by_address is not None and device_by_address.serial_number != self.__pairing_device.serial_number:
+                self.__logger.warning(
+                    "Device address is assigned to other other device",
+                    extra={
+                        "device": {
+                            "address": self.__pairing_device.address,
+                            "serial_number": self.__pairing_device.serial_number,
                         },
-                    )
+                    },
+                )
 
-                    # Move to next device in queue
-                    self.discover_device()
+                # Move to next device in queue
+                self.__process_discovered_device()
 
-                    return
+                return
 
             self.__logger.debug(
                 "Existing device: %s with address: %d was successfully prepared for pairing",
@@ -503,43 +593,31 @@ class ApiV1Pairing(IPairing):  # pylint: disable=too-many-instance-attributes
                 },
             )
 
-            # Continue in device initialization
+            # Update device state
             self.__devices_registry.set_state(device=device_record, state=ConnectionState.INIT)
 
         # Input registers
         self.__configure_registers(
-            device_id=self.__pairing_device.id,
-            registers_size=self.__pairing_device.input_registers_size,
+            discovered_device=self.__pairing_device,
             registers_type=RegisterType.INPUT,
         )
 
         # Output registers
         self.__configure_registers(
-            device_id=self.__pairing_device.id,
-            registers_size=self.__pairing_device.output_registers_size,
+            discovered_device=self.__pairing_device,
             registers_type=RegisterType.OUTPUT,
         )
 
+        # Attribute registers
+        self.__configure_registers(
+            discovered_device=self.__pairing_device,
+            registers_type=RegisterType.ATTRIBUTE,
+        )
+
         self.__logger.debug(
-            "Configured registers: (Input: %d, Output: %d) for device: %s",
+            "Configured registers: (Input: %d, Output: %d, Attribute: %d) for device: %s",
             self.__pairing_device.input_registers_size,
             self.__pairing_device.output_registers_size,
-            self.__pairing_device.serial_number,
-            extra={
-                "device": {
-                    "serial_number": self.__pairing_device.serial_number,
-                },
-            },
-        )
-
-        # Device attributes registers
-        self.__configure_attributes(
-            device_id=self.__pairing_device.id,
-            attributes_size=self.__pairing_device.attributes_registers_size,
-        )
-
-        self.__logger.debug(
-            "Configured device attributes: %d for device: %s",
             self.__pairing_device.attributes_registers_size,
             self.__pairing_device.serial_number,
             extra={
@@ -551,73 +629,16 @@ class ApiV1Pairing(IPairing):  # pylint: disable=too-many-instance-attributes
 
     # -----------------------------------------------------------------------------
 
-    def __has_registers_to_init(self) -> bool:
-        for register in self.__pairing_device_registers:
-            if register.data_type == DataType.UNKNOWN:
-                return True
-
-        return False
-
-    # -----------------------------------------------------------------------------
-
-    def __reset_device_pointers(self) -> None:
-        self.__pairing_device = None
-        self.__pairing_device_registers = set()
-
-        self.__pairing_cmd = None
-
-        self.__waiting_for_packet = None
-        self.__attempts = 0
-        self.__total_attempts = 0
-
-        self.__processing_register_address = None
-        self.__processing_register_type = None
-
-        self.__finished_cmd = []
-
-    # -----------------------------------------------------------------------------
-
-    def __reset_pointers(self) -> None:
-        self.__found_devices = set()
-
-        self.__last_request_send_timestamp = 0.0
-
-        self.__broadcasting_search_finished = False
-
-        self.__reset_device_pointers()
-
-    # -----------------------------------------------------------------------------
-
-    def __move_to_next_cmd(self) -> None:
-        if PairingCommand.PROVIDE_REGISTER_STRUCTURE not in self.__finished_cmd and self.__has_registers_to_init():
-            self.move_to_next_register_for_init()
-
-            self.__pairing_cmd = PairingCommand.PROVIDE_REGISTER_STRUCTURE
-
-            return
-
-        if PairingCommand.PAIRING_FINISHED not in self.__finished_cmd:
-            self.__pairing_cmd = PairingCommand.PAIRING_FINISHED
-
-            return
-
-    # -----------------------------------------------------------------------------
-
-    def __broadcast_search_devices_handler(self) -> None:
-        """Broadcast pairing packet to all devices in pairing mode and waiting for reply from device in pairing mode"""
-        # Mark that gateway is waiting for reply from device...
-        self.__waiting_for_packet = Packet.DISCOVER
-        self.__attempts += 1
+    def __broadcast_discover_devices_handler(self) -> None:
+        """Broadcast devices discovery packet to bus"""
+        # Set counters & flags...
+        self.__discovery_attempts += 1
         self.__total_attempts += 1
         self.__last_request_send_timestamp = time.time()
 
-        # 0   => Packet identifier
-        # 1   => Devices discover packet
-        # 2   => Devices searching command
         output_content: List[int] = [
             ProtocolVersion.V1.value,
             Packet.DISCOVER.value,
-            PairingCommand.SEARCH.value,
         ]
 
         self.__logger.debug("Preparing to broadcast search devices")
@@ -626,154 +647,339 @@ class ApiV1Pairing(IPairing):  # pylint: disable=too-many-instance-attributes
 
     # -----------------------------------------------------------------------------
 
-    def __send_data_to_device(self, data: List[int], address: int) -> None:
+    def __send_provide_register_structure_handler(
+        self,
+        discovered_device: DiscoveredDeviceRecord,
+        discovered_register: DiscoveredRegisterRecord,
+    ) -> None:
+        """We know basic device structure, let's get structure for each register"""
+        output_content: List[int] = [
+            ProtocolVersion.V1.value,
+            Packet.READ_SINGLE_REGISTER_STRUCTURE.value,
+            discovered_register.type.value,
+            discovered_register.address >> 8,
+            discovered_register.address & 0xFF,
+        ]
+
         # Mark that gateway is waiting for reply from device...
-        self.__waiting_for_packet = Packet.DISCOVER
-        self.__attempts += 1
+        self.__device_attempts += 1
         self.__total_attempts += 1
+
+        self.__waiting_for_reply = True
         self.__last_request_send_timestamp = time.time()
 
-        self.__logger.debug(
-            "Preparing to send pairing command: %s, waiting for reply: %s",
-            PairingCommand(data[1]).value,
-            PairingResponse((0x50 + PairingCommand(data[1]).value)).value,
-        )
+        if discovered_device.address == self.__ADDRESS_NOT_ASSIGNED:
+            self.__client.broadcast_packet(payload=output_content, waiting_time=self.__BROADCAST_WAITING_DELAY)
 
-        # Add protocol version to data
-        data.insert(0, ProtocolVersion.V1.value)
+        else:
+            result = self.__client.send_packet(address=discovered_device.address, payload=output_content)
 
-        result = self.__client.send_packet(
-            address=address,
-            payload=data,
-        )
-
-        if result is False:
-            # Mark that gateway is not waiting any reply from device
-            self.__waiting_for_packet = None
-            self.__attempts = 0
-            self.__last_request_send_timestamp = time.time()
+            if result is False:
+                # Mark that gateway is not waiting any reply from device
+                self.__waiting_for_reply = False
 
     # -----------------------------------------------------------------------------
 
-    def __send_provide_register_structure_handler(self, device: PairingDeviceRecord) -> None:
-        if self.__processing_register_address is None or self.__processing_register_type is None:
-            # Reset communication info
-            self.__waiting_for_packet = None
-            self.__attempts = 0
+    def __send_finalize_discovery_handler(self, discovered_device: DiscoveredDeviceRecord) -> None:
+        if discovered_device.address == self.__ADDRESS_NOT_ASSIGNED:
+            self.__write_discovered_device_new_address(
+                discovered_device=discovered_device,
+                discovered_registers=self.__pairing_device_registers,
+            )
 
-            self.__logger.info(
-                "Register address or type is not configured. Skipping to next step",
+        else:
+            self.__write_discovered_device_state(
+                discovered_device=discovered_device,
+                discovered_registers=self.__pairing_device_registers,
+            )
+
+        # Move to next device in queue
+        self.__process_discovered_device()
+
+    # -----------------------------------------------------------------------------
+
+    def __configure_registers(self, discovered_device: DiscoveredDeviceRecord, registers_type: RegisterType) -> None:
+        """Prepare discovered devices registers"""
+        if registers_type == RegisterType.INPUT:
+            registers_size = discovered_device.input_registers_size
+
+        elif registers_type == RegisterType.OUTPUT:
+            registers_size = discovered_device.output_registers_size
+
+        elif registers_type == RegisterType.ATTRIBUTE:
+            registers_size = discovered_device.attributes_registers_size
+
+        else:
+            return
+
+        # Register data type will be reset to unknown
+        register_data_type = DataType.UNKNOWN
+
+        for i in range(registers_size):
+            register_record = self.__registers_registry.get_by_address(
+                device_id=discovered_device.id,
+                register_type=registers_type,
+                register_address=i,
+            )
+
+            if register_record is not None:
+                if registers_type == RegisterType.INPUT:
+                    # Update register record in registry
+                    self.__pairing_device_registers.add(
+                        DiscoveredInputRegisterRecord(
+                            register_id=register_record.id,
+                            register_address=register_record.address,
+                            # Reset register configuration
+                            register_data_type=register_data_type,
+                        )
+                    )
+
+                elif registers_type == RegisterType.OUTPUT:
+                    # Update register record in registry
+                    self.__pairing_device_registers.add(
+                        DiscoveredOutputRegisterRecord(
+                            register_id=register_record.id,
+                            register_address=register_record.address,
+                            # Reset register configuration
+                            register_data_type=register_data_type,
+                        )
+                    )
+
+                elif registers_type == RegisterType.ATTRIBUTE:
+                    # Update register record in registry
+                    self.__pairing_device_registers.add(
+                        DiscoveredAttributeRegisterRecord(
+                            register_id=register_record.id,
+                            register_address=register_record.address,
+                            # Reset register configuration
+                            register_data_type=register_data_type,
+                            register_name=None,
+                            register_settable=False,
+                            register_queryable=False,
+                        )
+                    )
+
+            else:
+                if registers_type == RegisterType.INPUT:
+                    # Create register record in registry
+                    self.__pairing_device_registers.add(
+                        DiscoveredInputRegisterRecord(
+                            register_id=uuid.uuid4(),
+                            register_address=i,
+                            register_data_type=register_data_type,
+                        )
+                    )
+
+                elif registers_type == RegisterType.OUTPUT:
+                    # Create register record in registry
+                    self.__pairing_device_registers.add(
+                        DiscoveredOutputRegisterRecord(
+                            register_id=uuid.uuid4(),
+                            register_address=i,
+                            register_data_type=register_data_type,
+                        )
+                    )
+
+                elif registers_type == RegisterType.ATTRIBUTE:
+                    # Create register record in registry
+                    self.__pairing_device_registers.add(
+                        DiscoveredAttributeRegisterRecord(
+                            register_id=uuid.uuid4(),
+                            register_address=i,
+                            register_data_type=register_data_type,
+                            register_name=None,
+                            register_settable=False,
+                            register_queryable=False,
+                        )
+                    )
+
+    # -----------------------------------------------------------------------------
+
+    def __write_discovered_device_new_address(
+        self,
+        discovered_device: DiscoveredDeviceRecord,
+        discovered_registers: Set[DiscoveredRegisterRecord],
+    ) -> None:
+        """Discovered device is without address. Let's try to write new address to device"""
+        address_register = next(
+            iter(
+                [
+                    register
+                    for register in discovered_registers
+                    if isinstance(register, DiscoveredAttributeRegisterRecord)
+                    and register.name == DeviceAttribute.ADDRESS.value
+                ]
+            ),
+            None,
+        )
+
+        if address_register is None:
+            self.__logger.warning(
+                "Register with stored address could not be loaded. Pairing couldn't be finished",
                 extra={
                     "device": {
-                        "serial_number": device.serial_number,
+                        "serial_number": discovered_device.serial_number,
                     },
                 },
             )
 
             return
 
-        # 0 => Packet identifier
-        # 1 => Pairing command
-        # 2 => Registers type
-        # 3 => High byte of registers addresses
-        # 4 => Low byte of registers addresses
         output_content: List[int] = [
-            Packet.DISCOVER.value,
-            PairingCommand.PROVIDE_REGISTER_STRUCTURE.value,
-            self.__processing_register_type.value,
-            self.__processing_register_address >> 8,
-            self.__processing_register_address & 0xFF,
+            ProtocolVersion.V1.value,
+            Packet.WRITE_SINGLE_REGISTER_VALUE.value,
+            address_register.type.value,
+            address_register.address >> 8,
+            address_register.address & 0xFF,
         ]
 
-        self.__send_data_to_device(data=output_content, address=device.address)
+        transformed_value = ValueTransformHelpers.transform_to_bytes(
+            data_type=address_register.data_type,
+            value=5,  # TODO: Search for free address  # pylint: disable=fixme
+        )
+
+        # Value could not be transformed
+        if transformed_value is None:
+            self.__logger.warning(
+                "New device address couldn't be transformed for transfer. Pairing couldn't be finished",
+                extra={
+                    "device": {
+                        "serial_number": discovered_device.serial_number,
+                    },
+                },
+            )
+
+            return
+
+        for value in transformed_value:
+            output_content.append(value)
+
+        # Data to write are ready to be broadcast, lets persist device into registry
+        self.__finalize_device(discovered_device=discovered_device, discovered_registers=discovered_registers)
+
+        # After device update their address, it should be restarted in running mode
+        self.__client.broadcast_packet(payload=output_content, waiting_time=self.__BROADCAST_WAITING_DELAY)
 
     # -----------------------------------------------------------------------------
 
-    def __send_finalize_pairing_handler(self, device: PairingDeviceRecord) -> None:
-        # 0 => Packet identifier
-        # 1 => Pairing command
+    def __write_discovered_device_state(
+        self,
+        discovered_device: DiscoveredDeviceRecord,
+        discovered_registers: Set[DiscoveredRegisterRecord],
+    ) -> None:
+        """Discovered device is ready to be used. Discoverable mode have to be deactivated"""
+        state_register = next(
+            iter(
+                [
+                    register
+                    for register in discovered_registers
+                    if isinstance(register, DiscoveredAttributeRegisterRecord)
+                    and register.name == DeviceAttribute.STATE.value
+                ]
+            ),
+            None,
+        )
+
+        if state_register is None:
+            self.__logger.warning(
+                "Register with stored state could not be loaded. Pairing couldn't be finished",
+                extra={
+                    "device": {
+                        "serial_number": discovered_device.serial_number,
+                    },
+                },
+            )
+
+            return
+
         output_content: List[int] = [
-            Packet.DISCOVER.value,
-            PairingCommand.PAIRING_FINISHED.value,
+            ProtocolVersion.V1.value,
+            Packet.WRITE_SINGLE_REGISTER_VALUE.value,
+            state_register.type.value,
+            state_register.address >> 8,
+            state_register.address & 0xFF,
         ]
 
-        self.__send_data_to_device(data=output_content, address=device.address)
+        transformed_value = ValueTransformHelpers.transform_to_bytes(
+            data_type=state_register.data_type,
+            value=StateTransformHelpers.transform_for_device(device_state=ConnectionState.RUNNING).value,
+        )
+
+        # Value could not be transformed
+        if transformed_value is None:
+            self.__logger.warning(
+                "Device state couldn't be transformed for transfer. Pairing couldn't be finished",
+                extra={
+                    "device": {
+                        "serial_number": discovered_device.serial_number,
+                    },
+                },
+            )
+
+            return
+
+        for value in transformed_value:
+            output_content.append(value)
+
+        # Data to write are ready to be broadcast, lets persist device into registry
+        self.__finalize_device(discovered_device=discovered_device, discovered_registers=discovered_registers)
+
+        # When device state is changed, discovery mode will be deactivated
+        result = self.__client.send_packet(address=discovered_device.address, payload=output_content)
+
+        if result is False:
+            self.__logger.warning(
+                "Device state couldn't written into device. State have to be changed manually",
+                extra={
+                    "device": {
+                        "serial_number": discovered_device.serial_number,
+                    },
+                },
+            )
 
     # -----------------------------------------------------------------------------
 
-    def __configure_registers(self, device_id: uuid.UUID, registers_size: int, registers_type: RegisterType) -> None:
-        for i in range(registers_size):
-            register_record = self.__registers_registry.get_by_address(
-                device_id=device_id,
-                register_type=registers_type,
-                register_address=i,
-            )
+    def __finalize_device(
+        self,
+        discovered_device: DiscoveredDeviceRecord,
+        discovered_registers: Set[DiscoveredRegisterRecord],
+    ) -> None:
+        """Persist discovered device into connector registry"""
+        device_record = self.__devices_registry.create_or_update(
+            device_id=discovered_device.id,
+            device_serial_number=discovered_device.serial_number,
+            device_enabled=False,
+            hardware_manufacturer=discovered_device.hardware_manufacturer,
+            hardware_model=discovered_device.hardware_model,
+            hardware_version=discovered_device.hardware_version,
+            firmware_manufacturer=discovered_device.firmware_manufacturer,
+            firmware_version=discovered_device.firmware_version,
+        )
 
-            if register_record is not None:
-                register_data_type = DataType.UNKNOWN
-
-                if registers_type == RegisterType.INPUT:
-                    # Update register record
-                    self.append_input_register(
-                        register_id=register_record.id,
-                        register_address=register_record.address,
-                        # Configure register data type
-                        register_data_type=register_data_type,
-                    )
-
-                elif registers_type == RegisterType.OUTPUT:
-                    # Update register record
-                    self.append_output_register(
-                        register_id=register_record.id,
-                        register_address=register_record.address,
-                        # Configure register data type
-                        register_data_type=register_data_type,
-                    )
-
-            else:
-                data_type = DataType.UNKNOWN
-
-                if registers_type == RegisterType.INPUT:
-                    self.append_input_register(
-                        register_id=uuid.uuid4(),
-                        register_address=i,
-                        register_data_type=data_type,
-                    )
-
-                elif registers_type == RegisterType.OUTPUT:
-                    self.append_output_register(
-                        register_id=uuid.uuid4(),
-                        register_address=i,
-                        register_data_type=data_type,
-                    )
-
-    # -----------------------------------------------------------------------------
-
-    def __configure_attributes(self, device_id: uuid.UUID, attributes_size: int) -> None:
-        for i in range(attributes_size):
-            attribute_record = self.__registers_registry.get_by_address(
-                device_id=device_id,
-                register_address=i,
-                register_type=RegisterType.ATTRIBUTE,
-            )
-
-            if isinstance(attribute_record, AttributeRegisterRecord):
-                self.append_attribute(
-                    attribute_id=attribute_record.id,
-                    attribute_address=attribute_record.address,
-                    attribute_name=attribute_record.name,
-                    attribute_settable=attribute_record.settable,
-                    attribute_queryable=attribute_record.queryable,
-                    # Configure attribute data type
-                    attribute_data_type=DataType.UNKNOWN,
+        for register in discovered_registers:
+            if isinstance(register, (DiscoveredInputRegisterRecord, DiscoveredOutputRegisterRecord)):
+                self.__registers_registry.create_or_update(
+                    device_id=device_record.id,
+                    register_id=register.id,
+                    register_type=register.type,
+                    register_address=register.address,
+                    register_data_type=register.data_type,
                 )
 
-            elif attribute_record is None:
-                self.append_attribute(
-                    attribute_id=uuid.uuid4(),
-                    attribute_address=i,
-                    attribute_name=None,
-                    attribute_data_type=DataType.UNKNOWN,
-                    attribute_settable=True,
-                    attribute_queryable=True,
+            elif isinstance(register, DiscoveredAttributeRegisterRecord):
+                self.__registers_registry.create_or_update(
+                    device_id=device_record.id,
+                    register_id=register.id,
+                    register_type=register.type,
+                    register_address=register.address,
+                    register_data_type=register.data_type,
+                    register_name=register.name,
+                    register_queryable=register.queryable,
+                    register_settable=register.settable,
                 )
+
+        # Device initialization is finished, enable it for communication
+        self.__devices_registry.enable(device=device_record)
+
+        # Update device state
+        self.__devices_registry.set_state(device=device_record, state=ConnectionState.UNKNOWN)

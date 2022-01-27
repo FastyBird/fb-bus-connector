@@ -19,11 +19,13 @@ FastyBird BUS connector publishers module publisher for API v1
 """
 
 # Python base dependencies
+import logging
 import time
 from datetime import datetime
 from typing import List, Optional, Union
 
 # Library dependencies
+from fastybird_metadata.devices_module import ConnectionState
 from fastybird_metadata.types import ButtonPayload, DataType, SwitchPayload
 from kink import inject
 
@@ -31,19 +33,22 @@ from kink import inject
 from fastybird_fb_bus_connector.clients.client import Client
 from fastybird_fb_bus_connector.logger import Logger
 from fastybird_fb_bus_connector.publishers.base import IPublisher
-from fastybird_fb_bus_connector.registry.model import (
-    AttributesRegistry,
-    DevicesRegistry,
-    RegistersRegistry,
+from fastybird_fb_bus_connector.registry.model import DevicesRegistry, RegistersRegistry
+from fastybird_fb_bus_connector.registry.records import (
+    AttributeRegisterRecord,
+    DeviceRecord,
+    RegisterRecord,
 )
-from fastybird_fb_bus_connector.registry.records import DeviceRecord, RegisterRecord
 from fastybird_fb_bus_connector.types import (
     DeviceAttribute,
     Packet,
     ProtocolVersion,
     RegisterType,
 )
-from fastybird_fb_bus_connector.utilities.helpers import ValueTransformHelpers
+from fastybird_fb_bus_connector.utilities.helpers import (
+    StateTransformHelpers,
+    ValueTransformHelpers,
+)
 
 
 @inject(alias=IPublisher)
@@ -65,25 +70,22 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
     __PACKET_RESPONSE_WAITING_TIME: float = 0.5
 
     __devices_registry: DevicesRegistry
-    __attributes_registry: AttributesRegistry
     __registers_registry: RegistersRegistry
 
     __client: Client
 
-    __logger: Logger
+    __logger: Union[Logger, logging.Logger]
 
     # -----------------------------------------------------------------------------
 
     def __init__(  # pylint: disable=too-many-arguments
         self,
         devices_registry: DevicesRegistry,
-        attributes_registry: AttributesRegistry,
         registers_registry: RegistersRegistry,
         client: Client,
-        logger: Logger,
+        logger: Union[Logger, logging.Logger] = logging.getLogger("dummy"),
     ) -> None:
         self.__devices_registry = devices_registry
-        self.__attributes_registry = attributes_registry
         self.__registers_registry = registers_registry
 
         self.__client = client
@@ -99,7 +101,7 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
             if self.__devices_registry.is_device_lost(device=device):
                 self.__devices_registry.reset_communication(device=device)
 
-                self.__logger.debug(
+                self.__logger.info(
                     "Device with address: %s is still lost",
                     self.__get_address_for_device(device=device),
                     extra={
@@ -112,7 +114,7 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
                 )
 
             else:
-                self.__logger.debug(
+                self.__logger.info(
                     "Device with address: %s is lost",
                     self.__get_address_for_device(device=device),
                     extra={
@@ -130,7 +132,7 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
 
         # If device is marked as lost...
         if self.__devices_registry.is_device_lost(device=device):
-            # ...and wait for lost delay...
+            # ...and wait for ping delay...
             if (time.time() - device.last_packet_timestamp) >= self.__PING_DELAY:
                 # ...then try to PING device
                 self.__send_ping_handler(device=device)
@@ -188,7 +190,7 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
     # -----------------------------------------------------------------------------
 
     def __write_register_handler(self, device: DeviceRecord) -> bool:
-        for register_type in (RegisterType.OUTPUT, RegisterType.ATTRIBUTE, RegisterType.SETTING):
+        for register_type in (RegisterType.OUTPUT, RegisterType.ATTRIBUTE):
             if self.__write_single_register_handler(device=device, register_type=register_type):
                 return True
 
@@ -197,7 +199,6 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
     # -----------------------------------------------------------------------------
 
     def __send_ping_handler(self, device: DeviceRecord) -> None:
-        # 0 => Packet identifier
         output_content: List[int] = [
             ProtocolVersion.V1.value,
             Packet.PING.value,
@@ -206,7 +207,7 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
         device_address = self.__get_address_for_device(device=device)
 
         if device_address is None:
-            self.__logger.debug(
+            self.__logger.error(
                 "Device address could not be fetched from registry",
                 extra={
                     "device": {
@@ -228,16 +229,25 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
     # -----------------------------------------------------------------------------
 
     def __send_read_device_state_handler(self, device: DeviceRecord) -> None:
-        # 0 => Packet identifier
-        output_content: List[int] = [
-            ProtocolVersion.V1.value,
-            Packet.READ_STATE.value,
-        ]
+        state_attribute = self.__registers_registry.get_by_name(device_id=device.id, name=DeviceAttribute.STATE.value)
+
+        if state_attribute is None:
+            self.__logger.error(
+                "Device state attribute register could not be fetched from registry",
+                extra={
+                    "device": {
+                        "id": device.id.__str__(),
+                        "serial_number": device.serial_number,
+                    },
+                },
+            )
+
+            return
 
         device_address = self.__get_address_for_device(device=device)
 
         if device_address is None:
-            self.__logger.debug(
+            self.__logger.error(
                 "Device address could not be fetched from registry",
                 extra={
                     "device": {
@@ -249,13 +259,21 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
 
             return
 
+        output_content: List[int] = [
+            ProtocolVersion.V1.value,
+            Packet.READ_SINGLE_REGISTER_VALUE.value,
+            state_attribute.type.value,
+            state_attribute.address >> 8,
+            state_attribute.address & 0xFF,
+        ]
+
         result = self.__client.send_packet(
             address=device_address,
             payload=output_content,
             waiting_time=1,
         )
 
-        self.__validate_result(result=result, packet_type=Packet.READ_STATE, device=device)
+        self.__validate_result(result=result, packet_type=Packet.READ_SINGLE_REGISTER_VALUE, device=device)
 
     # -----------------------------------------------------------------------------
 
@@ -265,6 +283,21 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
         register_type: RegisterType,
         start_address: Optional[int],
     ) -> bool:
+        device_address = self.__get_address_for_device(device=device)
+
+        if device_address is None:
+            self.__logger.error(
+                "Device address could not be fetched from registry",
+                extra={
+                    "device": {
+                        "id": device.id.__str__(),
+                        "serial_number": device.serial_number,
+                    },
+                },
+            )
+
+            return False
+
         register_size = len(
             self.__registers_registry.get_all_for_device(device_id=device.id, register_type=register_type)
         )
@@ -280,7 +313,7 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
         # 5 => Low byte of registers length
         output_content: List[int] = [
             ProtocolVersion.V1.value,
-            Packet.READ_MULTIPLE_REGISTERS.value,
+            Packet.READ_MULTIPLE_REGISTERS_VALUES.value,
             register_type.value,
             start_address >> 8,
             start_address & 0xFF,
@@ -321,27 +354,12 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
         output_content.append(read_length >> 8)
         output_content.append(read_length & 0xFF)
 
-        device_address = self.__get_address_for_device(device=device)
-
-        if device_address is None:
-            self.__logger.debug(
-                "Device address could not be fetched from registry",
-                extra={
-                    "device": {
-                        "id": device.id.__str__(),
-                        "serial_number": device.serial_number,
-                    },
-                },
-            )
-
-            return False
-
         result = self.__client.send_packet(
             address=device_address,
             payload=output_content,
         )
 
-        self.__validate_result(result=result, packet_type=Packet.READ_MULTIPLE_REGISTERS, device=device)
+        self.__validate_result(result=result, packet_type=Packet.READ_MULTIPLE_REGISTERS_VALUES, device=device)
 
         if result is True:
             # ...and update reading pointer
@@ -386,6 +404,21 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
         register: RegisterRecord,
         write_value: Union[str, int, float, bool, datetime, ButtonPayload, SwitchPayload],
     ) -> bool:
+        device_address = self.__get_address_for_device(device=device)
+
+        if device_address is None:
+            self.__logger.error(
+                "Device address could not be fetched from registry",
+                extra={
+                    "device": {
+                        "id": device.id.__str__(),
+                        "serial_number": device.serial_number,
+                    },
+                },
+            )
+
+            return False
+
         # 0     => Packet identifier
         # 1     => Register type
         # 2     => High byte of register address
@@ -393,7 +426,7 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
         # 4-n   => Write value
         output_content: List[int] = [
             ProtocolVersion.V1.value,
-            Packet.WRITE_SINGLE_REGISTER.value,
+            Packet.WRITE_SINGLE_REGISTER_VALUE.value,
             register.type.value,
             register.address >> 8,
             register.address & 0xFF,
@@ -410,18 +443,30 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
                 DataType.UINT,
                 DataType.FLOAT,
                 DataType.BOOLEAN,
-                DataType.STRING,
-                DataType.DATE,
-                DataType.TIME,
-                DataType.DATETIME,
-                DataType.SWITCH,
-                DataType.BUTTON,
             )
             and isinstance(write_value, (int, float, bool))
         ):
             transformed_value = ValueTransformHelpers.transform_to_bytes(
                 data_type=register.data_type,
                 value=write_value,
+            )
+
+            # Value could not be transformed
+            if transformed_value is None:
+                return False
+
+            for value in transformed_value:
+                output_content.append(value)
+
+        # SPECIAL TRANSFORMING FOR STATE ATTRIBUTE
+        elif (
+            register.data_type == DataType.ENUM
+            and isinstance(register, AttributeRegisterRecord)
+            and register.name == DeviceAttribute.STATE.value
+        ):
+            transformed_value = ValueTransformHelpers.transform_to_bytes(
+                data_type=register.data_type,
+                value=StateTransformHelpers.transform_for_device(device_state=ConnectionState(write_value)).value,
             )
 
             # Value could not be transformed
@@ -449,28 +494,13 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
 
             return False
 
-        device_address = self.__get_address_for_device(device=device)
-
-        if device_address is None:
-            self.__logger.debug(
-                "Device address could not be fetched from registry",
-                extra={
-                    "device": {
-                        "id": device.id.__str__(),
-                        "serial_number": device.serial_number,
-                    },
-                },
-            )
-
-            return False
-
         result = self.__client.send_packet(
             address=device_address,
             payload=output_content,
             waiting_time=self.__PACKET_RESPONSE_WAITING_TIME,
         )
 
-        self.__validate_result(result=result, packet_type=Packet.WRITE_SINGLE_REGISTER, device=device)
+        self.__validate_result(result=result, packet_type=Packet.WRITE_SINGLE_REGISTER_VALUE, device=device)
 
         return result
 
@@ -512,25 +542,25 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
     # -----------------------------------------------------------------------------
 
     def __get_address_for_device(self, device: DeviceRecord) -> Optional[int]:
-        address_attribute = self.__attributes_registry.get_by_attribute(
+        address_attribute = self.__registers_registry.get_by_name(
             device_id=device.id,
-            attribute_type=DeviceAttribute.ADDRESS,
+            name=DeviceAttribute.ADDRESS.value,
         )
 
-        if address_attribute is None or not isinstance(address_attribute.value, int):
+        if address_attribute is None or not isinstance(address_attribute.actual_value, int):
             return None
 
-        return address_attribute.value
+        return address_attribute.actual_value
 
     # -----------------------------------------------------------------------------
 
     def __get_max_packet_length_for_device(self, device: DeviceRecord) -> int:
-        max_packet_length_attribute = self.__attributes_registry.get_by_attribute(
+        max_packet_length_attribute = self.__registers_registry.get_by_name(
             device_id=device.id,
-            attribute_type=DeviceAttribute.MAX_PACKET_LENGTH,
+            name=DeviceAttribute.MAX_PACKET_LENGTH.value,
         )
 
-        if max_packet_length_attribute is None or not isinstance(max_packet_length_attribute.value, int):
+        if max_packet_length_attribute is None or not isinstance(max_packet_length_attribute.actual_value, int):
             return 80
 
-        return max_packet_length_attribute.value
+        return max_packet_length_attribute.actual_value

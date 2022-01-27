@@ -200,71 +200,7 @@ class WriteMultipleRegistersEntity(MultipleRegistersEntity):
     """
 
 
-class DeviceStateEntity(BaseEntity):
-    """
-    Device state entity
-
-    @package        FastyBird:FbBusConnector!
-    @module         receivers/entities
-
-    @author         Adam Kadlec <adam.kadlec@fastybird.com>
-    """
-
-    __state: ConnectionState
-
-    # -----------------------------------------------------------------------------
-
-    def __init__(
-        self,
-        device_address: int,
-        device_state: ConnectionState,
-    ) -> None:
-        super().__init__(device_address=device_address)
-
-        self.__state = device_state
-
-    # -----------------------------------------------------------------------------
-
-    @property
-    def device_state(self) -> ConnectionState:
-        """Device current state"""
-        return self.__state
-
-
-class GetDeviceStateEntity(DeviceStateEntity):
-    """
-    Result of reading device state from device
-
-    @package        FastyBird:FbBusConnector!
-    @module         receivers/entities
-
-    @author         Adam Kadlec <adam.kadlec@fastybird.com>
-    """
-
-
-class SetDeviceStateEntity(DeviceStateEntity):
-    """
-    Result of writing device state to device
-
-    @package        FastyBird:FbBusConnector!
-    @module         receivers/entities
-
-    @author         Adam Kadlec <adam.kadlec@fastybird.com>
-    """
-
-
-class ReportDeviceStateEntity(DeviceStateEntity):
-    """
-    Result of reporting device state from device
-
-    @package        FastyBird:FbBusConnector!
-    @module         receivers/entities
-
-    @author         Adam Kadlec <adam.kadlec@fastybird.com>
-    """
-
-
-class DeviceSearchEntity(BaseEntity):  # pylint: disable=too-many-instance-attributes
+class DeviceDiscoveryEntity(BaseEntity):  # pylint: disable=too-many-instance-attributes
     """
     Result of device search response with base details
 
@@ -276,6 +212,7 @@ class DeviceSearchEntity(BaseEntity):  # pylint: disable=too-many-instance-attri
 
     __max_packet_length: int
     __serial_number: str
+    __state: ConnectionState
 
     __hardware_version: str
     __hardware_model: str
@@ -295,6 +232,7 @@ class DeviceSearchEntity(BaseEntity):  # pylint: disable=too-many-instance-attri
         device_address: int,
         device_max_packet_length: int,
         device_serial_number: str,
+        device_state: ConnectionState,
         device_hardware_version: str,
         device_hardware_model: str,
         device_hardware_manufacturer: str,
@@ -308,6 +246,7 @@ class DeviceSearchEntity(BaseEntity):  # pylint: disable=too-many-instance-attri
 
         self.__max_packet_length = device_max_packet_length
         self.__serial_number = device_serial_number
+        self.__state = device_state
 
         self.__hardware_version = device_hardware_version
         self.__hardware_model = device_hardware_model
@@ -333,6 +272,13 @@ class DeviceSearchEntity(BaseEntity):  # pylint: disable=too-many-instance-attri
     def device_serial_number(self) -> str:
         """Serial number"""
         return self.__serial_number
+
+    # -----------------------------------------------------------------------------
+
+    @property
+    def device_state(self) -> ConnectionState:
+        """Serial number"""
+        return self.__state
 
     # -----------------------------------------------------------------------------
 
@@ -455,7 +401,7 @@ class RegisterStructureEntity(BaseEntity):
     @property
     def register_name(self) -> str:
         """Register name"""
-        if self.__type not in (RegisterType.ATTRIBUTE, RegisterType.SETTING) or self.__name is None:
+        if self.__type != RegisterType.ATTRIBUTE or self.__name is None:
             raise AttributeError("Register name is available only for attribute or setting register")
 
         return self.__name
@@ -465,7 +411,7 @@ class RegisterStructureEntity(BaseEntity):
     @property
     def register_settable(self) -> bool:
         """Is register settable?"""
-        if self.__type not in (RegisterType.ATTRIBUTE, RegisterType.SETTING) or self.__settable is None:
+        if self.__type != RegisterType.ATTRIBUTE or self.__settable is None:
             raise AttributeError("Register settable flag is available only for attribute or setting register")
 
         return self.__settable
@@ -475,15 +421,15 @@ class RegisterStructureEntity(BaseEntity):
     @property
     def register_queryable(self) -> bool:
         """Is register queryable?"""
-        if self.__type not in (RegisterType.ATTRIBUTE, RegisterType.SETTING) or self.__queryable is None:
+        if self.__type != RegisterType.ATTRIBUTE or self.__queryable is None:
             raise AttributeError("Register queryable flag is available only for attribute or setting register")
 
         return self.__queryable
 
 
-class PairingFinishedEntity(BaseEntity):
+class PongEntity(BaseEntity):
     """
-    Result of device pairing response with pairing finished
+    Result of device pairing response with register structure
 
     @package        FastyBird:FbBusConnector!
     @module         receivers/entities
@@ -495,7 +441,7 @@ class PairingFinishedEntity(BaseEntity):
 
     # -----------------------------------------------------------------------------
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments
         self,
         device_address: int,
         device_state: ConnectionState,
@@ -508,5 +454,5 @@ class PairingFinishedEntity(BaseEntity):
 
     @property
     def device_state(self) -> ConnectionState:
-        """Device current state"""
+        """Serial number"""
         return self.__state

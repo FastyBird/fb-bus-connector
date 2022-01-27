@@ -19,15 +19,14 @@ FastyBird BUS connector events module listeners
 """
 
 # Python base dependencies
+import logging
 import uuid
+from typing import Union
 
 # Library dependencies
 import inflection
 from fastybird_devices_module.entities.channel import ChannelDynamicPropertyEntity
-from fastybird_devices_module.entities.device import (
-    DeviceDynamicPropertyEntity,
-    DeviceStaticPropertyEntity,
-)
+from fastybird_devices_module.entities.device import DeviceDynamicPropertyEntity
 from fastybird_devices_module.managers.channel import (
     ChannelPropertiesManager,
     ChannelsManager,
@@ -52,8 +51,6 @@ from whistle import Event, EventDispatcher
 # Library libs
 from fastybird_fb_bus_connector.entities import FbBusDeviceEntity
 from fastybird_fb_bus_connector.events.events import (
-    AttributeActualValueEvent,
-    AttributeRecordCreatedOrUpdatedEvent,
     AttributeRegisterRecordCreatedOrUpdatedEvent,
     DeviceRecordCreatedOrUpdatedEvent,
     InputOutputRegisterRecordCreatedOrUpdatedEvent,
@@ -95,7 +92,7 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
 
     __event_dispatcher: EventDispatcher
 
-    __logger: Logger
+    __logger: Union[Logger, logging.Logger]
 
     # -----------------------------------------------------------------------------
 
@@ -113,7 +110,7 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
         channels_properties_states_repository: IChannelPropertyStateRepository,
         channels_properties_states_manager: IChannelPropertiesStatesManager,
         event_dispatcher: EventDispatcher,
-        logger: Logger,
+        logger: Union[Logger, logging.Logger] = logging.getLogger("dummy"),
     ) -> None:
         self.__connector_id = connector_id
 
@@ -155,16 +152,6 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
         )
 
         self.__event_dispatcher.add_listener(
-            event_id=AttributeRecordCreatedOrUpdatedEvent.EVENT_NAME,
-            listener=self.__handle_create_or_update_attribute,
-        )
-
-        self.__event_dispatcher.add_listener(
-            event_id=AttributeActualValueEvent.EVENT_NAME,
-            listener=self.__handle_write_attribute_actual_value,
-        )
-
-        self.__event_dispatcher.add_listener(
             event_id=RegisterActualValueEvent.EVENT_NAME,
             listener=self.__handle_write_register_actual_value,
         )
@@ -189,16 +176,6 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
         )
 
         self.__event_dispatcher.remove_listener(
-            event_id=AttributeRecordCreatedOrUpdatedEvent.EVENT_NAME,
-            listener=self.__handle_create_or_update_attribute,
-        )
-
-        self.__event_dispatcher.remove_listener(
-            event_id=AttributeActualValueEvent.EVENT_NAME,
-            listener=self.__handle_write_attribute_actual_value,
-        )
-
-        self.__event_dispatcher.remove_listener(
             event_id=RegisterActualValueEvent.EVENT_NAME,
             listener=self.__handle_write_register_actual_value,
         )
@@ -212,7 +189,6 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
         device_data = {
             "id": event.record.id,
             "identifier": event.record.serial_number,
-            "name": f"{event.record.hardware_manufacturer} {event.record.hardware_model}",
             "enabled": event.record.enabled,
             "hardware_manufacturer": event.record.hardware_manufacturer,
             "hardware_model": event.record.hardware_model,
@@ -225,6 +201,9 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
         if device is None:
             # Define relation between device and it's connector
             device_data["connector_id"] = self.__connector_id
+            device_data["name"] = inflection.titleize(
+                f"{event.record.hardware_manufacturer} {event.record.hardware_model}",
+            )
 
             device = self.__devices_manager.create(
                 data=device_data,
@@ -397,113 +376,6 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
         else:
             device_property = self.__devices_properties_manager.update(
                 data=property_data,
-                device_property=device_property,
-            )
-
-            self.__logger.debug(
-                "Updating existing device property",
-                extra={
-                    "device": {
-                        "id": device_property.device.device.id.__str__(),
-                    },
-                    "property": {
-                        "id": device_property.id.__str__(),
-                    },
-                },
-            )
-
-    # -----------------------------------------------------------------------------
-
-    def __handle_create_or_update_attribute(self, event: Event) -> None:
-        if not isinstance(event, AttributeRecordCreatedOrUpdatedEvent):
-            return
-
-        property_data = {
-            "id": event.record.id,
-            "identifier": event.record.type.value,
-            "name": inflection.underscore(event.record.type.value),
-            "settable": False,
-            "queryable": False,
-            "data_type": event.record.data_type,
-            "format": event.record.format,
-            "unit": None,
-            "value": event.record.value,
-        }
-
-        device_property = self.__devices_properties_repository.get_by_id(property_id=event.record.id)
-
-        if device_property is None:
-            # Define relation between device & property
-            property_data["device_id"] = event.record.device_id
-
-            device_property = self.__devices_properties_manager.create(
-                data=property_data,
-                property_type=DeviceStaticPropertyEntity,
-            )
-
-            self.__logger.debug(
-                "Creating new device property",
-                extra={
-                    "device": {
-                        "id": device_property.device.id.__str__(),
-                    },
-                    "property": {
-                        "id": device_property.id.__str__(),
-                    },
-                },
-            )
-
-        else:
-            if device_property.name is not None:
-                property_data["name"] = device_property.name
-
-            device_property = self.__devices_properties_manager.update(
-                data=property_data,
-                device_property=device_property,
-            )
-
-            self.__logger.debug(
-                "Updating existing device property",
-                extra={
-                    "device": {
-                        "id": device_property.device.id.__str__(),
-                    },
-                    "property": {
-                        "id": device_property.id.__str__(),
-                    },
-                },
-            )
-
-    # -----------------------------------------------------------------------------
-
-    def __handle_write_attribute_actual_value(self, event: Event) -> None:
-        if not isinstance(event, AttributeActualValueEvent):
-            return
-
-        device_property = self.__devices_properties_repository.get_by_id(property_id=event.updated_record.id)
-
-        if device_property is None:
-            self.__logger.warning(
-                "Device property couldn't be found in database",
-                extra={
-                    "device": {
-                        "id": event.updated_record.device_id.__str__(),
-                    },
-                    "property": {
-                        "id": event.updated_record.id.__str__(),
-                    },
-                },
-            )
-            return
-
-        actual_value_normalized = str(device_property.value) if device_property.value is not None else None
-        updated_value_normalized = str(event.updated_record.value) if event.updated_record.value is not None else None
-
-        if actual_value_normalized != updated_value_normalized:
-            self.__devices_properties_manager.update(
-                data={
-                    "value": event.updated_record.value,
-                },
                 device_property=device_property,
             )
 

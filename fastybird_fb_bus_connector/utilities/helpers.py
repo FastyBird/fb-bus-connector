@@ -102,10 +102,6 @@ class StateTransformHelpers:
             # Device is actually stopped
             return ConnectionState.STOPPED
 
-        if device_state == DeviceConnectionState.PAIRING:
-            # Device is actually stopped
-            return ConnectionState.INIT
-
         if device_state == DeviceConnectionState.ERROR:
             # Device is actually stopped
             return ConnectionState.ALERT
@@ -403,14 +399,13 @@ class PacketsHelpers:  # pylint: disable=too-few-public-methods
         Packet.PONG.value: "FB_PACKET_PONG",
         Packet.EXCEPTION.value: "FB_PACKET_EXCEPTION",
         Packet.DISCOVER.value: "FB_PACKET_DISCOVER",
-        Packet.READ_SINGLE_REGISTER.value: "FB_PACKET_READ_SINGLE_REGISTER",
-        Packet.READ_MULTIPLE_REGISTERS.value: "FB_PACKET_READ_MULTIPLE_REGISTERS",
-        Packet.WRITE_SINGLE_REGISTER.value: "FB_PACKET_WRITE_SINGLE_REGISTER",
-        Packet.WRITE_MULTIPLE_REGISTERS.value: "FB_PACKET_WRITE_MULTIPLE_REGISTERS",
-        Packet.REPORT_SINGLE_REGISTER.value: "FB_PACKET_REPORT_SINGLE_REGISTER",
-        Packet.READ_STATE.value: "FB_PACKET_READ_STATE",
-        Packet.WRITE_STATE.value: "FB_PACKET_WRITE_STATE",
-        Packet.REPORT_STATE.value: "FB_PACKET_REPORT_STATE",
+        Packet.READ_SINGLE_REGISTER_VALUE.value: "FB_PACKET_READ_SINGLE_REGISTER_VALUE",
+        Packet.READ_MULTIPLE_REGISTERS_VALUES.value: "FB_PACKET_READ_MULTIPLE_REGISTERS_VALUES",
+        Packet.WRITE_SINGLE_REGISTER_VALUE.value: "FB_PACKET_WRITE_SINGLE_REGISTER_VALUE",
+        Packet.WRITE_MULTIPLE_REGISTERS_VALUES.value: "FB_PACKET_WRITE_MULTIPLE_REGISTERS_VALUES",
+        Packet.REPORT_SINGLE_REGISTER_VALUE.value: "FB_PACKET_REPORT_SINGLE_REGISTER_VALUE",
+        Packet.READ_SINGLE_REGISTER_STRUCTURE.value: "FB_PACKET_READ_SINGLE_REGISTER_STRUCTURE",
+        Packet.READ_MULTIPLE_REGISTERS_STRUCTURE.value: "FB_PACKET_READ_MULTIPLE_REGISTERS_STRUCTURE",
     }
 
     @classmethod

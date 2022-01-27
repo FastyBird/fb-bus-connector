@@ -19,6 +19,7 @@ FastyBird BUS connector module
 """
 
 # Python base dependencies
+import logging
 import re
 import uuid
 from datetime import datetime
@@ -38,7 +39,6 @@ from fastybird_devices_module.entities.device import (
     DeviceDynamicPropertyEntity,
     DeviceEntity,
     DevicePropertyEntity,
-    DeviceStaticPropertyEntity,
 )
 from fastybird_devices_module.repositories.device import DevicesRepository
 from fastybird_metadata.devices_module import (
@@ -56,19 +56,11 @@ from fastybird_fb_bus_connector.clients.client import Client
 from fastybird_fb_bus_connector.entities import FbBusDeviceEntity
 from fastybird_fb_bus_connector.events.listeners import EventsListener
 from fastybird_fb_bus_connector.logger import Logger
-from fastybird_fb_bus_connector.pairing.pairing import DevicesPairing
+from fastybird_fb_bus_connector.pairing.pairing import Pairing
 from fastybird_fb_bus_connector.publishers.publisher import Publisher
 from fastybird_fb_bus_connector.receivers.receiver import Receiver
-from fastybird_fb_bus_connector.registry.model import (
-    AttributesRegistry,
-    DevicesRegistry,
-    RegistersRegistry,
-)
-from fastybird_fb_bus_connector.types import (
-    DeviceAttribute,
-    ProtocolVersion,
-    RegisterType,
-)
+from fastybird_fb_bus_connector.registry.model import DevicesRegistry, RegistersRegistry
+from fastybird_fb_bus_connector.types import ProtocolVersion, RegisterType
 
 
 @inject(alias=IConnector)
@@ -94,16 +86,15 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
     __publisher: Publisher
 
     __devices_registry: DevicesRegistry
-    __attributes_registry: AttributesRegistry
     __registers_registry: RegistersRegistry
 
     __client: Client
 
     __events_listener: EventsListener
 
-    __pairing: DevicesPairing
+    __pairing: Pairing
 
-    __logger: Logger
+    __logger: Union[Logger, logging.Logger]
 
     # -----------------------------------------------------------------------------
 
@@ -114,12 +105,11 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
         receiver: Receiver,
         publisher: Publisher,
         devices_registry: DevicesRegistry,
-        attributes_registry: AttributesRegistry,
         registers_registry: RegistersRegistry,
         client: Client,
         events_listener: EventsListener,
-        pairing: DevicesPairing,
-        logger: Logger,
+        pairing: Pairing,
+        logger: Union[Logger, logging.Logger] = logging.getLogger("dummy"),
     ) -> None:
         self.__connector_id = connector_id
 
@@ -130,7 +120,6 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
         self.__pairing = pairing
 
         self.__devices_registry = devices_registry
-        self.__attributes_registry = attributes_registry
         self.__registers_registry = registers_registry
 
         self.__client = client
@@ -213,23 +202,6 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
 
     def initialize_device_property(self, device_property: DevicePropertyEntity) -> None:
         """Initialize device property in connector registry"""
-        if isinstance(device_property, DeviceStaticPropertyEntity):
-            if not DeviceAttribute.has_value(device_property.identifier):
-                return
-
-            attribute_record = self.__attributes_registry.append(
-                device_id=device_property.device.id,
-                attribute_id=device_property.id,
-                attribute_type=DeviceAttribute(device_property.identifier),
-                attribute_value=device_property.value,
-            )
-
-            if device_property.identifier == DeviceAttribute.STATE.value:
-                self.__attributes_registry.set_value(
-                    attribute=attribute_record,
-                    value=ConnectionState.UNKNOWN.value,
-                )
-
         if isinstance(device_property, DeviceDynamicPropertyEntity):
             match = re.compile("(?P<identifier>[a-zA-Z_]+)_(?P<address>[0-9]+)")
 
@@ -283,14 +255,12 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
 
     def remove_device_property(self, property_id: uuid.UUID) -> None:
         """Remove device from connector registry"""
-        self.__attributes_registry.remove(attribute_id=property_id)
         self.__registers_registry.remove(register_id=property_id)
 
     # -----------------------------------------------------------------------------
 
     def reset_devices_properties(self, device: DeviceEntity) -> None:
         """Reset devices properties registry to initial state"""
-        self.__attributes_registry.reset(device_id=device.id)
         self.__registers_registry.reset(device_id=device.id, registers_type=RegisterType.ATTRIBUTE)
 
     # -----------------------------------------------------------------------------
@@ -328,7 +298,7 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
                 channel_property.identifier,
                 extra={
                     "device": {
-                        "id": channel_property.channel.device.device.id.__str__(),
+                        "id": channel_property.channel.device.id.__str__(),
                     },
                     "channel": {
                         "id": channel_property.channel.device.id.__str__(),
@@ -349,7 +319,7 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
                 "Channel's property name is not in expected format. Attribute address could not be extracted",
                 extra={
                     "device": {
-                        "id": channel_property.channel.device.device.id.__str__(),
+                        "id": channel_property.channel.device.id.__str__(),
                     },
                     "channel": {
                         "id": channel_property.channel.device.id.__str__(),
@@ -399,26 +369,25 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
 
     def start(self) -> None:
         """Start connector services"""
-        self.__stopped = False
-
-        # When connector is closing...
+        # When connector is starting...
         for device in self.__devices_registry:
-            # ...set device state to disconnected
+            # ...set device state to unknown
             self.__devices_registry.set_state(device=device, state=ConnectionState.UNKNOWN)
 
         self.__events_listener.open()
 
         self.__logger.info("Connector has been started UP")
 
+        self.__stopped = False
+
     # -----------------------------------------------------------------------------
 
     def stop(self) -> None:
         """Close all opened connections & stop connector"""
-        for state_attribute_record in self.__attributes_registry.get_all_by_type(attribute_type=DeviceAttribute.STATE):
-            self.__attributes_registry.set_value(
-                attribute=state_attribute_record,
-                value=ConnectionState.DISCONNECTED.value,
-            )
+        # When connector is closing...
+        for device in self.__devices_registry:
+            # ...set device state to disconnected
+            self.__devices_registry.set_state(device=device, state=ConnectionState.DISCONNECTED)
 
         self.__events_listener.close()
 

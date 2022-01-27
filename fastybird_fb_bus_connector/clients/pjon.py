@@ -19,8 +19,9 @@ FastyBird BUS connector clients module PJON client
 """
 
 # Python base dependencies
+import logging
 import time
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 # Library dependencies
 import pjon_cython as pjon
@@ -49,7 +50,7 @@ class PjonClient(IClient, pjon.ThroughSerialAsync):  # pylint: disable=no-member
 
     __receiver: Receiver
 
-    __logger: Logger
+    __logger: Union[Logger, logging.Logger]
 
     __MASTER_ADDRESS: int = 254
     __SERIAL_BAUD_RATE: int = 38400
@@ -65,7 +66,7 @@ class PjonClient(IClient, pjon.ThroughSerialAsync):  # pylint: disable=no-member
         client_interface: Optional[str],
         protocol_version: ProtocolVersion,
         receiver: Receiver,
-        logger: Logger,
+        logger: Union[Logger, logging.Logger] = logging.getLogger("dummy"),
     ) -> None:
         pjon.ThroughSerialAsync.__init__(  # pylint: disable=no-member
             self,
@@ -136,7 +137,8 @@ class PjonClient(IClient, pjon.ThroughSerialAsync):  # pylint: disable=no-member
 
         if address == pjon.PJON_BROADCAST:  # pylint: disable=no-member
             self.__logger.debug(
-                f"Successfully sent broadcast packet: {PacketsHelpers.get_packet_name(Packet(payload[1]))}",
+                "Successfully sent broadcast packet: %s",
+                PacketsHelpers.get_packet_name(Packet(payload[1])),
                 extra={
                     "device": {
                         "address": address,
@@ -146,8 +148,9 @@ class PjonClient(IClient, pjon.ThroughSerialAsync):  # pylint: disable=no-member
 
         else:
             self.__logger.debug(
-                f"Successfully sent packet: "
-                f"{PacketsHelpers.get_packet_name(Packet(payload[1]))} for device with address: {address}",
+                "Successfully sent packet: %s for device with address: %d",
+                PacketsHelpers.get_packet_name(Packet(payload[1])),
+                address,
                 extra={
                     "device": {
                         "address": address,
@@ -236,7 +239,7 @@ class PjonClient(IClient, pjon.ThroughSerialAsync):  # pylint: disable=no-member
         in_packet_crc = (int(raw_payload[length - 3]) << 8) | int(raw_payload[length - 2])
 
         if calculated_crc != in_packet_crc:
-            self.__logger.warning(f"Invalid CRC check: {calculated_crc} vs {in_packet_crc}")
+            self.__logger.warning("Invalid CRC check: %d vs %d", calculated_crc, in_packet_crc)
 
             return
 

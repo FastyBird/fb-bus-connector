@@ -19,9 +19,10 @@ FastyBird BUS connector receivers module proxy
 """
 
 # Python base dependencies
+import logging
 from queue import Full as QueueFull
 from queue import Queue
-from typing import List, Optional, Set
+from typing import List, Optional, Set, Union
 
 # Library libs
 from fastybird_fb_bus_connector.api.v1parser import V1Parser
@@ -51,7 +52,7 @@ class Receiver:
     __parser: V1Parser
     __validator: V1Validator
 
-    __logger: Logger
+    __logger: Union[Logger, logging.Logger]
 
     # -----------------------------------------------------------------------------
 
@@ -60,7 +61,7 @@ class Receiver:
         receivers: List[IReceiver],
         parser: V1Parser,
         validator: V1Validator,
-        logger: Logger,
+        logger: Union[Logger, logging.Logger] = logging.getLogger("dummy"),
     ) -> None:
         self.__receivers = set(receivers)
         self.__parser = parser
