@@ -208,7 +208,7 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
 
         if device_address is None:
             self.__logger.error(
-                "Device address could not be fetched from registry",
+                "Device address could not be fetched from registry. Device is disabled and have to be re-discovered",
                 extra={
                     "device": {
                         "id": device.id.__str__(),
@@ -216,6 +216,8 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
                     },
                 },
             )
+
+            self.__devices_registry.disable(device=device)
 
             return
 
@@ -248,7 +250,7 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
 
         if device_address is None:
             self.__logger.error(
-                "Device address could not be fetched from registry",
+                "Device address could not be fetched from registry. Device is disabled and have to be re-discovered",
                 extra={
                     "device": {
                         "id": device.id.__str__(),
@@ -256,6 +258,8 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
                     },
                 },
             )
+
+            self.__devices_registry.disable(device=device)
 
             return
 
@@ -287,7 +291,7 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
 
         if device_address is None:
             self.__logger.error(
-                "Device address could not be fetched from registry",
+                "Device address could not be fetched from registry. Device is disabled and have to be re-discovered",
                 extra={
                     "device": {
                         "id": device.id.__str__(),
@@ -295,6 +299,8 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
                     },
                 },
             )
+
+            self.__devices_registry.disable(device=device)
 
             return False
 
@@ -408,7 +414,7 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
 
         if device_address is None:
             self.__logger.error(
-                "Device address could not be fetched from registry",
+                "Device address could not be fetched from registry. Device is disabled and have to be re-discovered",
                 extra={
                     "device": {
                         "id": device.id.__str__(),
@@ -416,6 +422,8 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
                     },
                 },
             )
+
+            self.__devices_registry.disable(device=device)
 
             return False
 

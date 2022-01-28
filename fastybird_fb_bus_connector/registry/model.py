@@ -25,8 +25,13 @@ from datetime import datetime
 from typing import Dict, List, Optional, Union
 
 # Library dependencies
+from fastybird_devices_module.repositories.state import (
+    IChannelPropertyStateRepository,
+    IDevicePropertyStateRepository,
+)
 from fastybird_metadata.devices_module import ConnectionState
 from fastybird_metadata.types import ButtonPayload, DataType, SwitchPayload
+from kink import inject
 from whistle import EventDispatcher
 
 # Library libs
@@ -297,7 +302,9 @@ class DevicesRegistry:
             name=DeviceAttribute.STATE.value,
         )
 
-        return actual_state is not None and actual_state.actual_value == ConnectionState.UNKNOWN.value
+        return actual_state is not None and (
+            actual_state.actual_value == ConnectionState.UNKNOWN.value or actual_state.actual_value is None
+        )
 
     # -----------------------------------------------------------------------------
 
@@ -404,6 +411,12 @@ class DevicesRegistry:
         raise StopIteration
 
 
+@inject(
+    bind={
+        "device_property_state_repository": IDevicePropertyStateRepository,
+        "channel_property_state_repository": IChannelPropertyStateRepository,
+    }
+)
 class RegistersRegistry:
     """
     Registers registry
@@ -418,15 +431,23 @@ class RegistersRegistry:
 
     __event_dispatcher: EventDispatcher
 
+    __device_property_state_repository: Optional[IDevicePropertyStateRepository] = None
+    __channel_property_state_repository: Optional[IChannelPropertyStateRepository] = None
+
     # -----------------------------------------------------------------------------
 
     def __init__(
         self,
         event_dispatcher: EventDispatcher,
+        device_property_state_repository: Optional[IDevicePropertyStateRepository] = None,
+        channel_property_state_repository: Optional[IChannelPropertyStateRepository] = None,
     ) -> None:
         self.__items = {}
 
         self.__event_dispatcher = event_dispatcher
+
+        self.__device_property_state_repository = device_property_state_repository
+        self.__channel_property_state_repository = channel_property_state_repository
 
     # -----------------------------------------------------------------------------
 
@@ -522,12 +543,22 @@ class RegistersRegistry:
         register_data_type: DataType,
     ) -> InputRegisterRecord:
         """Append new register or replace existing register in registry"""
+        existing_register = self.get_by_id(register_id=register_id)
+
         register = InputRegisterRecord(
             device_id=device_id,
             register_id=register_id,
             register_address=register_address,
             register_data_type=register_data_type,
         )
+
+        if existing_register is None and self.__channel_property_state_repository is not None:
+            stored_state = self.__channel_property_state_repository.get_by_id(property_id=register_id)
+
+            if stored_state is not None:
+                register.actual_value = stored_state.actual_value
+                register.expected_value = stored_state.expected_value
+                register.expected_pending = stored_state.pending
 
         self.__items[register.id.__str__()] = register
 
@@ -543,12 +574,22 @@ class RegistersRegistry:
         register_data_type: DataType,
     ) -> OutputRegisterRecord:
         """Append new register or replace existing register in registry"""
+        existing_register = self.get_by_id(register_id=register_id)
+
         register = OutputRegisterRecord(
             device_id=device_id,
             register_id=register_id,
             register_address=register_address,
             register_data_type=register_data_type,
         )
+
+        if existing_register is None and self.__channel_property_state_repository is not None:
+            stored_state = self.__channel_property_state_repository.get_by_id(property_id=register_id)
+
+            if stored_state is not None:
+                register.actual_value = stored_state.actual_value
+                register.expected_value = stored_state.expected_value
+                register.expected_pending = stored_state.pending
 
         self.__items[register.id.__str__()] = register
 
@@ -567,6 +608,8 @@ class RegistersRegistry:
         register_queryable: bool = False,
     ) -> AttributeRegisterRecord:
         """Append new attribute register or replace existing register in registry"""
+        existing_register = self.get_by_id(register_id=register_id)
+
         register = AttributeRegisterRecord(
             device_id=device_id,
             register_id=register_id,
@@ -576,6 +619,14 @@ class RegistersRegistry:
             register_settable=register_settable,
             register_queryable=register_queryable,
         )
+
+        if existing_register is None and self.__device_property_state_repository is not None:
+            stored_state = self.__device_property_state_repository.get_by_id(property_id=register_id)
+
+            if stored_state is not None:
+                register.actual_value = stored_state.actual_value
+                register.expected_value = stored_state.expected_value
+                register.expected_pending = stored_state.pending
 
         self.__items[register.id.__str__()] = register
 

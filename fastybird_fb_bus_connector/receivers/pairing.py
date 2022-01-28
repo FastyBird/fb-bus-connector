@@ -75,6 +75,7 @@ class PairingReceiver(IReceiver):  # pylint: disable=too-few-public-methods
             device_address=entity.device_address,
             device_max_packet_length=entity.device_max_packet_length,
             device_serial_number=entity.device_serial_number,
+            device_state=entity.device_state,
             device_hardware_version=entity.device_hardware_version,
             device_hardware_model=entity.device_hardware_model,
             device_hardware_manufacturer=entity.device_hardware_manufacturer,

@@ -23,13 +23,15 @@ import time
 import uuid
 from abc import ABC
 from datetime import datetime
-from typing import Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 # Library dependencies
+from fastybird_metadata.devices_module import ConnectionState
+from fastybird_metadata.helpers import normalize_value
 from fastybird_metadata.types import ButtonPayload, DataType, SwitchPayload
 
 # Library libs
-from fastybird_fb_bus_connector.types import Packet, RegisterType
+from fastybird_fb_bus_connector.types import DeviceAttribute, Packet, RegisterType
 
 
 class DeviceRecord:  # pylint: disable=too-many-public-methods,too-many-instance-attributes
@@ -271,9 +273,9 @@ class RegisterRecord(ABC):  # pylint: disable=too-many-instance-attributes
     __settable: bool = False
     __queryable: bool = False
 
-    __actual_value: Union[str, int, float, bool, datetime, ButtonPayload, SwitchPayload, None] = None
-    __expected_value: Union[str, int, float, bool, datetime, ButtonPayload, SwitchPayload, None] = None
-    __expected_pending: Optional[float] = None
+    _actual_value: Union[str, int, float, bool, datetime, ButtonPayload, SwitchPayload, None] = None
+    _expected_value: Union[str, int, float, bool, datetime, ButtonPayload, SwitchPayload, None] = None
+    _expected_pending: Optional[float] = None
 
     __waiting_for_data: bool = False
 
@@ -297,6 +299,10 @@ class RegisterRecord(ABC):  # pylint: disable=too-many-instance-attributes
         self.__data_type = register_data_type
         self.__settable = register_settable
         self.__queryable = register_queryable
+
+        self._actual_value = None
+        self._expected_value = None
+        self._expected_pending = False
 
     # -----------------------------------------------------------------------------
 
@@ -375,16 +381,16 @@ class RegisterRecord(ABC):  # pylint: disable=too-many-instance-attributes
     @property
     def actual_value(self) -> Union[str, int, float, bool, datetime, ButtonPayload, SwitchPayload, None]:
         """Register actual value"""
-        return self.__actual_value
+        return normalize_value(data_type=self.data_type, value=self._actual_value)
 
     # -----------------------------------------------------------------------------
 
     @actual_value.setter
     def actual_value(self, value: Union[str, int, float, bool, datetime, ButtonPayload, SwitchPayload]) -> None:
         """Set register actual value"""
-        self.__actual_value = value
+        self._actual_value = value
 
-        if value == self.expected_value:
+        if value == self.expected_value and self.expected_value is not None:
             self.expected_value = None
             self.expected_pending = None
 
@@ -393,7 +399,7 @@ class RegisterRecord(ABC):  # pylint: disable=too-many-instance-attributes
     @property
     def expected_value(self) -> Union[str, int, float, bool, datetime, ButtonPayload, SwitchPayload, None]:
         """Register expected value"""
-        return self.__expected_value
+        return normalize_value(data_type=self.data_type, value=self._expected_value)
 
     # -----------------------------------------------------------------------------
 
@@ -403,7 +409,7 @@ class RegisterRecord(ABC):  # pylint: disable=too-many-instance-attributes
         value: Union[str, int, float, bool, datetime, ButtonPayload, SwitchPayload, None],
     ) -> None:
         """Set register expected value"""
-        self.__expected_value = value
+        self._expected_value = value
 
         if value is not None:
             self.expected_pending = None
@@ -413,14 +419,14 @@ class RegisterRecord(ABC):  # pylint: disable=too-many-instance-attributes
     @property
     def expected_pending(self) -> Optional[float]:
         """Register expected value pending status"""
-        return self.__expected_pending
+        return self._expected_pending
 
     # -----------------------------------------------------------------------------
 
     @expected_pending.setter
     def expected_pending(self, timestamp: Optional[float]) -> None:
         """Set register expected value transmit timestamp"""
-        self.__expected_pending = timestamp
+        self._expected_pending = timestamp
 
     # -----------------------------------------------------------------------------
 
@@ -545,6 +551,59 @@ class AttributeRegisterRecord(RegisterRecord):
         """Register name"""
         return self.__name
 
+    # -----------------------------------------------------------------------------
+
+    @property
+    def actual_value(self) -> Union[str, int, float, bool, datetime, ButtonPayload, SwitchPayload, None]:
+        """Register actual value"""
+        return normalize_value(data_type=self.data_type, value=self._actual_value, value_format=self.format)
+
+    # -----------------------------------------------------------------------------
+
+    @actual_value.setter
+    def actual_value(self, value: Union[str, int, float, bool, datetime, ButtonPayload, SwitchPayload]) -> None:
+        """Set register actual value"""
+        self._actual_value = value
+
+    # -----------------------------------------------------------------------------
+
+    @property
+    def expected_value(self) -> Union[str, int, float, bool, datetime, ButtonPayload, SwitchPayload, None]:
+        """Register expected value"""
+        return normalize_value(data_type=self.data_type, value=self._expected_value, value_format=self.format)
+
+    # -----------------------------------------------------------------------------
+
+    @expected_value.setter
+    def expected_value(
+        self,
+        value: Union[str, int, float, bool, datetime, ButtonPayload, SwitchPayload, None],
+    ) -> None:
+        """Set register expected value"""
+        self._expected_value = value
+
+    # -----------------------------------------------------------------------------
+
+    @property
+    def format(
+        self,
+    ) -> Union[
+        Tuple[Optional[int], Optional[int]],
+        Tuple[Optional[float], Optional[float]],
+        List[Union[str, Tuple[str, Optional[str], Optional[str]]]],
+        None,
+    ]:
+        if self.name == DeviceAttribute.STATE.value:
+            return [
+                ConnectionState.RUNNING.value,
+                ConnectionState.STOPPED.value,
+                ConnectionState.LOST.value,
+                ConnectionState.ALERT.value,
+                ConnectionState.UNKNOWN.value,
+            ]
+
+        return None
+
 
 class DiscoveredDeviceRecord:  # pylint: disable=too-many-instance-attributes
     """
@@ -560,6 +619,7 @@ class DiscoveredDeviceRecord:  # pylint: disable=too-many-instance-attributes
 
     __address: int
     __serial_number: str
+    __state: ConnectionState
 
     __max_packet_length: int
 
@@ -582,6 +642,7 @@ class DiscoveredDeviceRecord:  # pylint: disable=too-many-instance-attributes
         device_address: int,
         device_max_packet_length: int,
         device_serial_number: str,
+        device_state: ConnectionState,
         device_hardware_version: str,
         device_hardware_model: str,
         device_hardware_manufacturer: str,
@@ -595,6 +656,7 @@ class DiscoveredDeviceRecord:  # pylint: disable=too-many-instance-attributes
         self.__address = device_address
         self.__max_packet_length = device_max_packet_length
         self.__serial_number = device_serial_number
+        self.__state = device_state
 
         self.__hardware_version = device_hardware_version
         self.__hardware_model = device_hardware_model
@@ -641,6 +703,13 @@ class DiscoveredDeviceRecord:  # pylint: disable=too-many-instance-attributes
     def serial_number(self) -> str:
         """Serial number"""
         return self.__serial_number
+
+    # -----------------------------------------------------------------------------
+
+    @property
+    def state(self) -> ConnectionState:
+        """Actual state"""
+        return self.__state
 
     # -----------------------------------------------------------------------------
 

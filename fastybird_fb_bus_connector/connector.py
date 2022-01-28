@@ -203,7 +203,7 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
     def initialize_device_property(self, device_property: DevicePropertyEntity) -> None:
         """Initialize device property in connector registry"""
         if isinstance(device_property, DeviceDynamicPropertyEntity):
-            match = re.compile("(?P<identifier>[a-zA-Z_]+)_(?P<address>[0-9]+)")
+            match = re.compile("(?P<name>[a-zA-Z_]+)_(?P<address>[0-9]+)")
 
             parsed_property_identifier = match.fullmatch(device_property.identifier)
 
@@ -246,7 +246,7 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
                 register_id=device_property.id,
                 register_address=(int(parsed_property_identifier.group("address")) - 1),
                 register_data_type=device_property.data_type,
-                register_name=parsed_property_identifier.group("identifier"),
+                register_name=parsed_property_identifier.group("name"),
                 register_settable=device_property.settable,
                 register_queryable=device_property.queryable,
             )
@@ -376,7 +376,7 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
 
         self.__events_listener.open()
 
-        self.__logger.info("Connector has been started UP")
+        self.__logger.info("Connector has been started")
 
         self.__stopped = False
 

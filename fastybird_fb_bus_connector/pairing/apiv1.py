@@ -123,9 +123,9 @@ class ApiV1Pairing(IPairing):  # pylint: disable=too-many-instance-attributes
 
         # Pairing gateway protection
         if self.__total_attempts >= self.__MAX_TOTAL_TRANSMIT_ATTEMPTS:
-            self.disable()
-
             self.__logger.info("Maximum attempts reached. Disabling pairing procedure to prevent infinite loop")
+
+            self.disable()
 
         if not self.__broadcasting_discovery_finished:
             # Check if search counter is reached
@@ -228,6 +228,7 @@ class ApiV1Pairing(IPairing):  # pylint: disable=too-many-instance-attributes
         device_address: int,
         device_max_packet_length: int,
         device_serial_number: str,
+        device_state: ConnectionState,
         device_hardware_version: str,
         device_hardware_model: str,
         device_hardware_manufacturer: str,
@@ -255,6 +256,7 @@ class ApiV1Pairing(IPairing):  # pylint: disable=too-many-instance-attributes
                 device_address=device_address,
                 device_max_packet_length=device_max_packet_length,
                 device_serial_number=device_serial_number,
+                device_state=device_state,
                 device_hardware_version=device_hardware_version,
                 device_hardware_model=device_hardware_model,
                 device_hardware_manufacturer=device_hardware_manufacturer,
@@ -283,6 +285,10 @@ class ApiV1Pairing(IPairing):  # pylint: disable=too-many-instance-attributes
         register_data_type: DataType,
     ) -> None:
         """Append discovered device register"""
+        # Reset counters & flags...
+        self.__device_attempts = 0
+        self.__total_attempts = 0
+
         self.__waiting_for_reply = False
 
         if self.__pairing_device is None:
@@ -301,9 +307,9 @@ class ApiV1Pairing(IPairing):  # pylint: disable=too-many-instance-attributes
 
         if discovered_register is None:
             self.__logger.warning(
-                "Register: %d[%s] for device: %s could not be found in registry",
+                "Register: %d[%d] for device: %s could not be found in registry",
                 register_address,
-                RegisterType.INPUT,
+                RegisterType.INPUT.value,
                 self.__pairing_device.serial_number,
                 extra={
                     "device": {
@@ -332,7 +338,7 @@ class ApiV1Pairing(IPairing):  # pylint: disable=too-many-instance-attributes
         self.__logger.debug(
             "Configured register: %d[%d] for device: %s",
             register_address,
-            RegisterType.INPUT,
+            RegisterType.INPUT.value,
             self.__pairing_device.serial_number,
             extra={
                 "device": {
@@ -350,6 +356,10 @@ class ApiV1Pairing(IPairing):  # pylint: disable=too-many-instance-attributes
         register_data_type: DataType,
     ) -> None:
         """Append discovered device output register"""
+        # Reset counters & flags...
+        self.__device_attempts = 0
+        self.__total_attempts = 0
+
         self.__waiting_for_reply = False
 
         if self.__pairing_device is None:
@@ -368,9 +378,9 @@ class ApiV1Pairing(IPairing):  # pylint: disable=too-many-instance-attributes
 
         if discovered_register is None:
             self.__logger.warning(
-                "Register: %d[%s] for device: %s could not be found in registry",
+                "Register: %d[%d] for device: %s could not be found in registry",
                 register_address,
-                RegisterType.OUTPUT,
+                RegisterType.OUTPUT.value,
                 self.__pairing_device.serial_number,
                 extra={
                     "device": {
@@ -399,7 +409,7 @@ class ApiV1Pairing(IPairing):  # pylint: disable=too-many-instance-attributes
         self.__logger.debug(
             "Configured register: %d[%d] for device: %s",
             register_address,
-            RegisterType.OUTPUT,
+            RegisterType.OUTPUT.value,
             self.__pairing_device.serial_number,
             extra={
                 "device": {
@@ -420,6 +430,10 @@ class ApiV1Pairing(IPairing):  # pylint: disable=too-many-instance-attributes
         register_queryable: bool,
     ) -> None:
         """Append discovered device attribute"""
+        # Reset counters & flags...
+        self.__device_attempts = 0
+        self.__total_attempts = 0
+
         self.__waiting_for_reply = False
 
         if self.__pairing_device is None:
@@ -438,9 +452,9 @@ class ApiV1Pairing(IPairing):  # pylint: disable=too-many-instance-attributes
 
         if discovered_register is None:
             self.__logger.warning(
-                "Register: %d[%s] for device: %s could not be found in registry",
+                "Register: %d[%d] for device: %s could not be found in registry",
                 register_address,
-                RegisterType.ATTRIBUTE,
+                RegisterType.ATTRIBUTE.value,
                 self.__pairing_device.serial_number,
                 extra={
                     "device": {
@@ -472,7 +486,7 @@ class ApiV1Pairing(IPairing):  # pylint: disable=too-many-instance-attributes
         self.__logger.debug(
             "Configured register: %d[%d] for device: %s",
             register_address,
-            RegisterType.ATTRIBUTE,
+            RegisterType.ATTRIBUTE.value,
             self.__pairing_device.serial_number,
             extra={
                 "device": {
@@ -516,9 +530,9 @@ class ApiV1Pairing(IPairing):  # pylint: disable=too-many-instance-attributes
             self.__pairing_device = self.__discovered_devices.pop()
 
         except KeyError:
-            self.disable()
-
             self.__logger.info("No device for discovering in registry. Disabling paring procedure")
+
+            self.disable()
 
             return
 
@@ -901,7 +915,7 @@ class ApiV1Pairing(IPairing):  # pylint: disable=too-many-instance-attributes
         ]
 
         transformed_value = ValueTransformHelpers.transform_to_bytes(
-            data_type=state_register.data_type,
+            data_type=DataType.UCHAR,  # Hack for state attribute register
             value=StateTransformHelpers.transform_for_device(device_state=ConnectionState.RUNNING).value,
         )
 
@@ -945,6 +959,8 @@ class ApiV1Pairing(IPairing):  # pylint: disable=too-many-instance-attributes
         discovered_registers: Set[DiscoveredRegisterRecord],
     ) -> None:
         """Persist discovered device into connector registry"""
+        existing_device = self.__devices_registry.get_by_id(device_id=discovered_device.id)
+
         device_record = self.__devices_registry.create_or_update(
             device_id=discovered_device.id,
             device_serial_number=discovered_device.serial_number,
@@ -967,7 +983,7 @@ class ApiV1Pairing(IPairing):  # pylint: disable=too-many-instance-attributes
                 )
 
             elif isinstance(register, DiscoveredAttributeRegisterRecord):
-                self.__registers_registry.create_or_update(
+                attribute_register = self.__registers_registry.create_or_update(
                     device_id=device_record.id,
                     register_id=register.id,
                     register_type=register.type,
@@ -978,8 +994,35 @@ class ApiV1Pairing(IPairing):  # pylint: disable=too-many-instance-attributes
                     register_settable=register.settable,
                 )
 
+                if register.name == DeviceAttribute.ADDRESS.value:
+                    self.__registers_registry.set_actual_value(
+                        register=attribute_register,
+                        value=discovered_device.address,
+                    )
+
+                if register.name == DeviceAttribute.STATE.value:
+                    self.__registers_registry.set_actual_value(
+                        register=attribute_register,
+                        value=discovered_device.state.value,
+                    )
+
+                if register.name == DeviceAttribute.MAX_PACKET_LENGTH.value:
+                    self.__registers_registry.set_actual_value(
+                        register=attribute_register,
+                        value=discovered_device.max_packet_length,
+                    )
+
         # Device initialization is finished, enable it for communication
-        self.__devices_registry.enable(device=device_record)
+        self.__devices_registry.create_or_update(
+            device_id=device_record.id,
+            device_serial_number=device_record.serial_number,
+            device_enabled=True if existing_device is None else existing_device.enabled,
+            hardware_manufacturer=device_record.hardware_manufacturer,
+            hardware_model=device_record.hardware_model,
+            hardware_version=device_record.hardware_version,
+            firmware_manufacturer=device_record.firmware_manufacturer,
+            firmware_version=device_record.firmware_version,
+        )
 
         # Update device state
         self.__devices_registry.set_state(device=device_record, state=ConnectionState.UNKNOWN)

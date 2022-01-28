@@ -52,6 +52,7 @@ class V1Validator:
             or self.validate_read_single_register_structure(payload=payload)
             or self.validate_report_single_register_value(payload=payload)
             or self.validate_pong_response(payload=payload)
+            or self.validate_discover_device(payload=payload)
         ):
             return True
 

@@ -83,7 +83,7 @@ def create_connector(
     di["fb-bus-connector_api-v1-parser"] = di[V1Parser]
 
     # Communication client
-    di[Client] = Client()
+    di[Client] = Client(logger=connector_logger)
     di["fb-bus-connector_data-client-proxy"] = di[Client]
 
     # Devices pairing

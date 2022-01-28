@@ -19,11 +19,13 @@ FastyBird BUS connector clients module proxy
 """
 
 # Python base dependencies
-from typing import List, Set
+import logging
+from typing import List, Set, Union
 
 # Library libs
 from fastybird_fb_bus_connector.clients.base import IClient
 from fastybird_fb_bus_connector.clients.pjon import PjonClient
+from fastybird_fb_bus_connector.logger import Logger
 from fastybird_fb_bus_connector.types import ProtocolVersion
 
 
@@ -39,12 +41,17 @@ class Client:
 
     __clients: Set[IClient]
 
+    __logger: Union[Logger, logging.Logger]
+
     # -----------------------------------------------------------------------------
 
     def __init__(
         self,
+        logger: Union[Logger, logging.Logger] = logging.getLogger("dummy"),
     ) -> None:
         self.__clients = set()
+
+        self.__logger = logger
 
     # -----------------------------------------------------------------------------
 
@@ -62,6 +69,7 @@ class Client:
                 client_baud_rate=baud_rate,
                 client_interface=interface,
                 protocol_version=protocol_version,
+                logger=self.__logger,
             )
         )
 
