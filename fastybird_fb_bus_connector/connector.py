@@ -370,11 +370,11 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
     def start(self) -> None:
         """Start connector services"""
         # When connector is starting...
+        self.__events_listener.open()
+
         for device in self.__devices_registry:
             # ...set device state to unknown
             self.__devices_registry.set_state(device=device, state=ConnectionState.UNKNOWN)
-
-        self.__events_listener.open()
 
         self.__logger.info("Connector has been started")
 

@@ -427,7 +427,7 @@ class RegisterStructureEntity(BaseEntity):
         return self.__queryable
 
 
-class PongEntity(BaseEntity):
+class PongEntity(BaseEntity):  # pylint: disable=too-few-public-methods
     """
     Result of device pairing response with register structure
 
@@ -436,23 +436,3 @@ class PongEntity(BaseEntity):
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
-
-    __state: ConnectionState
-
-    # -----------------------------------------------------------------------------
-
-    def __init__(  # pylint: disable=too-many-arguments
-        self,
-        device_address: int,
-        device_state: ConnectionState,
-    ) -> None:
-        super().__init__(device_address=device_address)
-
-        self.__state = device_state
-
-    # -----------------------------------------------------------------------------
-
-    @property
-    def device_state(self) -> ConnectionState:
-        """Serial number"""
-        return self.__state

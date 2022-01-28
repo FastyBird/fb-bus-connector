@@ -52,7 +52,7 @@ from fastybird_fb_bus_connector.registry.records import (
 from fastybird_fb_bus_connector.types import DeviceAttribute, Packet, RegisterType
 
 
-class DevicesRegistry:
+class DevicesRegistry:  # pylint: disable=too-many-public-methods
     """
     Devices registry
 
@@ -207,7 +207,7 @@ class DevicesRegistry:
         """Enable device for communication"""
         device.enabled = True
 
-        self.__update(updated_device=device)
+        self.__update(updated_device=device, dispatch=True)
 
         updated_device = self.get_by_id(device.id)
 
@@ -222,7 +222,7 @@ class DevicesRegistry:
         """Enable device for communication"""
         device.enabled = False
 
-        self.__update(updated_device=device)
+        self.__update(updated_device=device, dispatch=True)
 
         updated_device = self.get_by_id(device.id)
 
@@ -258,6 +258,13 @@ class DevicesRegistry:
             # Reset device communication state
             device.reset_communication()
 
+        if state == ConnectionState.UNKNOWN:
+            device.reset_reading_register(True)
+            # Reset lost timestamp
+            device.lost_timestamp = 0
+            # Reset device communication state
+            device.reset_communication()
+
         self.__registers_registry.set_actual_value(register=actual_state, value=state.value)
 
         self.__update(updated_device=device)
@@ -271,6 +278,25 @@ class DevicesRegistry:
 
     # -----------------------------------------------------------------------------
 
+    def get_state(self, device: DeviceRecord) -> ConnectionState:
+        """Get device actual state"""
+        actual_state = self.__registers_registry.get_by_name(
+            device_id=device.id,
+            name=DeviceAttribute.STATE.value,
+        )
+
+        if (
+            actual_state is None
+            or actual_state.actual_value is None
+            or not isinstance(actual_state.actual_value, str)
+            or not ConnectionState.has_value(actual_state.actual_value)
+        ):
+            return ConnectionState.UNKNOWN
+
+        return ConnectionState(actual_state.actual_value)
+
+    # -----------------------------------------------------------------------------
+
     def set_device_is_lost(self, device: DeviceRecord) -> DeviceRecord:
         """Mark device as lost"""
         return self.set_state(device=device, state=ConnectionState.LOST)
@@ -279,12 +305,7 @@ class DevicesRegistry:
 
     def is_device_running(self, device: DeviceRecord) -> bool:
         """Is device in running state?"""
-        actual_state = self.__registers_registry.get_by_name(
-            device_id=device.id,
-            name=DeviceAttribute.STATE.value,
-        )
-
-        return actual_state is not None and actual_state.actual_value == ConnectionState.RUNNING.value
+        return self.get_state(device=device) == ConnectionState.RUNNING
 
     # -----------------------------------------------------------------------------
 
@@ -297,14 +318,21 @@ class DevicesRegistry:
 
     def is_device_unknown(self, device: DeviceRecord) -> bool:
         """Is device in unknown state?"""
-        actual_state = self.__registers_registry.get_by_name(
+        return self.get_state(device=device) == ConnectionState.UNKNOWN
+
+    # -----------------------------------------------------------------------------
+
+    def get_address(self, device: DeviceRecord) -> Optional[int]:
+        """Get device actual state"""
+        actual_address = self.__registers_registry.get_by_name(
             device_id=device.id,
-            name=DeviceAttribute.STATE.value,
+            name=DeviceAttribute.ADDRESS.value,
         )
 
-        return actual_state is not None and (
-            actual_state.actual_value == ConnectionState.UNKNOWN.value or actual_state.actual_value is None
-        )
+        if actual_address is None or not isinstance(actual_address.actual_value, int):
+            return None
+
+        return actual_address.actual_value
 
     # -----------------------------------------------------------------------------
 
@@ -373,9 +401,33 @@ class DevicesRegistry:
 
     # -----------------------------------------------------------------------------
 
-    def __update(self, updated_device: DeviceRecord) -> bool:
+    def find_free_address(self) -> Optional[int]:
+        """Find free address for new device"""
+        addresses_attributes = self.__registers_registry.get_all_by_name(DeviceAttribute.ADDRESS.value)
+
+        reserved_addresses: List[int] = []
+
+        for address_attribute in addresses_attributes:
+            if isinstance(address_attribute.actual_value, int):
+                reserved_addresses.append(address_attribute.actual_value)
+
+        for address in range(1, 251):
+            if address not in reserved_addresses:
+                return address
+
+        return None
+
+    # -----------------------------------------------------------------------------
+
+    def __update(self, updated_device: DeviceRecord, dispatch: bool = False) -> bool:
         """Update device record"""
         self.__items[updated_device.id.__str__()] = updated_device
+
+        if dispatch:
+            self.__event_dispatcher.dispatch(
+                event_id=DeviceRecordCreatedOrUpdatedEvent.EVENT_NAME,
+                event=DeviceRecordCreatedOrUpdatedEvent(record=updated_device),
+            )
 
         return True
 

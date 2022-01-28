@@ -593,10 +593,12 @@ class AttributeRegisterRecord(RegisterRecord):
         List[Union[str, Tuple[str, Optional[str], Optional[str]]]],
         None,
     ]:
+        """Attribute register value format"""
         if self.name == DeviceAttribute.STATE.value:
             return [
                 ConnectionState.RUNNING.value,
                 ConnectionState.STOPPED.value,
+                ConnectionState.DISCONNECTED.value,
                 ConnectionState.LOST.value,
                 ConnectionState.ALERT.value,
                 ConnectionState.UNKNOWN.value,
@@ -614,8 +616,6 @@ class DiscoveredDeviceRecord:  # pylint: disable=too-many-instance-attributes
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
-
-    __id: uuid.UUID
 
     __address: int
     __serial_number: str
@@ -638,7 +638,6 @@ class DiscoveredDeviceRecord:  # pylint: disable=too-many-instance-attributes
 
     def __init__(  # pylint: disable=too-many-locals,too-many-arguments
         self,
-        device_id: uuid.UUID,
         device_address: int,
         device_max_packet_length: int,
         device_serial_number: str,
@@ -652,7 +651,6 @@ class DiscoveredDeviceRecord:  # pylint: disable=too-many-instance-attributes
         output_registers_size: int,
         attributes_registers_size: int,
     ) -> None:
-        self.__id = device_id
         self.__address = device_address
         self.__max_packet_length = device_max_packet_length
         self.__serial_number = device_serial_number
@@ -668,13 +666,6 @@ class DiscoveredDeviceRecord:  # pylint: disable=too-many-instance-attributes
         self.__input_registers_size = input_registers_size
         self.__output_registers_size = output_registers_size
         self.__attributes_registers_size = attributes_registers_size
-
-    # -----------------------------------------------------------------------------
-
-    @property
-    def id(self) -> uuid.UUID:  # pylint: disable=invalid-name
-        """Device unique identifier"""
-        return self.__id
 
     # -----------------------------------------------------------------------------
 
@@ -769,8 +760,16 @@ class DiscoveredDeviceRecord:  # pylint: disable=too-many-instance-attributes
 
     # -----------------------------------------------------------------------------
 
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, DiscoveredDeviceRecord):
+            return False
+
+        return self.serial_number == other.serial_number
+
+    # -----------------------------------------------------------------------------
+
     def __hash__(self) -> int:
-        return self.__id.__hash__()
+        return hash(self.__serial_number)
 
 
 class DiscoveredRegisterRecord(ABC):
@@ -783,7 +782,6 @@ class DiscoveredRegisterRecord(ABC):
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
 
-    __id: uuid.UUID
     __address: int
     __type: RegisterType
     __data_type: DataType
@@ -794,27 +792,18 @@ class DiscoveredRegisterRecord(ABC):
 
     def __init__(  # pylint: disable=too-many-arguments
         self,
-        register_id: uuid.UUID,
         register_address: int,
         register_type: RegisterType,
         register_data_type: DataType,
         register_settable: bool = False,
         register_queryable: bool = False,
     ) -> None:
-        self.__id = register_id
         self.__address = register_address
         self.__type = register_type
         self.__data_type = register_data_type
 
         self.__queryable = register_queryable
         self.__settable = register_settable
-
-    # -----------------------------------------------------------------------------
-
-    @property
-    def id(self) -> uuid.UUID:  # pylint: disable=invalid-name
-        """Register unique identifier"""
-        return self.__id
 
     # -----------------------------------------------------------------------------
 
@@ -853,8 +842,16 @@ class DiscoveredRegisterRecord(ABC):
 
     # -----------------------------------------------------------------------------
 
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, DiscoveredRegisterRecord):
+            return False
+
+        return self.address == other.address and self.type == other.type
+
+    # -----------------------------------------------------------------------------
+
     def __hash__(self) -> int:
-        return self.__id.__hash__()
+        return hash((self.address, self.type.value))
 
 
 class DiscoveredInputRegisterRecord(DiscoveredRegisterRecord):
@@ -869,12 +866,10 @@ class DiscoveredInputRegisterRecord(DiscoveredRegisterRecord):
 
     def __init__(
         self,
-        register_id: uuid.UUID,
         register_address: int,
         register_data_type: DataType,
     ):
         super().__init__(
-            register_id=register_id,
             register_address=register_address,
             register_type=RegisterType.INPUT,
             register_data_type=register_data_type,
@@ -895,12 +890,10 @@ class DiscoveredOutputRegisterRecord(DiscoveredRegisterRecord):
 
     def __init__(
         self,
-        register_id: uuid.UUID,
         register_address: int,
         register_data_type: DataType,
     ):
         super().__init__(
-            register_id=register_id,
             register_address=register_address,
             register_type=RegisterType.OUTPUT,
             register_data_type=register_data_type,
@@ -925,7 +918,6 @@ class DiscoveredAttributeRegisterRecord(DiscoveredRegisterRecord):
 
     def __init__(  # pylint: disable=too-many-branches,too-many-arguments
         self,
-        register_id: uuid.UUID,
         register_address: int,
         register_data_type: DataType,
         register_name: Optional[str],
@@ -933,7 +925,6 @@ class DiscoveredAttributeRegisterRecord(DiscoveredRegisterRecord):
         register_queryable: bool = False,
     ):
         super().__init__(
-            register_id=register_id,
             register_address=register_address,
             register_type=RegisterType.ATTRIBUTE,
             register_data_type=register_data_type,

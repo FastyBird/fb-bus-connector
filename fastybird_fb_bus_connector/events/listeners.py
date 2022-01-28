@@ -112,7 +112,7 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
 
     # -----------------------------------------------------------------------------
 
-    def __init__(  # pylint: disable=too-many-arguments
+    def __init__(  # pylint: disable=too-many-arguments,too-many-locals
         self,
         connector_id: uuid.UUID,
         devices_repository: DevicesRepository,

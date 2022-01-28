@@ -58,11 +58,20 @@ class Publisher:  # pylint: disable=too-few-public-methods
     def handle(self) -> None:
         """Handle publish read or write message to device"""
         # Check for processing queue
-        if len(self.__processed_devices) >= len(self.__devices_registry):
-            self.__processed_devices = []
-
         for device in self.__devices_registry:
-            if device.id.__str__() not in self.__processed_devices and device.enabled:
+            if not device.enabled:
+                continue
+
+            if device.id.__str__() not in self.__processed_devices:
+                publisher_result = False
+
                 for publisher in self.__publishers:
                     if publisher.handle(device=device):
-                        self.__processed_devices.append(device.id.__str__())
+                        publisher_result = True
+
+                if publisher_result:
+                    self.__processed_devices.append(device.id.__str__())
+
+                    return
+
+        self.__processed_devices = []

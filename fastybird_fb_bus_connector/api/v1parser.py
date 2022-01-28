@@ -18,15 +18,12 @@
 FastyBird BUS connector api module parser for API v1
 """
 
-# pylint: disable=too-many-lines
-
 # Python base dependencies
 import uuid
 from datetime import datetime
 from typing import List, Optional, Tuple, Union
 
 # Library dependencies
-from fastybird_metadata.devices_module import ConnectionState
 from fastybird_metadata.types import ButtonPayload, DataType, SwitchPayload
 
 # Library libs
@@ -635,7 +632,6 @@ class V1Parser:
 
         return PongEntity(
             device_address=address,
-            device_state=ConnectionState.UNKNOWN,
         )
 
     # -----------------------------------------------------------------------------
@@ -697,19 +693,18 @@ class V1Parser:
             and isinstance(register_record, AttributeRegisterRecord)
             and register_record.name == DeviceAttribute.STATE.value
         ):
+            transformed_value = ValueTransformHelpers.transform_from_bytes(
+                data_type=DataType.SHORT,
+                value=list(map(int, payload[3:])),
+            )
+
+            if not isinstance(transformed_value, int) or not DeviceConnectionState.has_value(transformed_value):
+                raise ParsePayloadException("State register value is not valid")
+
             return register_type, (
                 register_address,
                 StateTransformHelpers.transform_from_device(
-                    device_state=DeviceConnectionState(
-                        int(
-                            str(
-                                ValueTransformHelpers.transform_from_bytes(
-                                    data_type=DataType.SHORT,
-                                    value=list(map(int, payload[3:])),
-                                )
-                            )
-                        )
-                    ),
+                    device_state=DeviceConnectionState(transformed_value),
                 ).value,
             )
 
@@ -803,20 +798,19 @@ class V1Parser:
             ):
                 parsed_value = list(map(int, payload[position_byte:]))
 
+                transformed_value = ValueTransformHelpers.transform_from_bytes(
+                    data_type=register_record.data_type,
+                    value=parsed_value,
+                )
+
+                if not isinstance(transformed_value, int) or not DeviceConnectionState.has_value(transformed_value):
+                    raise ParsePayloadException("State register value is not valid")
+
                 values.append(
                     (
                         register_address,
                         StateTransformHelpers.transform_from_device(
-                            device_state=DeviceConnectionState(
-                                int(
-                                    str(
-                                        ValueTransformHelpers.transform_from_bytes(
-                                            data_type=register_record.data_type,
-                                            value=parsed_value,
-                                        )
-                                    )
-                                )
-                            ),
+                            device_state=DeviceConnectionState(transformed_value),
                         ).value,
                     )
                 )
