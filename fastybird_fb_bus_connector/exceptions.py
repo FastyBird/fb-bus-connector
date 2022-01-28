@@ -39,3 +39,14 @@ class ParsePayloadException(Exception):
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
+
+
+class BuildPayloadException(Exception):
+    """
+    Building payload failed
+
+    @package        FastyBird:FbBusConnector!
+    @module         exceptions
+
+    @author         Adam Kadlec <adam.kadlec@fastybird.com>
+    """

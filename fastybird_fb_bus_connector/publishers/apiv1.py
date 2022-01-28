@@ -22,32 +22,25 @@ FastyBird BUS connector publishers module publisher for API v1
 import logging
 import time
 from datetime import datetime
-from typing import List, Optional, Union
+from typing import Optional, Union
 
 # Library dependencies
-from fastybird_metadata.devices_module import ConnectionState
-from fastybird_metadata.types import ButtonPayload, DataType, SwitchPayload
+from fastybird_metadata.types import ButtonPayload, SwitchPayload
 from kink import inject
 
 # Library libs
+from fastybird_fb_bus_connector.api.v1builder import V1Builder
 from fastybird_fb_bus_connector.clients.client import Client
+from fastybird_fb_bus_connector.exceptions import BuildPayloadException
 from fastybird_fb_bus_connector.logger import Logger
 from fastybird_fb_bus_connector.publishers.base import IPublisher
 from fastybird_fb_bus_connector.registry.model import DevicesRegistry, RegistersRegistry
-from fastybird_fb_bus_connector.registry.records import (
-    AttributeRegisterRecord,
-    DeviceRecord,
-    RegisterRecord,
-)
+from fastybird_fb_bus_connector.registry.records import DeviceRecord, RegisterRecord
 from fastybird_fb_bus_connector.types import (
     DeviceAttribute,
     Packet,
     ProtocolVersion,
     RegisterType,
-)
-from fastybird_fb_bus_connector.utilities.helpers import (
-    StateTransformHelpers,
-    ValueTransformHelpers,
 )
 
 
@@ -199,11 +192,6 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
     # -----------------------------------------------------------------------------
 
     def __send_ping_handler(self, device: DeviceRecord) -> None:
-        output_content: List[int] = [
-            ProtocolVersion.V1.value,
-            Packet.PING.value,
-        ]
-
         device_address = self.__get_address_for_device(device=device)
 
         if device_address is None:
@@ -223,7 +211,7 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
 
         result = self.__client.send_packet(
             address=device_address,
-            payload=output_content,
+            payload=V1Builder.build_ping(),
         )
 
         self.__validate_result(result=result, packet_type=Packet.PONG, device=device)
@@ -263,13 +251,10 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
 
             return
 
-        output_content: List[int] = [
-            ProtocolVersion.V1.value,
-            Packet.READ_SINGLE_REGISTER_VALUE.value,
-            state_attribute.type.value,
-            state_attribute.address >> 8,
-            state_attribute.address & 0xFF,
-        ]
+        output_content = V1Builder.build_read_single_register_value(
+            register_type=state_attribute.type,
+            register_address=state_attribute.address,
+        )
 
         result = self.__client.send_packet(
             address=device_address,
@@ -311,20 +296,6 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
         if start_address is None:
             start_address = 0
 
-        # 0 => Packet identifier
-        # 1 => Register type
-        # 2 => High byte of register address
-        # 3 => Low byte of register address
-        # 4 => High byte of registers length
-        # 5 => Low byte of registers length
-        output_content: List[int] = [
-            ProtocolVersion.V1.value,
-            Packet.READ_MULTIPLE_REGISTERS_VALUES.value,
-            register_type.value,
-            start_address >> 8,
-            start_address & 0xFF,
-        ]
-
         if register_type in (RegisterType.INPUT, RegisterType.OUTPUT):
             # Calculate maximum count registers per one packet
             # e.g. max_packet_length = 24 => max_readable_registers_count = 4
@@ -357,8 +328,11 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
         if read_length <= 0:
             return False
 
-        output_content.append(read_length >> 8)
-        output_content.append(read_length & 0xFF)
+        output_content = V1Builder.build_read_multiple_registers_values(
+            register_type=register_type,
+            start_address=start_address,
+            registers_count=read_length,
+        )
 
         result = self.__client.send_packet(
             address=device_address,
@@ -427,67 +401,18 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
 
             return False
 
-        # 0     => Packet identifier
-        # 1     => Register type
-        # 2     => High byte of register address
-        # 3     => Low byte of register address
-        # 4-n   => Write value
-        output_content: List[int] = [
-            ProtocolVersion.V1.value,
-            Packet.WRITE_SINGLE_REGISTER_VALUE.value,
-            register.type.value,
-            register.address >> 8,
-            register.address & 0xFF,
-        ]
-
-        if (
-            register.data_type
-            in (
-                DataType.CHAR,
-                DataType.UCHAR,
-                DataType.SHORT,
-                DataType.USHORT,
-                DataType.INT,
-                DataType.UINT,
-                DataType.FLOAT,
-                DataType.BOOLEAN,
-            )
-            and isinstance(write_value, (int, float, bool))
-        ):
-            transformed_value = ValueTransformHelpers.transform_to_bytes(
-                data_type=register.data_type,
-                value=write_value,
+        try:
+            output_content = V1Builder.build_write_single_register_value(
+                register_type=register.type,
+                register_address=register.address,
+                register_data_type=register.data_type,
+                register_name=None,
+                write_value=write_value,
             )
 
-            # Value could not be transformed
-            if transformed_value is None:
-                return False
-
-            for value in transformed_value:
-                output_content.append(value)
-
-        # SPECIAL TRANSFORMING FOR STATE ATTRIBUTE
-        elif (
-            register.data_type == DataType.ENUM
-            and isinstance(register, AttributeRegisterRecord)
-            and register.name == DeviceAttribute.STATE.value
-        ):
-            transformed_value = ValueTransformHelpers.transform_to_bytes(
-                data_type=register.data_type,
-                value=StateTransformHelpers.transform_for_device(device_state=ConnectionState(write_value)).value,
-            )
-
-            # Value could not be transformed
-            if transformed_value is None:
-                return False
-
-            for value in transformed_value:
-                output_content.append(value)
-
-        else:
+        except BuildPayloadException as ex:
             self.__logger.error(
-                "Trying to write unsupported data type: %s for register",
-                register.data_type,
+                "Value couldn't be written into register",
                 extra={
                     "device": {
                         "id": device.id.__str__(),
@@ -496,6 +421,10 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
                         "address": register.address,
                         "type": register.type.value,
                         "data_type": register.data_type.value,
+                    },
+                    "exception": {
+                        "message": str(ex),
+                        "code": type(ex).__name__,
                     },
                 },
             )

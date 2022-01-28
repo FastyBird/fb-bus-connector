@@ -22,7 +22,7 @@ FastyBird BUS connector discovery module handler for API v1
 import logging
 import time
 import uuid
-from typing import List, Optional, Set, Union
+from typing import Optional, Set, Union
 
 # Library dependencies
 from fastybird_metadata.devices_module import ConnectionState
@@ -30,7 +30,9 @@ from fastybird_metadata.types import DataType
 from kink import inject
 
 # Library libs
+from fastybird_fb_bus_connector.api.v1builder import V1Builder
 from fastybird_fb_bus_connector.clients.client import Client
+from fastybird_fb_bus_connector.exceptions import BuildPayloadException
 from fastybird_fb_bus_connector.logger import Logger
 from fastybird_fb_bus_connector.pairing.base import IPairing
 from fastybird_fb_bus_connector.registry.model import DevicesRegistry, RegistersRegistry
@@ -43,13 +45,8 @@ from fastybird_fb_bus_connector.registry.records import (
 )
 from fastybird_fb_bus_connector.types import (
     DeviceAttribute,
-    Packet,
     ProtocolVersion,
     RegisterType,
-)
-from fastybird_fb_bus_connector.utilities.helpers import (
-    StateTransformHelpers,
-    ValueTransformHelpers,
 )
 
 
@@ -599,14 +596,9 @@ class ApiV1Pairing(IPairing):  # pylint: disable=too-many-instance-attributes
         self.__total_attempts += 1
         self.__last_request_send_timestamp = time.time()
 
-        output_content: List[int] = [
-            ProtocolVersion.V1.value,
-            Packet.DISCOVER.value,
-        ]
-
         self.__logger.debug("Preparing to broadcast search devices")
 
-        self.__client.broadcast_packet(payload=output_content, waiting_time=self.__BROADCAST_WAITING_DELAY)
+        self.__client.broadcast_packet(payload=V1Builder.build_discovery(), waiting_time=self.__BROADCAST_WAITING_DELAY)
 
     # -----------------------------------------------------------------------------
 
@@ -616,19 +608,13 @@ class ApiV1Pairing(IPairing):  # pylint: disable=too-many-instance-attributes
         discovered_register: DiscoveredRegisterRecord,
     ) -> None:
         """We know basic device structure, let's get structure for each register"""
-        output_content: List[int] = [
-            ProtocolVersion.V1.value,
-            Packet.READ_SINGLE_REGISTER_STRUCTURE.value,
-            discovered_register.type.value,
-            discovered_register.address >> 8,
-            discovered_register.address & 0xFF,
-        ]
-
-        if discovered_device.address == self.__ADDRESS_NOT_ASSIGNED:
-            output_content.append(len(discovered_device.serial_number))
-
-            for char in discovered_device.serial_number:
-                output_content.append(ord(char))
+        output_content = V1Builder.build_read_single_register_structure(
+            register_type=discovered_register.type,
+            register_address=discovered_register.address,
+            serial_number=(
+                discovered_device.serial_number if discovered_device.address == self.__ADDRESS_NOT_ASSIGNED else None
+            ),
+        )
 
         # Mark that gateway is waiting for reply from device...
         self.__device_attempts += 1
@@ -792,40 +778,32 @@ class ApiV1Pairing(IPairing):  # pylint: disable=too-many-instance-attributes
                 # Use address stored before
                 discovered_device.address = updated_device_address
 
-        output_content: List[int] = [
-            ProtocolVersion.V1.value,
-            Packet.WRITE_SINGLE_REGISTER_VALUE.value,
-            address_register.type.value,
-            address_register.address >> 8,
-            address_register.address & 0xFF,
-        ]
+        try:
+            output_content = V1Builder.build_write_single_register_value(
+                register_type=address_register.type,
+                register_address=address_register.address,
+                register_data_type=address_register.data_type,
+                register_name=address_register.name,
+                write_value=discovered_device.address,
+                serial_number=discovered_device.serial_number,
+            )
 
-        transformed_value = ValueTransformHelpers.transform_to_bytes(
-            data_type=address_register.data_type,
-            value=discovered_device.address,
-        )
-
-        # Value could not be transformed
-        if transformed_value is None:
+        except BuildPayloadException as ex:
             self.__logger.warning(
-                "New device address couldn't be transformed for transfer. Discovery couldn't be finished",
+                "New device address couldn't be written into register. Discovery couldn't be finished",
                 extra={
                     "device": {
                         "serial_number": discovered_device.serial_number,
                         "address": discovered_device.address,
                     },
+                    "exception": {
+                        "message": str(ex),
+                        "code": type(ex).__name__,
+                    },
                 },
             )
 
             return
-
-        for value in transformed_value:
-            output_content.append(value)
-
-        output_content.append(len(discovered_device.serial_number))
-
-        for char in discovered_device.serial_number:
-            output_content.append(ord(char))
 
         # Data to write are ready to be broadcast, lets persist device into registry
         self.__finalize_device(discovered_device=discovered_device, discovered_registers=discovered_registers)
@@ -885,35 +863,31 @@ class ApiV1Pairing(IPairing):  # pylint: disable=too-many-instance-attributes
 
             return
 
-        output_content: List[int] = [
-            ProtocolVersion.V1.value,
-            Packet.WRITE_SINGLE_REGISTER_VALUE.value,
-            state_register.type.value,
-            state_register.address >> 8,
-            state_register.address & 0xFF,
-        ]
+        try:
+            output_content = V1Builder.build_write_single_register_value(
+                register_type=state_register.type,
+                register_address=state_register.address,
+                register_data_type=state_register.data_type,
+                register_name=state_register.name,
+                write_value=ConnectionState.RUNNING.value,
+            )
 
-        transformed_value = ValueTransformHelpers.transform_to_bytes(
-            data_type=DataType.UCHAR,  # Hack for state attribute register
-            value=StateTransformHelpers.transform_for_device(device_state=ConnectionState.RUNNING).value,
-        )
-
-        # Value could not be transformed
-        if transformed_value is None:
+        except BuildPayloadException as ex:
             self.__logger.warning(
-                "Device state couldn't be transformed for transfer. Discovery couldn't be finished",
+                "Device state couldn't be written into register. Discovery couldn't be finished",
                 extra={
                     "device": {
                         "serial_number": discovered_device.serial_number,
                         "address": discovered_device.address,
                     },
+                    "exception": {
+                        "message": str(ex),
+                        "code": type(ex).__name__,
+                    },
                 },
             )
 
             return
-
-        for value in transformed_value:
-            output_content.append(value)
 
         # Data to write are ready to be broadcast, lets persist device into registry
         self.__finalize_device(discovered_device=discovered_device, discovered_registers=discovered_registers)
