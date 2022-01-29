@@ -39,7 +39,7 @@ from fastybird_fb_bus_connector.types import ProtocolVersion
 
 class IReceiver(ABC):  # pylint: disable=too-few-public-methods
     """
-    BUS messages receiver interface
+    Data receiver interface
 
     @package        FastyBird:FbBusConnector!
     @module         receivers

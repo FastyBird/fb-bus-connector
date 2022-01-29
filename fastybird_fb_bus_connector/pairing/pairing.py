@@ -28,7 +28,7 @@ from fastybird_fb_bus_connector.types import ProtocolVersion
 
 class IPairing(ABC):  # pylint: disable=too-few-public-methods
     """
-    BUS pairing handler interface
+    Devices discovery handler interface
 
     @package        FastyBird:FbBusConnector!
     @module         pairing/base

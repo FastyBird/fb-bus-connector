@@ -30,7 +30,7 @@ from fastybird_fb_bus_connector.types import ProtocolVersion
 
 class IPublisher(ABC):  # pylint: disable=too-few-public-methods
     """
-    BUS base publisher
+    Data publisher interface
 
     @package        FastyBird:FbBusConnector!
     @module         publishers
@@ -56,7 +56,7 @@ class IPublisher(ABC):  # pylint: disable=too-few-public-methods
 
 class Publisher:  # pylint: disable=too-few-public-methods
     """
-    BUS publishers proxy
+    Data publisher proxy
 
     @package        FastyBird:FbBusConnector!
     @module         publishers

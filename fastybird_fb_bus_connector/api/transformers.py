@@ -43,7 +43,7 @@ class TextHelpers:
     Payload text helpers
 
     @package        FastyBird:FbBusConnector!
-    @module         utilities/helpers
+    @module         api/transformers
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
@@ -85,7 +85,7 @@ class StateTransformHelpers:
     Device state helpers
 
     @package        FastyBird:FbBusConnector!
-    @module         utilities/helpers
+    @module         api/transformers
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
@@ -128,7 +128,7 @@ class DataTypeTransformHelpers:  # pylint: disable=too-few-public-methods
     Data type transformers helpers
 
     @package        FastyBird:FbBusConnector!
-    @module         utilities/helpers
+    @module         api/transformers
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
@@ -191,7 +191,7 @@ class ValueTransformHelpers:
     Value transformers helpers
 
     @package        FastyBird:FbBusConnector!
-    @module         utilities/helpers
+    @module         api/transformers
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
