@@ -76,7 +76,6 @@ setup(
         "kink",
         "libscrc",
         "nose",
-        "pjon_cython",
         "setuptools",
         "whistle"
     ],

@@ -6,6 +6,5 @@ inflection>=0.5
 kink>=0.6
 libscrc>=1.6
 nose>=1.0
-pjon_cython>=11.2
 setuptools>=57.4
 whistle>=1.0
