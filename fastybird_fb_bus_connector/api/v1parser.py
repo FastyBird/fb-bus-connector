@@ -73,8 +73,6 @@ class V1Parser:
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
 
-    __validator: V1Validator
-
     __devices_registry: DevicesRegistry
     __registers_registry: RegistersRegistry
 
@@ -82,12 +80,9 @@ class V1Parser:
 
     def __init__(
         self,
-        validator: V1Validator,
         devices_registry: DevicesRegistry,
         registers_registry: RegistersRegistry,
     ) -> None:
-        self.__validator = validator
-
         self.__devices_registry = devices_registry
         self.__registers_registry = registers_registry
 
@@ -107,58 +102,58 @@ class V1Parser:
         address: Optional[int],
     ) -> BaseEntity:
         """Parse received message content"""
-        if self.__validator.validate(payload=payload) is False:
+        if V1Validator.validate(payload=payload) is False:
             raise ParsePayloadException("Provided payload is not valid")
 
-        if self.__validator.validate_read_single_register_value(payload=payload) and address is not None:
+        if V1Validator.validate_read_single_register_value(payload=payload) and address is not None:
             return self.parse_read_single_register_value(
                 payload=payload,
                 length=length,
                 address=address,
             )
 
-        if self.__validator.validate_read_multiple_registers_values(payload=payload) and address is not None:
+        if V1Validator.validate_read_multiple_registers_values(payload=payload) and address is not None:
             return self.parse_read_multiple_registers_values(
                 payload=payload,
                 length=length,
                 address=address,
             )
 
-        if self.__validator.validate_write_single_register_value(payload=payload) and address is not None:
+        if V1Validator.validate_write_single_register_value(payload=payload) and address is not None:
             return self.parse_write_single_register_value(
                 payload=payload,
                 length=length,
                 address=address,
             )
 
-        if self.__validator.validate_write_multiple_registers_values(payload=payload) and address is not None:
+        if V1Validator.validate_write_multiple_registers_values(payload=payload) and address is not None:
             return self.parse_write_multiple_registers_values(
                 payload=payload,
                 length=length,
                 address=address,
             )
 
-        if self.__validator.validate_report_single_register_value(payload=payload) and address is not None:
+        if V1Validator.validate_report_single_register_value(payload=payload) and address is not None:
             return self.parse_report_single_register_value(
                 payload=payload,
                 length=length,
                 address=address,
             )
 
-        if self.__validator.validate_read_single_register_structure(payload=payload) and address is not None:
+        if V1Validator.validate_read_single_register_structure(payload=payload) and address is not None:
             return self.parse_read_single_register_structure(
                 payload=payload,
                 length=length,
                 address=address,
             )
 
-        if self.__validator.validate_pong_response(payload=payload) and address is not None:
+        if V1Validator.validate_pong_response(payload=payload) and address is not None:
             return self.parse_pong_response(
                 length=length,
                 address=address,
             )
 
-        if self.__validator.validate_discover_device(payload=payload) and address is not None:
+        if V1Validator.validate_discover_device(payload=payload) and address is not None:
             return self.parse_device_discovery(
                 payload=payload,
                 length=length,

@@ -39,20 +39,21 @@ class V1Validator:
 
     # -----------------------------------------------------------------------------
 
-    def validate(self, payload: bytearray) -> bool:
+    @staticmethod
+    def validate(payload: bytearray) -> bool:
         """Validate topic against sets of regular expressions"""
-        if not self.validate_version(payload=payload):
+        if not V1Validator.validate_version(payload=payload):
             return False
 
         if (
-            self.validate_read_single_register_value(payload=payload)  # pylint: disable=too-many-boolean-expressions
-            or self.validate_read_multiple_registers_values(payload=payload)
-            or self.validate_write_single_register_value(payload=payload)
-            or self.validate_write_multiple_registers_values(payload=payload)
-            or self.validate_read_single_register_structure(payload=payload)
-            or self.validate_report_single_register_value(payload=payload)
-            or self.validate_pong_response(payload=payload)
-            or self.validate_discover_device(payload=payload)
+            V1Validator.validate_read_single_register_value(payload=payload)  # pylint: disable=too-many-boolean-expressions
+            or V1Validator.validate_read_multiple_registers_values(payload=payload)
+            or V1Validator.validate_write_single_register_value(payload=payload)
+            or V1Validator.validate_write_multiple_registers_values(payload=payload)
+            or V1Validator.validate_read_single_register_structure(payload=payload)
+            or V1Validator.validate_report_single_register_value(payload=payload)
+            or V1Validator.validate_pong_response(payload=payload)
+            or V1Validator.validate_discover_device(payload=payload)
         ):
             return True
 

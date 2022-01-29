@@ -50,7 +50,6 @@ class Receiver:
     __receivers: Set[IReceiver]
     __queue: Queue
     __parser: V1Parser
-    __validator: V1Validator
 
     __logger: Union[Logger, logging.Logger]
 
@@ -60,12 +59,10 @@ class Receiver:
         self,
         receivers: List[IReceiver],
         parser: V1Parser,
-        validator: V1Validator,
         logger: Union[Logger, logging.Logger] = logging.getLogger("dummy"),
     ) -> None:
         self.__receivers = set(receivers)
         self.__parser = parser
-        self.__validator = validator
 
         self.__logger = logger
 
@@ -120,10 +117,10 @@ class Receiver:
         protocol_version: ProtocolVersion,
     ) -> None:
         """Handle received message"""
-        if self.__validator.version == protocol_version and self.__validator.validate_version(payload=payload) is False:
+        if V1Validator.version == protocol_version and V1Validator.validate_version(payload=payload) is False:
             return
 
-        if self.__validator.version == protocol_version and self.__validator.validate(payload=payload) is False:
+        if V1Validator.version == protocol_version and V1Validator.validate(payload=payload) is False:
             self.__logger.warning(
                 "Received message is not valid FIB v%s convention message: %s",
                 protocol_version.value,
@@ -133,7 +130,7 @@ class Receiver:
             return
 
         try:
-            if self.__validator.version == protocol_version:
+            if V1Validator.version == protocol_version:
                 self.append(
                     entity=self.__parser.parse_message(
                         payload=payload,

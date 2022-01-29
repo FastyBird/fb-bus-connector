@@ -29,7 +29,6 @@ from whistle import EventDispatcher
 
 # Library libs
 from fastybird_fb_bus_connector.api.v1parser import V1Parser
-from fastybird_fb_bus_connector.api.v1validator import V1Validator
 from fastybird_fb_bus_connector.clients.client import Client
 from fastybird_fb_bus_connector.connector import FbBusConnector
 from fastybird_fb_bus_connector.entities import FbBusConnectorEntity
@@ -73,11 +72,7 @@ def create_connector(
     di["fb-bus-connector_devices-registry"] = di[DevicesRegistry]
 
     # API utils
-    di[V1Validator] = V1Validator()
-    di["fb-bus-connector_api-v1-validator"] = di[V1Validator]
-
     di[V1Parser] = V1Parser(
-        validator=di[V1Validator],
         devices_registry=di[DevicesRegistry],
         registers_registry=di[RegistersRegistry],
     )
@@ -124,7 +119,6 @@ def create_connector(
             di[PairingReceiver],
         ],
         parser=di[V1Parser],
-        validator=di[V1Validator],
         logger=connector_logger,
     )
     di["fb-bus-connector_receiver-proxy"] = di[Receiver]
