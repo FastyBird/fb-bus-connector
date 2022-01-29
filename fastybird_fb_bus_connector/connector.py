@@ -60,7 +60,11 @@ from fastybird_fb_bus_connector.pairing.pairing import Pairing
 from fastybird_fb_bus_connector.publishers.publisher import Publisher
 from fastybird_fb_bus_connector.receivers.receiver import Receiver
 from fastybird_fb_bus_connector.registry.model import DevicesRegistry, RegistersRegistry
-from fastybird_fb_bus_connector.types import ProtocolVersion, RegisterType, ControlAction
+from fastybird_fb_bus_connector.types import (
+    ControlAction,
+    ProtocolVersion,
+    RegisterType,
+)
 
 
 @inject(alias=IConnector)

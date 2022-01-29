@@ -21,7 +21,7 @@ FastyBird BUS connector utilities helpers module
 # Python base dependencies
 import struct
 from datetime import datetime
-from typing import Dict, List, Optional, Union
+from typing import List, Optional, Union
 
 # Library dependencies
 from fastnumbers import fast_float, fast_int
