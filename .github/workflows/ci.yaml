@@ -316,7 +316,7 @@ jobs :
       - name : "Checkout"
         uses : "actions/checkout@v2"
         with :
-          submodules : recursive
+          submodules : "recursive"
 
       - name : "Set up Python ${{ matrix.python }}"
         uses : "actions/setup-python@v1"
@@ -358,7 +358,7 @@ jobs :
       - name : "Checkout"
         uses : "actions/checkout@v2"
         with :
-          submodules : recursive
+          submodules : "recursive"
 
       - name : "Set up Python ${{ matrix.python }}"
         uses : "actions/setup-python@v1"
@@ -387,7 +387,7 @@ jobs :
       - name : "Checkout"
         uses : "actions/checkout@v2"
         with :
-          submodules : recursive
+          submodules : "recursive"
 
       - name : "Setup MySQL"
         uses : "mirromutth/mysql-action@v1.1"
@@ -430,7 +430,7 @@ jobs :
       - name : "Checkout"
         uses : "actions/checkout@v2"
         with :
-          submodules : recursive
+          submodules : "recursive"
 
       - name : "Setup MySQL"
         uses : "mirromutth/mysql-action@v1.1"
