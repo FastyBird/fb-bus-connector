@@ -310,7 +310,7 @@ jobs :
     strategy :
       matrix :
         python : [ "3.9" ]
-        operating-system : [ "ubuntu-latest", "windows-latest", "macos-latest" ]
+        operating-system : [ "ubuntu-latest" ]
 
     steps :
       - name : "Checkout"
@@ -336,34 +336,6 @@ jobs :
           # TODO: Build ppc64le, aarch64 using some other trick
           CIBW_MANYLINUX_X86_64_IMAGE: "manylinux2014"
           CIBW_ARCHS_LINUX: "x86_64"
-        run: |
-          python -m pip install --upgrade pip
-          pip install -U twine wheel cibuildwheel
-          pip install -r requirements.txt
-          python -m cibuildwheel --output-dir dist
-
-      - name: "Build Python wheels on macOS"
-        if : matrix.operating-system == 'macos-latest'
-        env:
-          CIBW_ARCHS_MACOS: "x86_64 arm64"
-          CIBW_BUILD: 'cp37-* cp38-* cp39-* cp310-*'
-          # ARM64 requires Python 3.8 minimum
-          CIBW_SKIP: 'cp37-*-arm64'
-          CIBW_TEST_COMMAND: python {project}/bindings/python/google_benchmark/example.py
-          CIBW_TEST_SKIP: "*_arm64"
-        run: |
-          python -m pip install --upgrade pip
-          pip install -U twine wheel cibuildwheel
-          pip install -r requirements.txt
-          python -m cibuildwheel --output-dir dist
-
-      - name: "Build Python wheels on Windows"
-        if : matrix.operating-system == 'windows-latest'
-        env:
-          CIBW_BUILD: 'cp37-* cp38-* cp39-* cp310-*'
-          CIBW_ARCHS_WINDOWS: "AMD64"
-          # otherwise, pip crashes the job by trying to remove an in-use bazel DLL
-          PIP_NO_CLEAN: "true"
         run: |
           python -m pip install --upgrade pip
           pip install -U twine wheel cibuildwheel
