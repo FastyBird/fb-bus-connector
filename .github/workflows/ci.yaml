@@ -490,7 +490,7 @@ jobs :
 
       - name : "Install wheel"
         if : matrix.installable == 'wheel'
-        run : "pip install dist/fastybird_fb_bus_connector-*-py3-none-any.whl"
+        run : "pip install dist/fastybird_fb_bus_connector-*-cp39-cp39-linux_x86_64.whl"
 
       - name : "Install source tarball"
         if : matrix.installable == 'sdist'
