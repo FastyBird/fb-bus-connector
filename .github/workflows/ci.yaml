@@ -311,7 +311,7 @@ jobs :
       matrix :
         python : [ "3.9" ]
         build-python: ["7", "8", "9", "10"]
-        operating-system : [ "ubuntu-latest" ]
+        operating-system : [ "ubuntu-latest", "windows-latest", "macos-latest" ]
 
     steps :
       - name : "Checkout"
@@ -334,7 +334,7 @@ jobs :
           pip install -U twine wheel cibuildwheel
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-      - name : "Build a binary wheel"
+      - name : "Build a binary wheels"
         run: "cibuildwheel --output-dir dist"
         env:
           PIP: "pip"
@@ -346,6 +346,9 @@ jobs :
           CIBW_MANYLINUX_I686_IMAGE: "manylinux2014"
           CIBW_ARCHS_MACOS: "x86_64 arm64"
           CIBW_TEST_SKIP: "*-macosx_arm64"  # see https://cibuildwheel.readthedocs.io/en/stable/faq/#universal2
+
+      - name : "Build a source tarball"
+        run : "python setup.py sdist"
 
       - name : "Upload build result"
         uses : "actions/upload-artifact@v1"
@@ -483,7 +486,6 @@ jobs :
       matrix :
         python : [ "3.7", "3.8", "3.9" ]
         operating-system : [ "ubuntu-latest" ]
-        installable : [ "wheel", "sdist" ]
 
     steps :
       - name : "Download build result"
@@ -497,12 +499,7 @@ jobs :
         with :
           python-version : ${{ matrix.python }}
 
-      - name : "Install wheel"
-        if : matrix.installable == 'wheel'
-        run : "pip install dist/fastybird_fb_bus_connector-*-cp39-cp39-linux_x86_64.whl"
-
       - name : "Install source tarball"
-        if : matrix.installable == 'sdist'
         run : "pip install dist/fastybird-fb-bus-connector-*.tar.gz"
 
   publish-on-testpypi :

@@ -24,10 +24,10 @@ import time
 from typing import Dict, List, Optional, Union
 
 # Library dependencies
-import pjon_cython as pjon
 from kink import inject
 
 # Library libs
+import fastybird_fb_bus_connector.pjon as pjon
 from fastybird_fb_bus_connector.clients.base import IClient
 from fastybird_fb_bus_connector.logger import Logger
 from fastybird_fb_bus_connector.receivers.receiver import Receiver

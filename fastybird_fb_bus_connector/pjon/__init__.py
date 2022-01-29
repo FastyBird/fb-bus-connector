@@ -17,3 +17,7 @@
 """
 FastyBird BUS connector PJON integration module
 """
+
+from ._pjon_cython import *
+
+__all__ = ["ThroughSerialAsync"]
