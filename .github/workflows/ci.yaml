@@ -472,40 +472,10 @@ jobs :
       - name : "Report code coverage"
         run : "coverage report"
 
-  test-install-python-sdist :
-    name : "Test installation of Python distribution"
-    runs-on : "${{ matrix.operating-system }}"
-    needs : "build-python"
-
-    strategy :
-      matrix :
-        python : [ "3.7", "3.8", "3.9" ]
-        operating-system : [ "ubuntu-latest" ]
-
-    steps :
-      - name : "Checkout"
-        uses : "actions/checkout@v2"
-        with :
-          submodules : "recursive"
-
-      - name : "Download build result"
-        uses : "actions/download-artifact@v1"
-        with :
-          name : python-dist
-          path : dist
-
-      - name : "Set up Python ${{ matrix.python }}"
-        uses : "actions/setup-python@v1"
-        with :
-          python-version : ${{ matrix.python }}
-
-      - name : "Install source tarball"
-        run : "pip install dist/fastybird-fb-bus-connector-*.tar.gz"
-
   publish-on-testpypi :
     name : "Publish Python distribution on Test PyPI"
     runs-on : "${{ matrix.operating-system }}"
-    needs : [ "test-install-python-sdist", "python-tests" ]
+    needs : [ "build-python", "python-tests" ]
 
     strategy :
       matrix :
