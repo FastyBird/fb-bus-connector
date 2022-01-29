@@ -4,3 +4,6 @@ line-length = 120
 [tool.isort]
 profile = "black"
 multi_line_output = 3
+
+[build-system]
+requires = ["setuptools", "wheel", "Cython"]

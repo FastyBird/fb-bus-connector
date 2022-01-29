@@ -68,7 +68,7 @@ setup(
     packages=find_packages(),
     package_data={"fastybird_fb_bus_connector": ["py.typed"]},
     install_requires=[
-        "cython",
+        "Cython",
         "fastnumbers",
         "fastybird-devices-module",
         "fastybird-metadata",

@@ -341,7 +341,7 @@ jobs :
           CIBW_BUILD: "cp3${{ matrix.build-python }}-*"
           CIBW_SKIP: "*-win32"
           CIBW_PLATFORM: "linux"
-          CIBW_BEFORE_BUILD: "python -m pip install cython --user"
+          CIBW_BEFORE_BUILD: "pip install -U Cython"
           CIBW_MANYLINUX_X86_64_IMAGE: "manylinux2014"
           CIBW_MANYLINUX_I686_IMAGE: "manylinux2014"
           CIBW_ARCHS_MACOS: "x86_64 arm64"
