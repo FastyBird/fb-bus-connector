@@ -49,7 +49,7 @@ from fastybird_fb_bus_connector.types import (
     ProtocolVersion,
     RegisterType,
 )
-from fastybird_fb_bus_connector.utilities.helpers import (
+from fastybird_fb_bus_connector.api.transformers import (
     DataTypeTransformHelpers,
     StateTransformHelpers,
     TextHelpers,

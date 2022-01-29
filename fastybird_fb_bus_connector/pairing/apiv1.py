@@ -61,7 +61,7 @@ class ApiV1Pairing(IPairing):  # pylint: disable=too-many-instance-attributes
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
 
-    __enabled: bool = False
+    __enabled: bool = True
 
     __discovered_devices: Set[DiscoveredDeviceRecord] = set()
 
@@ -785,7 +785,9 @@ class ApiV1Pairing(IPairing):  # pylint: disable=too-many-instance-attributes
                 register_data_type=address_register.data_type,
                 register_name=address_register.name,
                 write_value=discovered_device.address,
-                serial_number=discovered_device.serial_number,
+                serial_number=(
+                    discovered_device.serial_number if actual_address == self.__ADDRESS_NOT_ASSIGNED else None
+                ),
             )
 
         except BuildPayloadException as ex:
@@ -972,7 +974,11 @@ class ApiV1Pairing(IPairing):  # pylint: disable=too-many-instance-attributes
                     )
 
         # Device initialization is finished, enable it for communication
-        self.__devices_registry.enable(device=device_record)
+        device_record = self.__devices_registry.enable(device=device_record)
 
         # Update device state
-        self.__devices_registry.set_state(device=device_record, state=ConnectionState.UNKNOWN)
+        device_record = self.__devices_registry.set_state(device=device_record, state=ConnectionState.UNKNOWN)
+        # Update lact packet sent status
+        device_record = self.__devices_registry.set_last_packet_timestamp(
+            device=device_record, last_packet_timestamp=time.time()
+        )

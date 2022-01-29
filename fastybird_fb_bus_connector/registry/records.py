@@ -165,6 +165,13 @@ class DeviceRecord:  # pylint: disable=too-many-public-methods,too-many-instance
 
     # -----------------------------------------------------------------------------
 
+    @last_packet_timestamp.setter
+    def last_packet_timestamp(self, last_packet_timestamp: float) -> None:
+        """Last packet sent time stamp setter"""
+        self.__last_packet_sent_timestamp = last_packet_timestamp
+
+    # -----------------------------------------------------------------------------
+
     @property
     def waiting_for_packet(self) -> Optional[Packet]:
         """Packet gateway is waiting from device"""

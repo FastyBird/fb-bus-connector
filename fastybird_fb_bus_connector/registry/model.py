@@ -401,6 +401,21 @@ class DevicesRegistry:  # pylint: disable=too-many-public-methods
 
     # -----------------------------------------------------------------------------
 
+    def set_last_packet_timestamp(self, device: DeviceRecord, last_packet_timestamp: float) -> DeviceRecord:
+        """Reset device last packet sent timestamp"""
+        device.last_packet_timestamp = last_packet_timestamp
+
+        self.__update(updated_device=device)
+
+        updated_device = self.get_by_id(device.id)
+
+        if updated_device is None:
+            raise InvalidStateException("Device record could not be re-fetched from registry after update")
+
+        return updated_device
+
+    # -----------------------------------------------------------------------------
+
     def find_free_address(self) -> Optional[int]:
         """Find free address for new device"""
         addresses_attributes = self.__registers_registry.get_all_by_name(DeviceAttribute.ADDRESS.value)

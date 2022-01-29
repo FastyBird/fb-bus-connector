@@ -354,3 +354,23 @@ class DeviceAttribute(ExtendedEnum, Enum):
 
     def __hash__(self) -> int:
         return hash(self._name_)  # pylint: disable=no-member
+
+
+@unique
+class ControlAction(ExtendedEnum, Enum):
+    """
+    Connector control action
+
+    @package        FastyBird:FbBusConnector!
+    @module         types
+
+    @author         Adam Kadlec <adam.kadlec@fastybird.com>
+    """
+
+    DISCOVER: str = "discover"
+    RESTART: str = "restart"
+
+    # -----------------------------------------------------------------------------
+
+    def __hash__(self) -> int:
+        return hash(self._name_)  # pylint: disable=no-member

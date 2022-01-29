@@ -60,7 +60,7 @@ from fastybird_fb_bus_connector.pairing.pairing import Pairing
 from fastybird_fb_bus_connector.publishers.publisher import Publisher
 from fastybird_fb_bus_connector.receivers.receiver import Receiver
 from fastybird_fb_bus_connector.registry.model import DevicesRegistry, RegistersRegistry
-from fastybird_fb_bus_connector.types import ProtocolVersion, RegisterType
+from fastybird_fb_bus_connector.types import ProtocolVersion, RegisterType, ControlAction
 
 
 @inject(alias=IConnector)
@@ -469,3 +469,14 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
         data: Optional[Dict],
     ) -> None:
         """Write connector control action"""
+        if isinstance(control_item, ConnectorControlEntity):
+            if not ControlAction.has_value(control_item.name):
+                return
+
+            control_action = ControlAction(control_item.name)
+
+            if control_action == ControlAction.DISCOVER:
+                self.__pairing.enable()
+
+            if control_action == ControlAction.RESTART:
+                pass

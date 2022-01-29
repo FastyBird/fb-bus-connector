@@ -55,6 +55,20 @@ class Pairing:  # pylint: disable=too-few-public-methods
 
     # -----------------------------------------------------------------------------
 
+    def enable(self) -> None:
+        """Enable devices pairing process"""
+        for pairing in self.__pairing:
+            pairing.enable()
+
+    # -----------------------------------------------------------------------------
+
+    def disable(self) -> None:
+        """Disable devices pairing process"""
+        for pairing in self.__pairing:
+            pairing.disable()
+
+    # -----------------------------------------------------------------------------
+
     def is_enabled(self) -> bool:
         """Check if any paring handler is enabled"""
         for pairing in self.__pairing:

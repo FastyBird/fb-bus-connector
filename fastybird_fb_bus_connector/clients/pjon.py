@@ -32,7 +32,6 @@ from fastybird_fb_bus_connector.clients.base import IClient
 from fastybird_fb_bus_connector.logger import Logger
 from fastybird_fb_bus_connector.receivers.receiver import Receiver
 from fastybird_fb_bus_connector.types import Packet, PacketContent, ProtocolVersion
-from fastybird_fb_bus_connector.utilities.helpers import PacketsHelpers
 
 
 @inject(alias=IClient)
@@ -115,21 +114,21 @@ class PjonClient(IClient, pjon.ThroughSerialAsync):  # pylint: disable=no-member
         #     if result == pjon.PJON_BUSY:
         #         self.__logger.warning(
         #             "Sending packet: %s for device: %s failed, bus is busy",
-        #             PacketsHelpers.get_packet_name(int(payload[0])),
+        #             int(payload[0]),
         #             address
         #         )
         #
         #     elif result == pjon.PJON_FAIL:
         #         self.__logger.warning(
         #             "Sending packet: %s for device: %s failed"
-        #             PacketsHelpers.get_packet_name(int(payload[0])),
+        #             int(payload[0]),
         #             address
         #         )
         #
         #     else:
         #         self.__logger.warning(
         #             "Sending packet: %s for device: %s failed, unknown error"
-        #             PacketsHelpers.get_packet_name(int(payload[0])),
+        #             int(payload[0]),
         #             address
         #         )
         #
@@ -138,7 +137,7 @@ class PjonClient(IClient, pjon.ThroughSerialAsync):  # pylint: disable=no-member
         if address == pjon.PJON_BROADCAST:  # pylint: disable=no-member
             self.__logger.debug(
                 "Successfully sent broadcast packet: %s",
-                PacketsHelpers.get_packet_name(Packet(payload[1])),
+                payload[1],
                 extra={
                     "device": {
                         "address": address,
@@ -149,7 +148,7 @@ class PjonClient(IClient, pjon.ThroughSerialAsync):  # pylint: disable=no-member
         else:
             self.__logger.debug(
                 "Successfully sent packet: %s for device with address: %d",
-                PacketsHelpers.get_packet_name(Packet(payload[1])),
+                payload[1],
                 address,
                 extra={
                     "device": {
@@ -255,7 +254,7 @@ class PjonClient(IClient, pjon.ThroughSerialAsync):  # pylint: disable=no-member
 
         self.__logger.debug(
             "Received packet: %s for device with address: %s",
-            PacketsHelpers.get_packet_name(packet_id),
+            packet_id,
             sender_address,
         )
 

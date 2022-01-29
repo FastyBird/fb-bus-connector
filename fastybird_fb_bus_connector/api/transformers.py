@@ -33,7 +33,6 @@ from fastybird_fb_bus_connector.types import (
     ButtonPayloadType,
     DeviceConnectionState,
     DeviceDataType,
-    Packet,
     PacketContent,
     SwitchPayloadType,
 )
@@ -382,36 +381,3 @@ class ValueTransformHelpers:
                 return None
 
         return None
-
-
-class PacketsHelpers:  # pylint: disable=too-few-public-methods
-    """
-    Packets helpers
-
-    @package        FastyBird:FbBusConnector!
-    @module         utilities/helpers
-
-    @author         Adam Kadlec <adam.kadlec@fastybird.com>
-    """
-
-    PACKET_NAMES: Dict[int, str] = {
-        Packet.PING.value: "FB_PACKET_PING",
-        Packet.PONG.value: "FB_PACKET_PONG",
-        Packet.EXCEPTION.value: "FB_PACKET_EXCEPTION",
-        Packet.DISCOVER.value: "FB_PACKET_DISCOVER",
-        Packet.READ_SINGLE_REGISTER_VALUE.value: "FB_PACKET_READ_SINGLE_REGISTER_VALUE",
-        Packet.READ_MULTIPLE_REGISTERS_VALUES.value: "FB_PACKET_READ_MULTIPLE_REGISTERS_VALUES",
-        Packet.WRITE_SINGLE_REGISTER_VALUE.value: "FB_PACKET_WRITE_SINGLE_REGISTER_VALUE",
-        Packet.WRITE_MULTIPLE_REGISTERS_VALUES.value: "FB_PACKET_WRITE_MULTIPLE_REGISTERS_VALUES",
-        Packet.REPORT_SINGLE_REGISTER_VALUE.value: "FB_PACKET_REPORT_SINGLE_REGISTER_VALUE",
-        Packet.READ_SINGLE_REGISTER_STRUCTURE.value: "FB_PACKET_READ_SINGLE_REGISTER_STRUCTURE",
-        Packet.READ_MULTIPLE_REGISTERS_STRUCTURE.value: "FB_PACKET_READ_MULTIPLE_REGISTERS_STRUCTURE",
-    }
-
-    @classmethod
-    def get_packet_name(cls, packet: Packet) -> str:
-        """Transform packet value to text representation"""
-        if packet.value in cls.PACKET_NAMES:
-            return cls.PACKET_NAMES[packet.value]
-
-        return "UNKNOWN"

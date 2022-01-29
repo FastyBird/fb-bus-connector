@@ -34,7 +34,7 @@ from fastybird_fb_bus_connector.types import (
     ProtocolVersion,
     RegisterType,
 )
-from fastybird_fb_bus_connector.utilities.helpers import (
+from fastybird_fb_bus_connector.api.transformers import (
     StateTransformHelpers,
     ValueTransformHelpers,
 )
@@ -51,22 +51,16 @@ class V1Builder:
     """
 
     @staticmethod
-    def build_ping() -> List[int]:
+    def build_ping(serial_number: Optional[str] = None) -> List[int]:
         """Build payload for device ping&pong"""
-        return [
-            ProtocolVersion.V1.value,
-            Packet.PING.value,
-        ]
+        return V1Builder.build_packet_preambule(packet=Packet.PING, serial_number=serial_number)
 
     # -----------------------------------------------------------------------------
 
     @staticmethod
     def build_discovery() -> List[int]:
         """Build payload for device discover"""
-        return [
-            ProtocolVersion.V1.value,
-            Packet.DISCOVER.value,
-        ]
+        return V1Builder.build_packet_preambule(packet=Packet.DISCOVER)
 
     # -----------------------------------------------------------------------------
 
@@ -74,15 +68,17 @@ class V1Builder:
     def build_read_single_register_value(
         register_type: RegisterType,
         register_address: int,
+        serial_number: Optional[str] = None,
     ) -> List[int]:
         """Build payload for single register value reading"""
-        output_content: List[int] = [
-            ProtocolVersion.V1.value,
-            Packet.READ_SINGLE_REGISTER_VALUE.value,
-            register_type.value,
-            register_address >> 8,
-            register_address & 0xFF,
-        ]
+        output_content = V1Builder.build_packet_preambule(
+            packet=Packet.READ_SINGLE_REGISTER_VALUE,
+            serial_number=serial_number,
+        )
+
+        output_content.append(register_type.value)
+        output_content.append(register_address >> 8)
+        output_content.append(register_address & 0xFF)
 
         return output_content
 
@@ -93,17 +89,19 @@ class V1Builder:
         register_type: RegisterType,
         start_address: int,
         registers_count: int,
+        serial_number: Optional[str] = None,
     ) -> List[int]:
         """Build payload for multiple registers values reading"""
-        output_content: List[int] = [
-            ProtocolVersion.V1.value,
-            Packet.READ_MULTIPLE_REGISTERS_VALUES.value,
-            register_type.value,
-            start_address >> 8,
-            start_address & 0xFF,
-            registers_count >> 8,
-            registers_count & 0xFF,
-        ]
+        output_content = V1Builder.build_packet_preambule(
+            packet=Packet.READ_MULTIPLE_REGISTERS_VALUES,
+            serial_number=serial_number,
+        )
+
+        output_content.append(register_type.value)
+        output_content.append(start_address >> 8)
+        output_content.append(start_address & 0xFF)
+        output_content.append(registers_count >> 8)
+        output_content.append(registers_count & 0xFF)
 
         return output_content
 
@@ -116,19 +114,14 @@ class V1Builder:
         serial_number: Optional[str] = None,
     ) -> List[int]:
         """Build payload for single register structure reading"""
-        output_content: List[int] = [
-            ProtocolVersion.V1.value,
-            Packet.READ_SINGLE_REGISTER_STRUCTURE.value,
-            register_type.value,
-            register_address >> 8,
-            register_address & 0xFF,
-        ]
+        output_content = V1Builder.build_packet_preambule(
+            packet=Packet.READ_SINGLE_REGISTER_STRUCTURE,
+            serial_number=serial_number,
+        )
 
-        if serial_number is not None:
-            output_content.append(len(serial_number))
-
-            for char in serial_number:
-                output_content.append(ord(char))
+        output_content.append(register_type.value)
+        output_content.append(register_address >> 8)
+        output_content.append(register_address & 0xFF)
 
         return output_content
 
@@ -144,13 +137,14 @@ class V1Builder:
         serial_number: Optional[str] = None,
     ) -> List[int]:
         """Build payload for single register value writing"""
-        output_content: List[int] = [
-            ProtocolVersion.V1.value,
-            Packet.WRITE_SINGLE_REGISTER_VALUE.value,
-            register_type.value,
-            register_address >> 8,
-            register_address & 0xFF,
-        ]
+        output_content = V1Builder.build_packet_preambule(
+            packet=Packet.WRITE_SINGLE_REGISTER_VALUE,
+            serial_number=serial_number,
+        )
+
+        output_content.append(register_type.value)
+        output_content.append(register_address >> 8)
+        output_content.append(register_address & 0xFF)
 
         if (
             register_data_type
@@ -198,6 +192,21 @@ class V1Builder:
 
         else:
             raise BuildPayloadException("Unsupported register data type")
+
+        return output_content
+
+    # -----------------------------------------------------------------------------
+
+    @staticmethod
+    def build_packet_preambule(
+        packet: Packet,
+        serial_number: Optional[str] = None,
+    ) -> List[int]:
+        """Build packet preambule which is same for all packets"""
+        output_content: List[int] = [
+            ProtocolVersion.V1.value,
+            packet.value,
+        ]
 
         if serial_number is not None:
             output_content.append(len(serial_number))
