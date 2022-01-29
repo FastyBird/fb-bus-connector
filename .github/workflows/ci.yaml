@@ -309,8 +309,14 @@ jobs :
 
     strategy :
       matrix :
-        python : [ "3.7" ]
+        python : [ "3.9" ]
+        build-python: ["7", "8", "9", "10"]
         operating-system : [ "ubuntu-latest" ]
+        include:
+          - operating-system: "ubuntu-latest"
+            platform: "linux"
+          - operating-system: "windows-latest"
+            ls: "dir"
 
     steps :
       - name : "Checkout"
@@ -331,14 +337,20 @@ jobs :
         run : |
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install -U twine wheel cibuildwheel
 
-      - name : "Build a binary wheel and a source tarball"
-        uses: "RalfG/python-wheels-manylinux-build@v0.4.2-manylinux2014_x86_64"
-        with :
-          python-versions: "cp37-cp37m cp38-cp38 cp39-cp39"
-          build-requirements: "cython"
-          system-packages: "python-devel"
-          pip-wheel-args: "-w ./dist"
+      - name : "Build a binary wheel"
+        run: "cibuildwheel --output-dir dist"
+        env:
+          PIP: "pip"
+          CIBW_BUILD: "cp3${{ matrix.build-python }}-*"
+          CIBW_SKIP: "*-win32"
+          CIBW_PLATFORM: "${{ matrix.platform || matrix.operating-system }}"
+          CIBW_BEFORE_BUILD: "pip install -U cython"
+          CIBW_MANYLINUX_X86_64_IMAGE: "manylinux2014"
+          CIBW_MANYLINUX_I686_IMAGE: "manylinux2014"
+          CIBW_ARCHS_MACOS: "x86_64 arm64"
+          CIBW_TEST_SKIP: "*-macosx_arm64"  # see https://cibuildwheel.readthedocs.io/en/stable/faq/#universal2
 
       - name : "Upload build result"
         uses : "actions/upload-artifact@v1"
