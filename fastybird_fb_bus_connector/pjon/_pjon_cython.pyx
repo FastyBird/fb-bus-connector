@@ -46,18 +46,6 @@ cdef extern from "PJON.h":
         uint16_t port
         void *custom_pointer
 
-    cdef cppclass _localudp "LocalUDP":
-        void set_port(uint16_t port)
-
-    cdef cppclass _globaludp "GlobalUDP":
-        uint16_t add_node(uint8_t remote_id, const uint8_t remote_ip[], uint16_t port_number)
-        void set_port(uint16_t port)
-        void set_autoregistration(bool_t enabled)
-
-    cdef cppclass _throughserial "ThroughSerial":
-        void set_serial(PJON_SERIAL_TYPE serial_port)
-        void set_baud_rate(uint32_t baud)
-
     cdef cppclass _throughserialasync "ThroughSerialAsync":
         void set_serial(PJON_SERIAL_TYPE serial_port)
         void set_baud_rate(uint32_t baud)
