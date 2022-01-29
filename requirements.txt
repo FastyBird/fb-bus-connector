@@ -1,4 +1,4 @@
-Cython>=0.29
+cython>=0.29
 fastnumbers>=3.2
 fastybird-devices-module>=0.25
 fastybird-metadata>=0.37
