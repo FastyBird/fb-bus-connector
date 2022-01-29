@@ -339,6 +339,7 @@ jobs :
           python-versions: "cp37-cp37m cp38-cp38 cp39-cp39"
           # build-requirements: "cython"
           system-packages: "python-devel"
+          pip-wheel-args: "-w ./dist"
 
       - name : "Upload build result"
         uses : "actions/upload-artifact@v1"
