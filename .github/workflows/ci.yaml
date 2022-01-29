@@ -332,14 +332,11 @@ jobs :
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-      - name : "Add support for multiplatform"
-        uses : "RalfG/python-wheels-manylinux-build@v0.4.2"
+      - name : "Build a binary wheel and a source tarball"
+        uses: "RalfG/python-wheels-manylinux-build@v0.4.2-manylinux2014_x86_64"
         with :
           python-versions: "cp37-cp37m cp38-cp38 cp39-cp39"
-          build-requirements: "cython numpy"
-
-      - name : "Build a binary wheel and a source tarball"
-        run : "python setup.py sdist bdist_wheel"
+          build-requirements: "cython"
 
       - name : "Upload build result"
         uses : "actions/upload-artifact@v1"
