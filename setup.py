@@ -17,9 +17,9 @@
 # Library dependencies
 import codecs
 import re
-from setuptools import setup, find_packages
+from Cython.Distutils import build_ext
+from setuptools import Extension, setup, find_packages
 from os import path
-
 
 this_directory = path.abspath(path.dirname(__file__))
 
@@ -46,6 +46,13 @@ def find_version(*file_paths):
 
 VERSION: str = find_version("fastybird_fb_bus_connector", "__init__.py")
 
+strategies = []
+
+for s in ['TSA']:
+    strategies.extend([
+        '-DPJON_INCLUDE_{}'.format(s),
+        '-D{}_RESPONSE_TIME_OUT=100000'.format(s)
+    ])
 
 setup(
     version=VERSION,
@@ -61,12 +68,14 @@ setup(
     packages=find_packages(),
     package_data={"fastybird_fb_bus_connector": ["py.typed"]},
     install_requires=[
+        "Cython",
         "fastnumbers",
         "fastybird-devices-module",
         "fastybird-metadata",
         "inflection",
         "kink",
         "libscrc",
+        "nose",
         "pjon_cython",
         "setuptools",
         "whistle"
@@ -89,6 +98,28 @@ setup(
         "Topic :: Communications",
         "Topic :: Home Automation",
         "Topic :: System :: Hardware",
+    ],
+    cmdclass={"build_ext": build_ext},
+    ext_modules=[
+        Extension(
+            "fastybird_fb_bus_connector.pjon._pjon_cython",
+            sources=["fastybird_fb_bus_connector/pjon/_pjon_cython.pyx"],
+            language="c++",
+            extra_compile_args=strategies + [
+                '-std=c++11',
+                '-DPJON_INCLUDE_ANY',
+                '-DPJON_INCLUDE_PACKET_ID=true',
+                '-DPJON_INCLUDE_ASYNC_ACK=true',
+                '-DPJON_MAX_PACKETS=100',
+                '-DPJON_PACKET_MAX_LENGTH=1536',
+                '-DLINUX',
+                '-Wno-unneeded-internal-declaration',
+                '-Wno-logical-op-parentheses',
+                '-Wno-unused-variable'],
+            include_dirs=['PJON/src'],
+            compiler_directives={
+                'binding': True,
+                'embedsignature': True
+            }
+        )
     ])
-
-
