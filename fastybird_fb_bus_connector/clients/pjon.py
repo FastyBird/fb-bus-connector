@@ -27,7 +27,7 @@ from typing import Dict, List, Optional, Union
 from kink import inject
 
 # Library libs
-import fastybird_fb_bus_connector.pjon as pjon
+import fastybird_fb_bus_connector.pjon as pjon  # pylint: disable=consider-using-from-import
 from fastybird_fb_bus_connector.clients.base import IClient
 from fastybird_fb_bus_connector.logger import Logger
 from fastybird_fb_bus_connector.receivers.receiver import Receiver
@@ -35,7 +35,7 @@ from fastybird_fb_bus_connector.types import Packet, PacketContent, ProtocolVers
 
 
 @inject(alias=IClient)
-class PjonClient(IClient, pjon.ThroughSerialAsync):  # pylint: disable=no-member
+class PjonClient(IClient, pjon.ThroughSerialAsync):  # type: ignore[name-defined]  # pylint: disable=no-member
     """
     PJON client
 
@@ -67,7 +67,7 @@ class PjonClient(IClient, pjon.ThroughSerialAsync):  # pylint: disable=no-member
         receiver: Receiver,
         logger: Union[Logger, logging.Logger] = logging.getLogger("dummy"),
     ) -> None:
-        pjon.ThroughSerialAsync.__init__(  # pylint: disable=no-member
+        pjon.ThroughSerialAsync.__init__(  # type: ignore[attr-defined]  # pylint: disable=no-member
             self,
             client_address if client_address is not None else self.__MASTER_ADDRESS,
             (client_interface if client_interface is not None else self.__SERIAL_INTERFACE).encode("utf-8"),
@@ -94,7 +94,11 @@ class PjonClient(IClient, pjon.ThroughSerialAsync):  # pylint: disable=no-member
 
     def broadcast_packet(self, payload: List[int], waiting_time: float = 0.0) -> bool:
         """Broadcast packet to all devices"""
-        return self.send_packet(pjon.PJON_BROADCAST, payload, waiting_time)  # pylint: disable=no-member
+        return self.send_packet(
+            pjon.PJON_BROADCAST,  # type: ignore[attr-defined]  # pylint: disable=no-member
+            payload,
+            waiting_time,
+        )
 
     # -----------------------------------------------------------------------------
 
@@ -134,7 +138,7 @@ class PjonClient(IClient, pjon.ThroughSerialAsync):  # pylint: disable=no-member
         #
         #     return False
 
-        if address == pjon.PJON_BROADCAST:  # pylint: disable=no-member
+        if address == pjon.PJON_BROADCAST:  # type: ignore[attr-defined]  # pylint: disable=no-member
             self.__logger.debug(
                 "Successfully sent broadcast packet: %s",
                 payload[1],
@@ -164,7 +168,7 @@ class PjonClient(IClient, pjon.ThroughSerialAsync):  # pylint: disable=no-member
             while (time.time() - current_time) <= waiting_time:
                 _, send_packet_result = self.loop()
 
-                if send_packet_result == pjon.PJON_ACK:  # pylint: disable=no-member
+                if send_packet_result == pjon.PJON_ACK:  # type: ignore[attr-defined]  # pylint: disable=no-member
                     return True
 
             return False
@@ -180,13 +184,13 @@ class PjonClient(IClient, pjon.ThroughSerialAsync):  # pylint: disable=no-member
 
             return int(result[0])
 
-        except pjon.PJON_Connection_Lost:  # pylint: disable=no-member
+        except pjon.PJON_Connection_Lost:  # type: ignore[attr-defined]  # pylint: disable=no-member
             self.__logger.warning("Connection with device was lost")
 
-        except pjon.PJON_Packets_Buffer_Full:  # pylint: disable=no-member
+        except pjon.PJON_Packets_Buffer_Full:  # type: ignore[attr-defined]  # pylint: disable=no-member
             self.__logger.warning("Buffer is full")
 
-        except pjon.PJON_Content_Too_Long:  # pylint: disable=no-member
+        except pjon.PJON_Content_Too_Long:  # type: ignore[attr-defined]  # pylint: disable=no-member
             self.__logger.warning("Content is long")
 
         return 0

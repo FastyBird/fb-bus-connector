@@ -18,6 +18,6 @@
 FastyBird BUS connector PJON integration module
 """
 
-from ._pjon_cython import *
+from ._pjon_cython import *  # type: ignore[import]  # pylint: disable=import-error
 
-__all__ = ["ThroughSerialAsync"]
+__all__ = ["ThroughSerialAsync"]  # pylint: disable=undefined-all-variable
