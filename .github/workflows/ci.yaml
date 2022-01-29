@@ -403,7 +403,7 @@ jobs :
           python-version : ${{ matrix.python }}
 
       - name : "Install source tarball"
-        run : "pip install dist/fastybird-shelly-connector-*.tar.gz"
+        run : "pip install dist/fastybird-fb-bus-connector-*.tar.gz"
 
   publish-on-testpypi :
     name : "Publish Python distribution on Test PyPI"
