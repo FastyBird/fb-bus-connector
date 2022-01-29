@@ -19,10 +19,52 @@ FastyBird BUS connector pairing module proxy
 """
 
 # Python base dependencies
+from abc import ABC, abstractmethod
 from typing import List
 
 # Library libs
-from fastybird_fb_bus_connector.pairing.base import IPairing
+from fastybird_fb_bus_connector.types import ProtocolVersion
+
+
+class IPairing(ABC):  # pylint: disable=too-few-public-methods
+    """
+    BUS pairing handler interface
+
+    @package        FastyBird:FbBusConnector!
+    @module         pairing/base
+
+    @author         Adam Kadlec <adam.kadlec@fastybird.com>
+    """
+
+    # -----------------------------------------------------------------------------
+
+    @abstractmethod
+    def handle(self) -> None:
+        """Handle pairing messages"""
+
+    # -----------------------------------------------------------------------------
+
+    @abstractmethod
+    def is_enabled(self) -> bool:
+        """Check if any paring handler is enabled"""
+
+    # -----------------------------------------------------------------------------
+
+    @abstractmethod
+    def enable(self) -> None:
+        """Enable devices pairing"""
+
+    # -----------------------------------------------------------------------------
+
+    @abstractmethod
+    def disable(self) -> None:
+        """Disable devices pairing"""
+
+    # -----------------------------------------------------------------------------
+
+    @abstractmethod
+    def version(self) -> ProtocolVersion:
+        """Pairing supported protocol version"""
 
 
 class Pairing:  # pylint: disable=too-few-public-methods

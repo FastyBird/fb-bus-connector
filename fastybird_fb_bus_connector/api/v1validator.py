@@ -32,8 +32,8 @@ class V1Validator:
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
 
-    @property
-    def version(self) -> ProtocolVersion:
+    @staticmethod
+    def version() -> ProtocolVersion:
         """Validator protocol version number"""
         return ProtocolVersion.V1
 
@@ -46,7 +46,9 @@ class V1Validator:
             return False
 
         if (
-            V1Validator.validate_read_single_register_value(payload=payload)  # pylint: disable=too-many-boolean-expressions
+            V1Validator.validate_read_single_register_value(  # pylint: disable=too-many-boolean-expressions
+                payload=payload
+            )
             or V1Validator.validate_read_multiple_registers_values(payload=payload)
             or V1Validator.validate_write_single_register_value(payload=payload)
             or V1Validator.validate_write_multiple_registers_values(payload=payload)

@@ -34,7 +34,7 @@ from fastybird_fb_bus_connector.api.v1builder import V1Builder
 from fastybird_fb_bus_connector.clients.client import Client
 from fastybird_fb_bus_connector.exceptions import BuildPayloadException
 from fastybird_fb_bus_connector.logger import Logger
-from fastybird_fb_bus_connector.pairing.base import IPairing
+from fastybird_fb_bus_connector.pairing.pairing import IPairing
 from fastybird_fb_bus_connector.registry.model import DevicesRegistry, RegistersRegistry
 from fastybird_fb_bus_connector.registry.records import (
     DiscoveredAttributeRegisterRecord,

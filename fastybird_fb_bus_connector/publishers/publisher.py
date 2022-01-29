@@ -19,11 +19,39 @@ FastyBird BUS connector publishers module proxy
 """
 
 # Python base dependencies
+from abc import ABC, abstractmethod
 from typing import List, Set
 
 # Library libs
-from fastybird_fb_bus_connector.publishers.base import IPublisher
 from fastybird_fb_bus_connector.registry.model import DevicesRegistry
+from fastybird_fb_bus_connector.registry.records import DeviceRecord
+from fastybird_fb_bus_connector.types import ProtocolVersion
+
+
+class IPublisher(ABC):  # pylint: disable=too-few-public-methods
+    """
+    BUS base publisher
+
+    @package        FastyBird:FbBusConnector!
+    @module         publishers
+
+    @author         Adam Kadlec <adam.kadlec@fastybird.com>
+    """
+
+    # -----------------------------------------------------------------------------
+
+    @abstractmethod
+    def handle(
+        self,
+        device: DeviceRecord,
+    ) -> bool:
+        """Handle publish read or write message to device"""
+
+    # -----------------------------------------------------------------------------
+
+    @abstractmethod
+    def version(self) -> ProtocolVersion:
+        """Pairing supported protocol version"""
 
 
 class Publisher:  # pylint: disable=too-few-public-methods

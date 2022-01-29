@@ -33,7 +33,7 @@ from fastybird_fb_bus_connector.api.v1builder import V1Builder
 from fastybird_fb_bus_connector.clients.client import Client
 from fastybird_fb_bus_connector.exceptions import BuildPayloadException
 from fastybird_fb_bus_connector.logger import Logger
-from fastybird_fb_bus_connector.publishers.base import IPublisher
+from fastybird_fb_bus_connector.publishers.publisher import IPublisher
 from fastybird_fb_bus_connector.registry.model import DevicesRegistry, RegistersRegistry
 from fastybird_fb_bus_connector.registry.records import DeviceRecord, RegisterRecord
 from fastybird_fb_bus_connector.types import (

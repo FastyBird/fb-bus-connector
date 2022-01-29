@@ -38,10 +38,12 @@ from fastybird_fb_bus_connector.pairing.apiv1 import ApiV1Pairing
 from fastybird_fb_bus_connector.pairing.pairing import Pairing
 from fastybird_fb_bus_connector.publishers.apiv1 import ApiV1Publisher
 from fastybird_fb_bus_connector.publishers.publisher import Publisher
-from fastybird_fb_bus_connector.receivers.device import DeviceItemReceiver
-from fastybird_fb_bus_connector.receivers.pairing import PairingReceiver
+from fastybird_fb_bus_connector.receivers.device import (
+    DeviceItemReceiver,
+    DiscoverReceiver,
+    RegisterItemReceiver,
+)
 from fastybird_fb_bus_connector.receivers.receiver import Receiver
-from fastybird_fb_bus_connector.receivers.registers import RegisterItemReceiver
 from fastybird_fb_bus_connector.registry.model import DevicesRegistry, RegistersRegistry
 
 
@@ -107,16 +109,16 @@ def create_connector(
     di["fb-bus-connector_registers-receiver"] = di[RegisterItemReceiver]
 
     di[DeviceItemReceiver] = DeviceItemReceiver(devices_registry=di[DevicesRegistry], logger=connector_logger)
-    di["fb-bus-connector_device-receiver"] = di[PairingReceiver]
+    di["fb-bus-connector_device-receiver"] = di[DeviceItemReceiver]
 
-    di[PairingReceiver] = PairingReceiver(device_pairing=di[ApiV1Pairing])
-    di["fb-bus-connector_pairing-receiver"] = di[PairingReceiver]
+    di[DiscoverReceiver] = DiscoverReceiver(device_pairing=di[ApiV1Pairing])
+    di["fb-bus-connector_discovery-receiver"] = di[DiscoverReceiver]
 
     di[Receiver] = Receiver(
         receivers=[
-            di[RegisterItemReceiver],
             di[DeviceItemReceiver],
-            di[PairingReceiver],
+            di[RegisterItemReceiver],
+            di[DiscoverReceiver],
         ],
         parser=di[V1Parser],
         logger=connector_logger,

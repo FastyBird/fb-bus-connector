@@ -20,6 +20,7 @@ FastyBird BUS connector receivers module proxy
 
 # Python base dependencies
 import logging
+from abc import ABC, abstractmethod
 from queue import Full as QueueFull
 from queue import Queue
 from typing import List, Optional, Set, Union
@@ -32,9 +33,25 @@ from fastybird_fb_bus_connector.exceptions import (
     ParsePayloadException,
 )
 from fastybird_fb_bus_connector.logger import Logger
-from fastybird_fb_bus_connector.receivers.base import IReceiver
 from fastybird_fb_bus_connector.receivers.entities import BaseEntity
 from fastybird_fb_bus_connector.types import ProtocolVersion
+
+
+class IReceiver(ABC):  # pylint: disable=too-few-public-methods
+    """
+    BUS messages receiver interface
+
+    @package        FastyBird:FbBusConnector!
+    @module         receivers
+
+    @author         Adam Kadlec <adam.kadlec@fastybird.com>
+    """
+
+    # -----------------------------------------------------------------------------
+
+    @abstractmethod
+    def receive(self, entity: BaseEntity) -> None:
+        """Handle received entity"""
 
 
 class Receiver:
@@ -117,10 +134,10 @@ class Receiver:
         protocol_version: ProtocolVersion,
     ) -> None:
         """Handle received message"""
-        if V1Validator.version == protocol_version and V1Validator.validate_version(payload=payload) is False:
+        if V1Validator.version() == protocol_version and V1Validator.validate_version(payload=payload) is False:
             return
 
-        if V1Validator.version == protocol_version and V1Validator.validate(payload=payload) is False:
+        if V1Validator.version() == protocol_version and V1Validator.validate(payload=payload) is False:
             self.__logger.warning(
                 "Received message is not valid FIB v%s convention message: %s",
                 protocol_version.value,
@@ -130,7 +147,7 @@ class Receiver:
             return
 
         try:
-            if V1Validator.version == protocol_version:
+            if V1Validator.version() == protocol_version:
                 self.append(
                     entity=self.__parser.parse_message(
                         payload=payload,
