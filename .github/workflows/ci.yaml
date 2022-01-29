@@ -387,8 +387,9 @@ jobs :
 
     strategy :
       matrix :
-        python : [ "3.7", "3.8", "3.9", "3.10" ]
+        python : [ "7", "8", "9", "10" ]
         operating-system : [ "ubuntu-latest" ]
+        installable : [ "wheel", "sdist" ]
 
     steps :
       - name : "Download build result"
@@ -400,9 +401,14 @@ jobs :
       - name : "Set up Python ${{ matrix.python }}"
         uses : "actions/setup-python@v1"
         with :
-          python-version : ${{ matrix.python }}
+          python-version : "3.${{ matrix.python }}"
+
+      - name : "Install wheel"
+        if : matrix.installable == 'wheel'
+        run : "pip install dist/fastybird_fb_bus_connector-*-cp3${{ matrix.python }}-cp3${{ matrix.python }}-manylinux_2_17_x86_64.manylinux2014_x86_64.whl"
 
       - name : "Install source tarball"
+        if : matrix.installable == 'sdist'
         run : "pip install dist/fastybird-fb-bus-connector-*.tar.gz"
 
   publish-on-testpypi :
