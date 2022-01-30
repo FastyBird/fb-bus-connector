@@ -146,9 +146,9 @@ def create_connector(
         event_dispatcher=di[EventDispatcher],
         logger=connector_logger,
     )
-    di["shelly-connector_clients-proxy"] = di[EventsListener]
+    di["fb-bus-connector_events-listener"] = di[EventsListener]
 
-    # Plugin main connector service
+    # Main connector service
     connector_service = FbBusConnector(  # type: ignore[call-arg]
         connector_id=connector.id,
         receiver=di[Receiver],

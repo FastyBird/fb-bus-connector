@@ -31,7 +31,7 @@ from fastybird_fb_bus_connector.types import ProtocolVersion
 
 class Client:
     """
-    Plugin client proxy
+    Clients proxy
 
     @package        FastyBird:FbBusConnector!
     @module         clients/client

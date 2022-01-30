@@ -15,7 +15,7 @@
 #     limitations under the License.
 
 """
-FastyBird BUS connector plugin exceptions
+FastyBird BUS connector exceptions
 """
 
 

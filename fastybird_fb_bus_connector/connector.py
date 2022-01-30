@@ -205,7 +205,7 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
     # -----------------------------------------------------------------------------
 
     def initialize_device_property(self, device_property: DevicePropertyEntity) -> None:
-        """Initialize device property in connector registry"""
+        """Initialize device property aka attribute register in connector registry"""
         if isinstance(device_property, DeviceDynamicPropertyEntity):
             match = re.compile("(?P<name>[a-zA-Z_]+)_(?P<address>[0-9]+)")
 
@@ -258,7 +258,7 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
     # -----------------------------------------------------------------------------
 
     def remove_device_property(self, property_id: uuid.UUID) -> None:
-        """Remove device from connector registry"""
+        """Remove device property from connector registry"""
         self.__registers_registry.remove(register_id=property_id)
 
     # -----------------------------------------------------------------------------
@@ -270,7 +270,7 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
     # -----------------------------------------------------------------------------
 
     def initialize_device_channel(self, channel: ChannelEntity) -> None:
-        """Initialize device channel aka shelly device block in connector registry"""
+        """Initialize device channel aka registers group in connector registry"""
         for channel_property in channel.properties:
             self.initialize_device_channel_property(channel_property=channel_property)
 
@@ -288,7 +288,7 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
     # -----------------------------------------------------------------------------
 
     def initialize_device_channel_property(self, channel_property: ChannelPropertyEntity) -> None:
-        """Initialize device channel property aka shelly device sensor|state in connector registry"""
+        """Initialize device channel property aka input or output register in connector registry"""
         if not isinstance(channel_property, ChannelDynamicPropertyEntity):
             return
 

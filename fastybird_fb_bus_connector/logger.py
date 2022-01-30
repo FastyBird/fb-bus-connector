@@ -29,7 +29,7 @@ from fastybird_fb_bus_connector.types import CONNECTOR_NAME
 
 class Logger:
     """
-    Plugin logger
+    Connector logger
 
     @package        FastyBird:FbBusConnector!
     @module         logger

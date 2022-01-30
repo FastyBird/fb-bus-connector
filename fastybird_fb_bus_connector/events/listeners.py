@@ -80,7 +80,7 @@ from fastybird_fb_bus_connector.registry.records import (
 )
 class EventsListener:  # pylint: disable=too-many-instance-attributes
     """
-    Plugin events listener
+    Events listener
 
     @package        FastyBird:FbBusConnector!
     @module         events/listeners
