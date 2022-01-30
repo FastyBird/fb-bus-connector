@@ -380,47 +380,6 @@ jobs :
       - name : "Run code check"
         run : "make python_qa"
 
-  python-tests :
-    name : "Tests for Python code"
-    runs-on : "${{ matrix.operating-system }}"
-    needs : [ "python-qa" ]
-
-    strategy :
-      matrix :
-        python : [ "3.9" ]
-        operating-system : [ "ubuntu-latest" ]
-
-    steps :
-      - name : "Checkout"
-        uses : "actions/checkout@v2"
-
-      - name : "Setup MySQL"
-        uses : "mirromutth/mysql-action@v1.1"
-        with :
-          mysql version : "5.7"
-          mysql database : "testdb"
-          mysql root password : "root"
-
-      - name : "Wait for MySQL"
-        run : |
-          while ! mysqladmin ping --host=127.0.0.1 --password=root --silent; do
-            sleep 1
-          done
-
-      - name : "Set up Python ${{ matrix.python }}"
-        uses : "actions/setup-python@v1"
-        with :
-          python-version : ${{ matrix.python }}
-
-      - name : "Install dependencies"
-        run : |
-          python -m pip install --upgrade pip
-          pip install mysqlclient
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-
-      - name : "Run tests"
-        run : "make python_tests"
-
   test-install-python :
     name : "Test installation of Python distribution"
     runs-on : "${{ matrix.operating-system }}"

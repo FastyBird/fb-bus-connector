@@ -102,7 +102,7 @@ setup(
     ext_modules=[
         Extension(
             "fastybird_fb_bus_connector.pjon._pjon_cython",
-            sources=["fastybird_fb_bus_connector/pjon/_pjon_cython.pyx"],
+            sources=["fastybird_fb_bus_connector/pjon/_pjon.pyx"],
             language="c++",
             extra_compile_args=strategies + [
                 '-std=c++11',
