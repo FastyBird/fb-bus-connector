@@ -101,7 +101,7 @@ setup(
     cmdclass={"build_ext": build_ext},
     ext_modules=[
         Extension(
-            "fastybird_fb_bus_connector.pjon._pjon_cython",
+            "fastybird_fb_bus_connector.pjon._pjon",
             sources=["fastybird_fb_bus_connector/pjon/_pjon.pyx"],
             language="c++",
             extra_compile_args=strategies + [
