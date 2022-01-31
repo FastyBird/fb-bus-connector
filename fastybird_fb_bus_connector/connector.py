@@ -48,7 +48,12 @@ from fastybird_metadata.devices_module import (
     HardwareManufacturer,
 )
 from fastybird_metadata.helpers import normalize_value
-from fastybird_metadata.types import ButtonPayload, DataType, SwitchPayload, ControlAction
+from fastybird_metadata.types import (
+    ButtonPayload,
+    ControlAction,
+    DataType,
+    SwitchPayload,
+)
 from kink import inject
 
 # Library libs
@@ -60,11 +65,8 @@ from fastybird_fb_bus_connector.pairing.pairing import Pairing
 from fastybird_fb_bus_connector.publishers.publisher import Publisher
 from fastybird_fb_bus_connector.receivers.receiver import Receiver
 from fastybird_fb_bus_connector.registry.model import DevicesRegistry, RegistersRegistry
-from fastybird_fb_bus_connector.types import (
-    ControlAction as ConnectorControlAction,
-    ProtocolVersion,
-    RegisterAttribute,
-)
+from fastybird_fb_bus_connector.types import ControlAction as ConnectorControlAction
+from fastybird_fb_bus_connector.types import ProtocolVersion, RegisterAttribute
 
 
 @inject(alias=IConnector)
@@ -235,9 +237,8 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
             ):
                 register_address = channel_property.value
 
-            if (
-                channel_property.identifier == RegisterAttribute.STATE.value
-                and isinstance(channel_property, ChannelDynamicPropertyEntity)
+            if channel_property.identifier == RegisterAttribute.STATE.value and isinstance(
+                channel_property, ChannelDynamicPropertyEntity
             ):
                 register_data_type = channel_property.data_type
                 register_settable = channel_property.settable
