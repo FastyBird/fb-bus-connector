@@ -20,6 +20,7 @@ FastyBird BUS connector module
 
 # Python base dependencies
 import logging
+import re
 import uuid
 from datetime import datetime
 from typing import Dict, Optional, Union
@@ -225,8 +226,10 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
 
     def initialize_device_channel(self, channel: ChannelEntity) -> None:
         """Initialize device channel aka registers group in connector registry"""
+        register_id: Optional[uuid.UUID] = None
         register_address: Optional[int] = None
         register_data_type: Optional[DataType] = None
+        register_queryable: bool = False
         register_settable: bool = False
 
         for channel_property in channel.properties:
@@ -240,10 +243,12 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
             if channel_property.identifier == RegisterAttribute.STATE.value and isinstance(
                 channel_property, ChannelDynamicPropertyEntity
             ):
+                register_id = channel_property.id
                 register_data_type = channel_property.data_type
+                register_queryable = channel_property.queryable
                 register_settable = channel_property.settable
 
-        if register_address is None or register_data_type is None:
+        if register_id is None or register_address is None or register_data_type is None:
             self.__logger.warning(
                 "Channel does not have expected properties and can't be mapped to register",
                 extra={
@@ -258,21 +263,50 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
 
             return
 
-        if register_settable:
-            self.__registers_registry.append_output_register(
+        match = re.compile("(?P<name>[a-zA-Z_]+)_(?P<address>[0-9]+)")
+
+        parsed_channel_identifier = match.fullmatch(channel.identifier)
+
+        if parsed_channel_identifier is None:
+            self.__registers_registry.append_attribute_register(
                 device_id=channel.device.id,
-                register_id=channel.id,
+                register_id=register_id,
                 register_address=register_address,
                 register_data_type=register_data_type,
+                register_name=channel.identifier,
+                register_settable=register_settable,
+                register_queryable=register_queryable,
             )
 
         else:
-            self.__registers_registry.append_input_register(
-                device_id=channel.device.id,
-                register_id=channel.id,
-                register_address=register_address,
-                register_data_type=register_data_type,
-            )
+            if parsed_channel_identifier.group("name") == "output":
+                self.__registers_registry.append_output_register(
+                    device_id=channel.device.id,
+                    register_id=register_id,
+                    register_address=register_address,
+                    register_data_type=register_data_type,
+                )
+
+            elif parsed_channel_identifier.group("name") == "input":
+                self.__registers_registry.append_input_register(
+                    device_id=channel.device.id,
+                    register_id=register_id,
+                    register_address=register_address,
+                    register_data_type=register_data_type,
+                )
+
+            else:
+                self.__logger.warning(
+                    "Channel identifier is not as expected. Register couldn't be mapped",
+                    extra={
+                        "device": {
+                            "id": channel.device.id.__str__(),
+                        },
+                        "channel": {
+                            "id": channel.device.id.__str__(),
+                        },
+                    },
+                )
 
     # -----------------------------------------------------------------------------
 

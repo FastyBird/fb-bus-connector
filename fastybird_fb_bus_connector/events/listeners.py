@@ -269,7 +269,6 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
                 self.__channels_manager.delete(channel=channel)
 
             channel_data = {
-                "id": event.record.id,
                 "device_id": event.record.device_id,
                 "identifier": channel_identifier,
             }
@@ -306,7 +305,6 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
                 self.__channels_manager.delete(channel=channel)
 
             channel_data = {
-                "id": event.record.id,
                 "device_id": event.record.device_id,
                 "identifier": event.record.name,
             }
@@ -397,6 +395,7 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
             )
 
         property_data = {
+            "id": register.id,
             "identifier": RegisterAttribute.STATE.value,  # f"register_{(register.address + 1):02}",
             "data_type": register.data_type,
             "format": None,
@@ -467,8 +466,8 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
             "format": register.format,
             "unit": None,
             "invalid": None,
-            "queryable": register.queryable,
-            "settable": register.settable,
+            "queryable": False,
+            "settable": False,
             "value": register.actual_value,
         }
 
@@ -487,10 +486,7 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
                 "Creating new device property",
                 extra={
                     "device": {
-                        "id": device_property.channel.device.id.__str__(),
-                    },
-                    "channel": {
-                        "id": device_property.channel.id.__str__(),
+                        "id": device_property.device.id.__str__(),
                     },
                     "property": {
                         "id": device_property.id.__str__(),
@@ -508,10 +504,7 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
                 "Updating existing device property",
                 extra={
                     "device": {
-                        "id": device_property.channel.device.id.__str__(),
-                    },
-                    "channel": {
-                        "id": device_property.channel.id.__str__(),
+                        "id": device_property.device.id.__str__(),
                     },
                     "property": {
                         "id": device_property.id.__str__(),
