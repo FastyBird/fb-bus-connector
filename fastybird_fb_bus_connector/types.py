@@ -357,6 +357,26 @@ class DeviceAttribute(ExtendedEnum, Enum):
 
 
 @unique
+class RegisterAttribute(ExtendedEnum, Enum):
+    """
+    Known register attribute name
+
+    @package        FastyBird:FbBusConnector!
+    @module         types
+
+    @author         Adam Kadlec <adam.kadlec@fastybird.com>
+    """
+
+    STATE: str = "state"
+    ADDRESS: str = "addr"
+
+    # -----------------------------------------------------------------------------
+
+    def __hash__(self) -> int:
+        return hash(self._name_)  # pylint: disable=no-member
+
+
+@unique
 class ControlAction(ExtendedEnum, Enum):
     """
     Connector control action

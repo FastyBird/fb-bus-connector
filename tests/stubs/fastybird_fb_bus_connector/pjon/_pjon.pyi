@@ -1,0 +1,26 @@
+from typing import Tuple
+
+PJON_BROADCAST: int
+PJON_ACK: int
+PJON_BUSY: int
+PJON_FAIL: int
+
+
+class ThroughSerialAsync(object):
+    def __init__(self, address: int, interface: bytes, baud_rate: int) -> None: ...
+
+    def set_synchronous_acknowledge(self, state: bool) -> None: ...
+
+    def set_asynchronous_acknowledge(self, state: bool) -> None: ...
+
+    def send(self, address: int, payload: bytes) -> None: ...
+
+    def loop(self) -> Tuple[int, int]: ...
+
+class PJON_Connection_Lost(BaseException): ...
+
+
+class PJON_Packets_Buffer_Full(BaseException): ...
+
+
+class PJON_Content_Too_Long(BaseException): ...

@@ -35,7 +35,7 @@ from fastybird_fb_bus_connector.types import Packet, PacketContent, ProtocolVers
 
 
 @inject(alias=IClient)
-class PjonClient(IClient, pjon.ThroughSerialAsync):  # type: ignore[name-defined]  # pylint: disable=no-member
+class PjonClient(IClient, pjon.ThroughSerialAsync):  # pylint: disable=no-member
     """
     PJON client
 
@@ -67,7 +67,7 @@ class PjonClient(IClient, pjon.ThroughSerialAsync):  # type: ignore[name-defined
         receiver: Receiver,
         logger: Union[Logger, logging.Logger] = logging.getLogger("dummy"),
     ) -> None:
-        pjon.ThroughSerialAsync.__init__(  # type: ignore[attr-defined]  # pylint: disable=no-member
+        pjon.ThroughSerialAsync.__init__(  # pylint: disable=no-member
             self,
             client_address if client_address is not None else self.__MASTER_ADDRESS,
             (client_interface if client_interface is not None else self.__SERIAL_INTERFACE).encode("utf-8"),
@@ -95,7 +95,7 @@ class PjonClient(IClient, pjon.ThroughSerialAsync):  # type: ignore[name-defined
     def broadcast_packet(self, payload: List[int], waiting_time: float = 0.0) -> bool:
         """Broadcast packet to all devices"""
         return self.send_packet(
-            pjon.PJON_BROADCAST,  # type: ignore[attr-defined]  # pylint: disable=no-member
+            pjon.PJON_BROADCAST,  # pylint: disable=no-member
             payload,
             waiting_time,
         )
@@ -104,11 +104,6 @@ class PjonClient(IClient, pjon.ThroughSerialAsync):  # type: ignore[name-defined
 
     def send_packet(self, address: int, payload: List[int], waiting_time: float = 0.0) -> bool:
         """Send packet to specific device address"""
-        crc16 = self.__crc16(bytes(payload))
-
-        payload.append(crc16 >> 8)
-        payload.append(crc16 & 0xFF)
-
         # Be sure to set the null terminator!!!
         payload.append(PacketContent.TERMINATOR.value)
 
@@ -138,7 +133,7 @@ class PjonClient(IClient, pjon.ThroughSerialAsync):  # type: ignore[name-defined
         #
         #     return False
 
-        if address == pjon.PJON_BROADCAST:  # type: ignore[attr-defined]  # pylint: disable=no-member
+        if address == pjon.PJON_BROADCAST:  # pylint: disable=no-member
             self.__logger.debug(
                 "Successfully sent broadcast packet: %s",
                 payload[1],
@@ -168,7 +163,7 @@ class PjonClient(IClient, pjon.ThroughSerialAsync):  # type: ignore[name-defined
             while (time.time() - current_time) <= waiting_time:
                 _, send_packet_result = self.loop()
 
-                if send_packet_result == pjon.PJON_ACK:  # type: ignore[attr-defined]  # pylint: disable=no-member
+                if send_packet_result == pjon.PJON_ACK:  # pylint: disable=no-member
                     return True
 
             return False
@@ -184,13 +179,13 @@ class PjonClient(IClient, pjon.ThroughSerialAsync):  # type: ignore[name-defined
 
             return int(result[0])
 
-        except pjon.PJON_Connection_Lost:  # type: ignore[attr-defined]  # pylint: disable=no-member
+        except pjon.PJON_Connection_Lost:  # pylint: disable=no-member
             self.__logger.warning("Connection with device was lost")
 
-        except pjon.PJON_Packets_Buffer_Full:  # type: ignore[attr-defined]  # pylint: disable=no-member
+        except pjon.PJON_Packets_Buffer_Full:  # pylint: disable=no-member
             self.__logger.warning("Buffer is full")
 
-        except pjon.PJON_Content_Too_Long:  # type: ignore[attr-defined]  # pylint: disable=no-member
+        except pjon.PJON_Content_Too_Long:  # pylint: disable=no-member
             self.__logger.warning("Content is long")
 
         return 0
@@ -238,20 +233,12 @@ class PjonClient(IClient, pjon.ThroughSerialAsync):  # type: ignore[name-defined
 
             return
 
-        calculated_crc = self.__crc16(bytes(raw_payload[0 : (length - 3)]))
-        in_packet_crc = (int(raw_payload[length - 3]) << 8) | int(raw_payload[length - 2])
-
-        if calculated_crc != in_packet_crc:
-            self.__logger.warning("Invalid CRC check: %d vs %d", calculated_crc, in_packet_crc)
-
-            return
-
         if raw_payload[-1] != PacketContent.TERMINATOR.value:
             self.__logger.warning("Missing packet terminator")
 
             return
 
-        payload = raw_payload[0 : (length - 3)]
+        payload = raw_payload[0 : (length - 1)]
 
         # Get packet identifier from payload
         packet_id = Packet(int(payload[1]))
@@ -268,29 +255,3 @@ class PjonClient(IClient, pjon.ThroughSerialAsync):  # type: ignore[name-defined
             address=sender_address,
             protocol_version=self.version,
         )
-
-    # -----------------------------------------------------------------------------
-
-    @staticmethod
-    def __crc16(calculate_data: bytes, poly: int = 0x8408) -> int:
-        """CRC-16-CCITT Algorithm"""
-        data = bytearray(calculate_data)
-
-        crc = 0xFFFF
-
-        for byte in data:
-            cur_byte = 0xFF & byte
-
-            for _ in range(0, 8):
-                if (crc & 0x0001) ^ (cur_byte & 0x0001):
-                    crc = (crc >> 1) ^ poly
-
-                else:
-                    crc >>= 1
-
-                cur_byte >>= 1
-
-        crc = ~crc & 0xFFFF
-        crc = (crc << 8) | ((crc >> 8) & 0xFF)
-
-        return crc & 0xFFFF

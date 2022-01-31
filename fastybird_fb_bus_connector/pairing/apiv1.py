@@ -979,6 +979,4 @@ class ApiV1Pairing(IPairing):  # pylint: disable=too-many-instance-attributes
         # Update device state
         device_record = self.__devices_registry.set_state(device=device_record, state=ConnectionState.UNKNOWN)
         # Update lact packet sent status
-        device_record = self.__devices_registry.set_last_packet_timestamp(
-            device=device_record, last_packet_timestamp=time.time()
-        )
+        self.__devices_registry.set_last_packet_timestamp(device=device_record, last_packet_timestamp=time.time())
