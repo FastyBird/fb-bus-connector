@@ -335,50 +335,50 @@ class ValueTransformHelpers:
 
         if data_type == DataType.BUTTON:
             if value == ButtonPayload.PRESSED:
-                transformed_value = ButtonPayloadType.PRESS
+                btn_value = ButtonPayloadType.PRESS
 
             elif value == ButtonPayload.RELEASED:
-                transformed_value = ButtonPayloadType.RELEASE
+                btn_value = ButtonPayloadType.RELEASE
 
             elif value == ButtonPayload.CLICKED:
-                transformed_value = ButtonPayloadType.CLICK
+                btn_value = ButtonPayloadType.CLICK
 
             elif value == ButtonPayload.DOUBLE_CLICKED:
-                transformed_value = ButtonPayloadType.DOUBLE_CLICK
+                btn_value = ButtonPayloadType.DOUBLE_CLICK
 
             elif value == ButtonPayload.TRIPLE_CLICKED:
-                transformed_value = ButtonPayloadType.TRIPLE_CLICK
+                btn_value = ButtonPayloadType.TRIPLE_CLICK
 
             elif value == ButtonPayload.LONG_CLICKED:
-                transformed_value = ButtonPayloadType.LONG_CLICK
+                btn_value = ButtonPayloadType.LONG_CLICK
 
             elif value == ButtonPayload.EXTRA_LONG_CLICKED:
-                transformed_value = ButtonPayloadType.LONG_LONG_CLICK
+                btn_value = ButtonPayloadType.LONG_LONG_CLICK
 
             else:
                 return None
 
             return struct.pack(  # pylint: disable=no-member
                 "<I",
-                transformed_value.value,
+                btn_value.value,
             )
 
         if data_type == DataType.SWITCH:
             if value == SwitchPayload.ON:
-                transformed_value = SwitchPayloadType.ON
+                switch_value = SwitchPayloadType.ON
 
             elif value == SwitchPayload.OFF:
-                transformed_value = SwitchPayloadType.OFF
+                switch_value = SwitchPayloadType.OFF
 
             elif value == SwitchPayload.TOGGLE:
-                transformed_value = SwitchPayloadType.TOGGLE
+                switch_value = SwitchPayloadType.TOGGLE
 
             else:
                 return None
 
             return struct.pack(  # pylint: disable=no-member
                 "<I",
-                transformed_value.value,
+                switch_value.value,
             )
 
         if data_type == DataType.STRING:
