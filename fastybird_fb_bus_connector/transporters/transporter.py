@@ -19,19 +19,13 @@ FastyBird BUS connector transporters module proxy
 """
 
 # Python base dependencies
-import logging
-from typing import List, Set, Union
-
-from fastybird_fb_bus_connector.logger import Logger
-
-# Library libs
-from fastybird_fb_bus_connector.transporters.base import ITransporter
-from fastybird_fb_bus_connector.transporters.pjon import PjonTransporter
+from abc import ABC, abstractmethod
+from typing import List
 
 
-class Transporter:
+class ITransporter(ABC):
     """
-    Transporters proxy
+    Transporter interface
 
     @package        FastyBird:FbBusConnector!
     @module         transporters/transporter
@@ -39,80 +33,20 @@ class Transporter:
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
 
-    __transporters: Set[ITransporter]
-
-    __logger: Union[Logger, logging.Logger]
-
     # -----------------------------------------------------------------------------
 
-    def __init__(
-        self,
-        logger: Union[Logger, logging.Logger] = logging.getLogger("dummy"),
-    ) -> None:
-        self.__transporters = set()
-
-        self.__logger = logger
-
-    # -----------------------------------------------------------------------------
-
-    def initialize(
-        self,
-        address: int,
-        baud_rate: int,
-        interface: str,
-    ) -> None:
-        """Register new transporter to proxy"""
-        self.__transporters.add(
-            PjonTransporter(  # pylint: disable=no-value-for-parameter
-                address=address,
-                baud_rate=baud_rate,
-                interface=interface,
-                logger=self.__logger,
-            )
-        )
-
-    # -----------------------------------------------------------------------------
-
-    def broadcast_packet(
-        self,
-        payload: List[int],
-        waiting_time: float = 0.0,
-    ) -> bool:
+    @abstractmethod
+    def broadcast_packet(self, payload: List[int], waiting_time: float = 0.0) -> bool:
         """Broadcast packet to all devices"""
-        result = True
-
-        for transporter in self.__transporters:
-            if not transporter.broadcast_packet(payload=payload, waiting_time=waiting_time):
-                result = False
-
-        return result
 
     # -----------------------------------------------------------------------------
 
-    def send_packet(
-        self,
-        address: int,
-        payload: List[int],
-        waiting_time: float = 0.0,
-    ) -> bool:
+    @abstractmethod
+    def send_packet(self, address: int, payload: List[int], waiting_time: float = 0.0) -> bool:
         """Send packet to specific device address"""
-        result = True
-
-        for transporter in self.__transporters:
-            if not transporter.send_packet(address=address, payload=payload, waiting_time=waiting_time):
-                result = False
-
-        return result
 
     # -----------------------------------------------------------------------------
 
-    def handle(self) -> int:
-        """Handle communication from transporters"""
-        packets_to_be_sent = 0
-
-        for transporter in self.__transporters:
-            transporter_packets_to_be_sent = transporter.handle()
-
-            packets_to_be_sent = packets_to_be_sent + transporter_packets_to_be_sent
-
-        return packets_to_be_sent
+    @abstractmethod
+    def handle(self) -> None:
+        """Process transporter requests"""

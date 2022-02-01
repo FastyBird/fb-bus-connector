@@ -18,6 +18,8 @@
 FastyBird BUS connector registry module records
 """
 
+# pylint: disable=too-many-lines
+
 # Python base dependencies
 import time
 import uuid
@@ -652,6 +654,11 @@ class DiscoveredDeviceRecord:  # pylint: disable=too-many-instance-attributes
     __output_registers_size: int
     __attributes_registers_size: int
 
+    __waiting_for_packet: Optional[Packet] = None
+    __last_packet_sent_timestamp: float = 0.0  # Timestamp when request was sent to the device
+
+    __attempts: int = 0
+
     # -----------------------------------------------------------------------------
 
     def __init__(  # pylint: disable=too-many-locals,too-many-arguments
@@ -778,6 +785,45 @@ class DiscoveredDeviceRecord:  # pylint: disable=too-many-instance-attributes
 
     # -----------------------------------------------------------------------------
 
+    @property
+    def last_packet_timestamp(self) -> float:
+        """Last packet sent time stamp"""
+        return self.__last_packet_sent_timestamp
+
+    # -----------------------------------------------------------------------------
+
+    @last_packet_timestamp.setter
+    def last_packet_timestamp(self, last_packet_timestamp: float) -> None:
+        """Last packet sent time stamp setter"""
+        self.__last_packet_sent_timestamp = last_packet_timestamp
+
+    # -----------------------------------------------------------------------------
+
+    @property
+    def waiting_for_packet(self) -> Optional[Packet]:
+        """Packet gateway is waiting from device"""
+        return self.__waiting_for_packet
+
+    # -----------------------------------------------------------------------------
+
+    @waiting_for_packet.setter
+    def waiting_for_packet(self, waiting_for_packet: Optional[Packet]) -> None:
+        """Set that gateway is waiting for specific packet from device"""
+        self.__waiting_for_packet = waiting_for_packet
+
+        if waiting_for_packet is not None:
+            self.__last_packet_sent_timestamp = time.time()
+            self.__attempts = self.__attempts + 1
+
+    # -----------------------------------------------------------------------------
+
+    @property
+    def transmit_attempts(self) -> int:
+        """Transmit packet attempts count"""
+        return self.__attempts
+
+    # -----------------------------------------------------------------------------
+
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, DiscoveredDeviceRecord):
             return False
@@ -800,6 +846,9 @@ class DiscoveredRegisterRecord(ABC):
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
 
+    __device_address: int
+    __device_serial_number: str
+
     __address: int
     __type: RegisterType
     __data_type: DataType
@@ -810,18 +859,37 @@ class DiscoveredRegisterRecord(ABC):
 
     def __init__(  # pylint: disable=too-many-arguments
         self,
+        device_address: int,
+        device_serial_number: str,
         register_address: int,
         register_type: RegisterType,
         register_data_type: DataType,
         register_settable: bool = False,
         register_queryable: bool = False,
     ) -> None:
+        self.__device_address = device_address
+        self.__device_serial_number = device_serial_number
+
         self.__address = register_address
         self.__type = register_type
         self.__data_type = register_data_type
 
         self.__queryable = register_queryable
         self.__settable = register_settable
+
+    # -----------------------------------------------------------------------------
+
+    @property
+    def device_serial_number(self) -> str:
+        """Device serial number"""
+        return self.__device_serial_number
+
+    # -----------------------------------------------------------------------------
+
+    @property
+    def device_address(self) -> int:
+        """Device communication address"""
+        return self.__device_address
 
     # -----------------------------------------------------------------------------
 
@@ -864,12 +932,17 @@ class DiscoveredRegisterRecord(ABC):
         if not isinstance(other, DiscoveredRegisterRecord):
             return False
 
-        return self.address == other.address and self.type == other.type
+        return (
+            self.device_serial_number == other.device_serial_number
+            and self.device_address == other.device_address
+            and self.address == other.address
+            and self.type == other.type
+        )
 
     # -----------------------------------------------------------------------------
 
     def __hash__(self) -> int:
-        return hash((self.address, self.type.value))
+        return hash((self.device_serial_number, self.device_address, self.address, self.type.value))
 
 
 class DiscoveredInputRegisterRecord(DiscoveredRegisterRecord):
@@ -884,10 +957,14 @@ class DiscoveredInputRegisterRecord(DiscoveredRegisterRecord):
 
     def __init__(
         self,
+        device_address: int,
+        device_serial_number: str,
         register_address: int,
         register_data_type: DataType,
     ):
         super().__init__(
+            device_address=device_address,
+            device_serial_number=device_serial_number,
             register_address=register_address,
             register_type=RegisterType.INPUT,
             register_data_type=register_data_type,
@@ -908,10 +985,14 @@ class DiscoveredOutputRegisterRecord(DiscoveredRegisterRecord):
 
     def __init__(
         self,
+        device_address: int,
+        device_serial_number: str,
         register_address: int,
         register_data_type: DataType,
     ):
         super().__init__(
+            device_address=device_address,
+            device_serial_number=device_serial_number,
             register_address=register_address,
             register_type=RegisterType.OUTPUT,
             register_data_type=register_data_type,
@@ -936,6 +1017,8 @@ class DiscoveredAttributeRegisterRecord(DiscoveredRegisterRecord):
 
     def __init__(  # pylint: disable=too-many-branches,too-many-arguments
         self,
+        device_address: int,
+        device_serial_number: str,
         register_address: int,
         register_data_type: DataType,
         register_name: Optional[str],
@@ -943,6 +1026,8 @@ class DiscoveredAttributeRegisterRecord(DiscoveredRegisterRecord):
         register_queryable: bool = False,
     ):
         super().__init__(
+            device_address=device_address,
+            device_serial_number=device_serial_number,
             register_address=register_address,
             register_type=RegisterType.ATTRIBUTE,
             register_data_type=register_data_type,

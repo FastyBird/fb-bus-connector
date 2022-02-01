@@ -30,7 +30,7 @@ from kink import inject
 import fastybird_fb_bus_connector.pjon as pjon  # pylint: disable=consider-using-from-import
 from fastybird_fb_bus_connector.logger import Logger
 from fastybird_fb_bus_connector.receivers.receiver import Receiver
-from fastybird_fb_bus_connector.transporters.base import ITransporter
+from fastybird_fb_bus_connector.transporters.transporter import ITransporter
 from fastybird_fb_bus_connector.types import Packet, PacketContent, ProtocolVersion
 
 
@@ -160,12 +160,10 @@ class PjonTransporter(ITransporter, pjon.ThroughSerialAsync):  # pylint: disable
 
     # -----------------------------------------------------------------------------
 
-    def handle(self) -> int:
+    def handle(self) -> None:
         """Process transporter"""
         try:
-            result = self.loop()
-
-            return int(result[0])
+            self.loop()
 
         except pjon.PJON_Connection_Lost:  # pylint: disable=no-member
             self.__logger.warning("Connection with device was lost")
@@ -175,8 +173,6 @@ class PjonTransporter(ITransporter, pjon.ThroughSerialAsync):  # pylint: disable
 
         except pjon.PJON_Content_Too_Long:  # pylint: disable=no-member
             self.__logger.warning("Content is long")
-
-        return 0
 
     # -----------------------------------------------------------------------------
 

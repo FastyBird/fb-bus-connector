@@ -57,19 +57,17 @@ from fastybird_metadata.types import (
 )
 from kink import inject
 
+from fastybird_fb_bus_connector.clients.client import Client
 from fastybird_fb_bus_connector.consumers.consumer import Consumer
 from fastybird_fb_bus_connector.entities import FbBusDeviceEntity
 from fastybird_fb_bus_connector.events.listeners import EventsListener
 from fastybird_fb_bus_connector.logger import Logger
-from fastybird_fb_bus_connector.pairing.pairing import Pairing
-from fastybird_fb_bus_connector.publishers.publisher import Publisher
 from fastybird_fb_bus_connector.registry.model import DevicesRegistry, RegistersRegistry
 
 # Library libs
-from fastybird_fb_bus_connector.transporters.transporter import Transporter
+from fastybird_fb_bus_connector.transporters.transporter import ITransporter
 from fastybird_fb_bus_connector.types import (
     ConnectorAction,
-    ProtocolVersion,
     RegisterAttribute,
     RegisterName,
 )
@@ -95,16 +93,14 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
     __packets_to_be_sent: int = 0
 
     __consumer: Consumer
-    __publisher: Publisher
+    __client: Client
 
     __devices_registry: DevicesRegistry
     __registers_registry: RegistersRegistry
 
-    __transporter: Transporter
+    __transporter: ITransporter
 
     __events_listener: EventsListener
-
-    __pairing: Pairing
 
     __logger: Union[Logger, logging.Logger]
 
@@ -115,21 +111,19 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
         connector_id: uuid.UUID,
         devices_repository: DevicesRepository,
         consumer: Consumer,
-        publisher: Publisher,
+        client: Client,
         devices_registry: DevicesRegistry,
         registers_registry: RegistersRegistry,
-        transporter: Transporter,
+        transporter: ITransporter,
         events_listener: EventsListener,
-        pairing: Pairing,
         logger: Union[Logger, logging.Logger] = logging.getLogger("dummy"),
     ) -> None:
         self.__connector_id = connector_id
 
         self.__devices_repository = devices_repository
 
-        self.__publisher = publisher
+        self.__client = client
         self.__consumer = consumer
-        self.__pairing = pairing
 
         self.__devices_registry = devices_registry
         self.__registers_registry = registers_registry
@@ -144,22 +138,6 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
 
     def initialize(self, settings: Optional[Dict] = None) -> None:
         """Set connector to initial state"""
-        connector_settings = settings if settings is not None else {}
-        connector_settings = {
-            **connector_settings,
-            **{
-                "address": 254,
-                "baud_rate": 38400,
-                "interface": "/dev/ttyAMA0",
-                "protocol_version": ProtocolVersion.V1,
-            },
-        }
-
-        self.__transporter.initialize(
-            address=int(str(connector_settings.get("address"))),
-            baud_rate=int(str(connector_settings.get("baud_rate"))),
-            interface=str(connector_settings.get("interface")),
-        )
         self.__devices_registry.reset()
 
         for device in self.__devices_repository.get_all_by_connector(connector_id=self.__connector_id):
@@ -387,18 +365,10 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
         if self.__stopped:
             return
 
-        # Check is pairing enabled...
-        if self.__pairing.is_enabled() is True:
-            self.__pairing.handle()
+        # Continue processing devices
+        self.__client.handle()
 
-        # Pairing is not enabled...
-        else:
-            # Check packets queue...
-            if self.__packets_to_be_sent == 0:
-                # Continue processing devices
-                self.__publisher.handle()
-
-        self.__packets_to_be_sent = self.__transporter.handle()
+        self.__transporter.handle()
 
     # -----------------------------------------------------------------------------
 
@@ -460,7 +430,7 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
             control_action = ConnectorAction(control_item.name)
 
             if control_action == ConnectorAction.DISCOVER:
-                self.__pairing.enable()
+                self.__client.discover()
 
             if control_action == ConnectorAction.RESTART:
                 pass

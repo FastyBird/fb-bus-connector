@@ -18,11 +18,14 @@
 FastyBird BUS connector registry module models
 """
 
+# pylint: disable=too-many-lines
+
 # Python base dependencies
+import logging
 import time
 import uuid
 from datetime import datetime
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Set, Union
 
 # Library dependencies
 from fastybird_devices_module.repositories.state import (
@@ -45,6 +48,11 @@ from fastybird_fb_bus_connector.exceptions import InvalidStateException
 from fastybird_fb_bus_connector.registry.records import (
     AttributeRegisterRecord,
     DeviceRecord,
+    DiscoveredAttributeRegisterRecord,
+    DiscoveredDeviceRecord,
+    DiscoveredInputRegisterRecord,
+    DiscoveredOutputRegisterRecord,
+    DiscoveredRegisterRecord,
     InputRegisterRecord,
     OutputRegisterRecord,
     RegisterRecord,
@@ -870,3 +878,611 @@ class RegistersRegistry:
                 return True
 
         return False
+
+
+class DiscoveredDevicesRegistry:
+    """
+    Discovered devices registry
+
+    @package        FastyBird:FbBusConnector!
+    @module         registry/model
+
+    @author         Adam Kadlec <adam.kadlec@fastybird.com>
+    """
+
+    __items: Set[DiscoveredDeviceRecord]
+
+    __registers_registry: "DiscoveredRegistersRegistry"
+    __devices_registry: DevicesRegistry
+
+    __logger: Union[logging.Logger, logging.Logger]
+
+    __iterator_index = 0
+
+    __ADDRESS_NOT_ASSIGNED: int = 255
+
+    # -----------------------------------------------------------------------------
+
+    def __init__(
+        self,
+        registers_registry: "DiscoveredRegistersRegistry",
+        devices_registry: DevicesRegistry,
+        logger: Union[logging.Logger, logging.Logger] = logging.getLogger("dummy"),
+    ) -> None:
+        self.__items = set()
+
+        self.__registers_registry = registers_registry
+        self.__devices_registry = devices_registry
+
+        self.__logger = logger
+
+    # -----------------------------------------------------------------------------
+
+    def get_by_address(self, address: int) -> Optional[DiscoveredDeviceRecord]:
+        """Find device in registry by given unique address"""
+        items = self.__items.copy()
+
+        return next(
+            iter([record for record in items if record.address == address]),
+            None,
+        )
+
+    # -----------------------------------------------------------------------------
+
+    def get_by_serial_number(self, serial_number: str) -> Optional[DiscoveredDeviceRecord]:
+        """Find device in registry by given unique serial_number"""
+        items = self.__items.copy()
+
+        return next(
+            iter([record for record in items if record.serial_number == serial_number]),
+            None,
+        )
+
+    # -----------------------------------------------------------------------------
+
+    def append(  # pylint: disable=too-many-locals,too-many-arguments
+        self,
+        device_address: int,
+        device_max_packet_length: int,
+        device_serial_number: str,
+        device_state: ConnectionState,
+        device_hardware_version: str,
+        device_hardware_model: str,
+        device_hardware_manufacturer: str,
+        device_firmware_version: str,
+        device_firmware_manufacturer: str,
+        input_registers_size: int,
+        output_registers_size: int,
+        attributes_registers_size: int,
+    ) -> None:
+        """Set discovered device data"""
+        discovered_device = DiscoveredDeviceRecord(
+            device_address=device_address,
+            device_max_packet_length=device_max_packet_length,
+            device_serial_number=device_serial_number,
+            device_state=device_state,
+            device_hardware_version=device_hardware_version,
+            device_hardware_model=device_hardware_model,
+            device_hardware_manufacturer=device_hardware_manufacturer,
+            device_firmware_version=device_firmware_version,
+            device_firmware_manufacturer=device_firmware_manufacturer,
+            input_registers_size=input_registers_size,
+            output_registers_size=output_registers_size,
+            attributes_registers_size=attributes_registers_size,
+        )
+
+        if discovered_device in self.__items:
+            return
+
+        self.__logger.info(
+            "Discovered device %s[%d] %s[%s]:%s",
+            device_serial_number,
+            device_address,
+            device_hardware_version,
+            device_hardware_model,
+            device_firmware_version,
+        )
+
+        # Try to find device in registry
+        existing_device = self.__devices_registry.get_by_serial_number(
+            serial_number=discovered_device.serial_number,
+        )
+
+        # Discovering new device...
+        if existing_device is None:
+            # Check if device has address or not
+            if discovered_device.address != self.__ADDRESS_NOT_ASSIGNED:
+                # Check if other device with same address is present in registry
+                device_by_address = self.__devices_registry.get_by_address(address=discovered_device.address)
+
+                if device_by_address is not None:
+                    self.__logger.warning(
+                        "Address used by discovered device is assigned to other registered device",
+                        extra={
+                            "device": {
+                                "serial_number": discovered_device.serial_number,
+                                "address": discovered_device.address,
+                            },
+                        },
+                    )
+
+                    return
+
+            self.__logger.info(
+                "New device: %s with address: %d was successfully prepared for registering",
+                discovered_device.serial_number,
+                discovered_device.address,
+                extra={
+                    "device": {
+                        "serial_number": discovered_device.serial_number,
+                        "address": discovered_device.address,
+                    },
+                },
+            )
+
+        # Discovering existing device...
+        else:
+            # Check if other device with same address is present in registry
+            device_by_address = self.__devices_registry.get_by_address(address=discovered_device.address)
+
+            if device_by_address is not None and device_by_address.serial_number != discovered_device.serial_number:
+                self.__logger.warning(
+                    "Address used by discovered device is assigned to other registered device",
+                    extra={
+                        "device": {
+                            "serial_number": discovered_device.serial_number,
+                            "address": discovered_device.address,
+                        },
+                    },
+                )
+
+                return
+
+            self.__logger.info(
+                "Existing device: %s with address: %d was successfully prepared for updating",
+                discovered_device.serial_number,
+                discovered_device.address,
+                extra={
+                    "device": {
+                        "serial_number": discovered_device.serial_number,
+                        "address": discovered_device.address,
+                    },
+                },
+            )
+
+            # Update device state
+            self.__devices_registry.set_state(device=existing_device, state=ConnectionState.INIT)
+
+        self.__items.add(discovered_device)
+
+        # Input registers
+        self.__configure_device_registers(
+            discovered_device=discovered_device,
+            registers_type=RegisterType.INPUT,
+        )
+
+        # Output registers
+        self.__configure_device_registers(
+            discovered_device=discovered_device,
+            registers_type=RegisterType.OUTPUT,
+        )
+
+        # Attribute registers
+        self.__configure_device_registers(
+            discovered_device=discovered_device,
+            registers_type=RegisterType.ATTRIBUTE,
+        )
+
+        self.__logger.info(
+            "Configured registers: (Input: %d, Output: %d, Attribute: %d) for device: %s",
+            discovered_device.input_registers_size,
+            discovered_device.output_registers_size,
+            discovered_device.attributes_registers_size,
+            discovered_device.serial_number,
+            extra={
+                "device": {
+                    "serial_number": discovered_device.serial_number,
+                    "address": discovered_device.address,
+                },
+            },
+        )
+
+    # -----------------------------------------------------------------------------
+
+    def reset(self) -> None:
+        """Reset registry to initial state"""
+        self.__items = set()
+
+        self.__registers_registry.reset()
+
+    # -----------------------------------------------------------------------------
+
+    def remove(self, serial_number: str) -> None:
+        """Remove device from registry"""
+        items = self.__items.copy()
+
+        for record in items:
+            if record.serial_number == serial_number:
+                try:
+                    self.__items.remove(record)
+
+                    self.__registers_registry.reset(device_serial_number=record.serial_number)
+
+                except KeyError:
+                    pass
+
+                break
+
+    # -----------------------------------------------------------------------------
+
+    def set_waiting_for_packet(
+        self,
+        device: DiscoveredDeviceRecord,
+        packet_type: Optional[Packet],
+    ) -> DiscoveredDeviceRecord:
+        """Mark that gateway is waiting for reply from device"""
+        device.waiting_for_packet = packet_type
+
+        self.__update(updated_device=device)
+
+        updated_device = self.get_by_serial_number(device.serial_number)
+
+        if updated_device is None:
+            raise InvalidStateException("Device record could not be re-fetched from registry after update")
+
+        return updated_device
+
+    # -----------------------------------------------------------------------------
+
+    def __update(self, updated_device: DiscoveredDeviceRecord) -> bool:
+        """Update device record"""
+        self.__items.remove(updated_device)
+        self.__items.add(updated_device)
+
+        return True
+
+    # -----------------------------------------------------------------------------
+
+    def __configure_device_registers(
+        self,
+        discovered_device: DiscoveredDeviceRecord,
+        registers_type: RegisterType,
+    ) -> None:
+        """Prepare discovered devices registers"""
+        if registers_type == RegisterType.INPUT:
+            registers_size = discovered_device.input_registers_size
+
+        elif registers_type == RegisterType.OUTPUT:
+            registers_size = discovered_device.output_registers_size
+
+        elif registers_type == RegisterType.ATTRIBUTE:
+            registers_size = discovered_device.attributes_registers_size
+
+        else:
+            return
+
+        # Register data type will be reset to unknown
+        register_data_type = DataType.UNKNOWN
+
+        for i in range(registers_size):
+            if registers_type == RegisterType.INPUT:
+                # Create register record in registry
+                self.__registers_registry.create_input_register(
+                    device_serial_number=discovered_device.serial_number,
+                    device_address=discovered_device.address,
+                    register_address=i,
+                    register_data_type=register_data_type,
+                )
+
+            elif registers_type == RegisterType.OUTPUT:
+                # Create register record in registry
+                self.__registers_registry.create_output_register(
+                    device_serial_number=discovered_device.serial_number,
+                    device_address=discovered_device.address,
+                    register_address=i,
+                    register_data_type=register_data_type,
+                )
+
+            elif registers_type == RegisterType.ATTRIBUTE:
+                # Create register record in registry
+                self.__registers_registry.create_attribute_register(
+                    device_serial_number=discovered_device.serial_number,
+                    device_address=discovered_device.address,
+                    register_address=i,
+                    register_data_type=register_data_type,
+                    register_name=None,
+                    register_settable=False,
+                    register_queryable=False,
+                )
+
+    # -----------------------------------------------------------------------------
+
+    def __iter__(self) -> "DiscoveredDevicesRegistry":
+        # Reset index for nex iteration
+        self.__iterator_index = 0
+
+        return self
+
+    # -----------------------------------------------------------------------------
+
+    def __len__(self) -> int:
+        return len(self.__items)
+
+    # -----------------------------------------------------------------------------
+
+    def __next__(self) -> DiscoveredDeviceRecord:
+        if self.__iterator_index < len(self.__items):
+            items: List[DiscoveredDeviceRecord] = list(self.__items)
+
+            result: DiscoveredDeviceRecord = items[self.__iterator_index]
+
+            self.__iterator_index += 1
+
+            return result
+
+        # Reset index for nex iteration
+        self.__iterator_index = 0
+
+        # End of iteration
+        raise StopIteration
+
+
+class DiscoveredRegistersRegistry:
+    """
+    Discovered devices registers registry
+
+    @package        FastyBird:FbBusConnector!
+    @module         registry/model
+
+    @author         Adam Kadlec <adam.kadlec@fastybird.com>
+    """
+
+    __items: Set[DiscoveredRegisterRecord]
+
+    __logger: Union[logging.Logger, logging.Logger]
+
+    # -----------------------------------------------------------------------------
+
+    def __init__(self, logger: Union[logging.Logger, logging.Logger] = logging.getLogger("dummy")) -> None:
+        self.__items = set()
+
+        self.__logger = logger
+
+    # -----------------------------------------------------------------------------
+
+    def get_all_by_device(
+        self,
+        device_serial_number: str,
+    ) -> List[DiscoveredRegisterRecord]:
+        """Get all registers by device serial number"""
+        items = self.__items.copy()
+
+        return [record for record in items if record.device_serial_number == device_serial_number]
+
+    # -----------------------------------------------------------------------------
+
+    def append_input_register(
+        self,
+        device_serial_number: str,
+        device_address: int,
+        register_address: int,
+        register_data_type: DataType,
+    ) -> None:
+        """Append discovered device register"""
+        configured_register = DiscoveredInputRegisterRecord(
+            device_serial_number=device_serial_number,
+            device_address=device_address,
+            register_address=register_address,
+            register_data_type=register_data_type,
+        )
+
+        if configured_register not in self.__items:
+            self.__logger.warning(
+                "Register: %d[%d] for device: %s could not be found in registry",
+                register_address,
+                RegisterType.INPUT.value,
+                device_serial_number,
+                extra={
+                    "device": {
+                        "serial_number": device_serial_number,
+                        "address": device_address,
+                    },
+                },
+            )
+
+            return
+
+        self.__items.remove(configured_register)
+        self.__items.add(configured_register)
+
+        self.__logger.info(
+            "Configured register: %d[%d] for device: %s",
+            register_address,
+            RegisterType.INPUT.value,
+            device_serial_number,
+            extra={
+                "device": {
+                    "serial_number": device_serial_number,
+                    "address": device_address,
+                },
+            },
+        )
+
+    # -----------------------------------------------------------------------------
+
+    def append_output_register(
+        self,
+        device_serial_number: str,
+        device_address: int,
+        register_address: int,
+        register_data_type: DataType,
+    ) -> None:
+        """Append discovered device output register"""
+        configured_register = DiscoveredOutputRegisterRecord(
+            device_serial_number=device_serial_number,
+            device_address=device_address,
+            register_address=register_address,
+            register_data_type=register_data_type,
+        )
+
+        if configured_register not in self.__items:
+            self.__logger.warning(
+                "Register: %d[%d] for device: %s could not be found in registry",
+                register_address,
+                RegisterType.OUTPUT.value,
+                device_serial_number,
+                extra={
+                    "device": {
+                        "serial_number": device_serial_number,
+                        "address": device_address,
+                    },
+                },
+            )
+
+            return
+
+        self.__items.remove(configured_register)
+        self.__items.add(configured_register)
+
+        self.__logger.info(
+            "Configured register: %d[%d] for device: %s",
+            register_address,
+            RegisterType.OUTPUT.value,
+            device_serial_number,
+            extra={
+                "device": {
+                    "serial_number": device_serial_number,
+                    "address": device_address,
+                },
+            },
+        )
+
+    # -----------------------------------------------------------------------------
+
+    def append_attribute_register(  # pylint: disable=too-many-arguments
+        self,
+        device_serial_number: str,
+        device_address: int,
+        register_address: int,
+        register_name: Optional[str],
+        register_data_type: DataType,
+        register_settable: bool,
+        register_queryable: bool,
+    ) -> None:
+        """Append discovered device attribute"""
+        configured_register = DiscoveredAttributeRegisterRecord(
+            device_serial_number=device_serial_number,
+            device_address=device_address,
+            register_address=register_address,
+            register_name=register_name,
+            register_data_type=register_data_type,
+            register_settable=register_settable,
+            register_queryable=register_queryable,
+        )
+
+        if configured_register not in self.__items:
+            self.__logger.warning(
+                "Register: %d[%d] for device: %s could not be found in registry",
+                register_address,
+                RegisterType.ATTRIBUTE.value,
+                device_serial_number,
+                extra={
+                    "device": {
+                        "serial_number": device_serial_number,
+                        "address": device_address,
+                    },
+                },
+            )
+
+            return
+
+        self.__items.remove(configured_register)
+        self.__items.add(configured_register)
+
+        self.__logger.info(
+            "Configured register: %d[%d] for device: %s",
+            register_address,
+            RegisterType.ATTRIBUTE.value,
+            device_serial_number,
+            extra={
+                "device": {
+                    "serial_number": device_serial_number,
+                    "address": device_address,
+                },
+            },
+        )
+
+    # -----------------------------------------------------------------------------
+
+    def create_input_register(  # pylint: disable=too-many-arguments
+        self,
+        device_serial_number: str,
+        device_address: int,
+        register_address: int,
+        register_data_type: DataType,
+    ) -> None:
+        """Append discovered device input"""
+        self.__items.add(
+            DiscoveredInputRegisterRecord(
+                device_address=device_address,
+                device_serial_number=device_serial_number,
+                register_address=register_address,
+                register_data_type=register_data_type,
+            )
+        )
+
+    # -----------------------------------------------------------------------------
+
+    def create_output_register(  # pylint: disable=too-many-arguments
+        self,
+        device_serial_number: str,
+        device_address: int,
+        register_address: int,
+        register_data_type: DataType,
+    ) -> None:
+        """Append discovered device output"""
+        self.__items.add(
+            DiscoveredOutputRegisterRecord(
+                device_address=device_address,
+                device_serial_number=device_serial_number,
+                register_address=register_address,
+                register_data_type=register_data_type,
+            )
+        )
+
+    # -----------------------------------------------------------------------------
+
+    def create_attribute_register(  # pylint: disable=too-many-arguments
+        self,
+        device_serial_number: str,
+        device_address: int,
+        register_address: int,
+        register_name: Optional[str],
+        register_data_type: DataType,
+        register_settable: bool,
+        register_queryable: bool,
+    ) -> None:
+        """Append discovered device attribute"""
+        self.__items.add(
+            DiscoveredAttributeRegisterRecord(
+                device_address=device_address,
+                device_serial_number=device_serial_number,
+                register_address=register_address,
+                register_name=register_name,
+                register_data_type=register_data_type,
+                register_settable=register_settable,
+                register_queryable=register_queryable,
+            )
+        )
+
+    # -----------------------------------------------------------------------------
+
+    def reset(self, device_serial_number: Optional[str] = None) -> None:
+        """Reset registry to initial state"""
+        if device_serial_number is not None:
+            for register in self.__items:
+                if register.device_serial_number == device_serial_number:
+                    self.__items.remove(register)
+
+        else:
+            self.__items = set()

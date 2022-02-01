@@ -43,8 +43,12 @@ from fastybird_fb_bus_connector.consumers.entities import (
 
 # Library libs
 from fastybird_fb_bus_connector.logger import Logger
-from fastybird_fb_bus_connector.pairing.apiv1 import ApiV1Pairing
-from fastybird_fb_bus_connector.registry.model import DevicesRegistry, RegistersRegistry
+from fastybird_fb_bus_connector.registry.model import (
+    DevicesRegistry,
+    DiscoveredDevicesRegistry,
+    DiscoveredRegistersRegistry,
+    RegistersRegistry,
+)
 from fastybird_fb_bus_connector.registry.records import RegisterRecord
 from fastybird_fb_bus_connector.types import RegisterType
 
@@ -239,15 +243,18 @@ class DiscoveryConsumer(IConsumer):  # pylint: disable=too-few-public-methods
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
 
-    __device_pairing: ApiV1Pairing
+    __discovered_devices_registry: DiscoveredDevicesRegistry
+    __discovered_registers_registry: DiscoveredRegistersRegistry
 
     # -----------------------------------------------------------------------------
 
     def __init__(  # pylint: disable=too-many-arguments
         self,
-        device_pairing: ApiV1Pairing,
+        discovered_devices_registry: DiscoveredDevicesRegistry,
+        discovered_registers_registry: DiscoveredRegistersRegistry,
     ) -> None:
-        self.__device_pairing = device_pairing
+        self.__discovered_devices_registry = discovered_devices_registry
+        self.__discovered_registers_registry = discovered_registers_registry
 
     # -----------------------------------------------------------------------------
 
@@ -266,7 +273,7 @@ class DiscoveryConsumer(IConsumer):  # pylint: disable=too-few-public-methods
     # -----------------------------------------------------------------------------
 
     def __consume_set_device_discovery(self, entity: DeviceDiscoveryEntity) -> None:
-        self.__device_pairing.append_device(
+        self.__discovered_devices_registry.append(
             # Device description
             device_address=entity.device_address,
             device_max_packet_length=entity.device_max_packet_length,
@@ -286,10 +293,17 @@ class DiscoveryConsumer(IConsumer):  # pylint: disable=too-few-public-methods
     # -----------------------------------------------------------------------------
 
     def __consume_register_structure(self, entity: RegisterStructureEntity) -> None:
+        discovered_device = self.__discovered_devices_registry.get_by_address(address=entity.device_address)
+
+        if discovered_device is None:
+            return
+
         if entity.register_type in (RegisterType.INPUT, RegisterType.OUTPUT, RegisterType.ATTRIBUTE):
             if entity.register_type == RegisterType.INPUT:
                 # Update register record
-                self.__device_pairing.append_input_register(
+                self.__discovered_registers_registry.append_input_register(
+                    device_serial_number=discovered_device.serial_number,
+                    device_address=entity.device_address,
                     register_address=entity.register_address,
                     # Configure register data type
                     register_data_type=entity.register_data_type,
@@ -297,7 +311,9 @@ class DiscoveryConsumer(IConsumer):  # pylint: disable=too-few-public-methods
 
             elif entity.register_type == RegisterType.OUTPUT:
                 # Update register record
-                self.__device_pairing.append_output_register(
+                self.__discovered_registers_registry.append_output_register(
+                    device_serial_number=discovered_device.serial_number,
+                    device_address=entity.device_address,
                     register_address=entity.register_address,
                     # Configure register data type
                     register_data_type=entity.register_data_type,
@@ -305,7 +321,9 @@ class DiscoveryConsumer(IConsumer):  # pylint: disable=too-few-public-methods
 
             elif entity.register_type == RegisterType.ATTRIBUTE:
                 # Update register record
-                self.__device_pairing.append_attribute_register(
+                self.__discovered_registers_registry.append_attribute_register(
+                    device_serial_number=discovered_device.serial_number,
+                    device_address=entity.device_address,
                     register_address=entity.register_address,
                     # Configure register details
                     register_data_type=entity.register_data_type,

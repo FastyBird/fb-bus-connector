@@ -15,5 +15,5 @@
 #     limitations under the License.
 
 """
-FastyBird BUS connector publishers module
+FastyBird BUS connector clients module
 """

@@ -29,6 +29,8 @@ from whistle import EventDispatcher
 
 # Library libs
 from fastybird_fb_bus_connector.api.v1parser import V1Parser
+from fastybird_fb_bus_connector.clients.apiv1 import ApiV1Client
+from fastybird_fb_bus_connector.clients.client import Client
 from fastybird_fb_bus_connector.connector import FbBusConnector
 from fastybird_fb_bus_connector.consumers.consumer import Consumer
 from fastybird_fb_bus_connector.consumers.device import (
@@ -39,14 +41,16 @@ from fastybird_fb_bus_connector.consumers.device import (
 from fastybird_fb_bus_connector.entities import FbBusConnectorEntity
 from fastybird_fb_bus_connector.events.listeners import EventsListener
 from fastybird_fb_bus_connector.logger import Logger
-from fastybird_fb_bus_connector.pairing.apiv1 import ApiV1Pairing
-from fastybird_fb_bus_connector.pairing.pairing import Pairing
-from fastybird_fb_bus_connector.publishers.apiv1 import ApiV1Publisher
-from fastybird_fb_bus_connector.publishers.publisher import Publisher
 from fastybird_fb_bus_connector.receivers.apiv1 import ApiV1Receiver
 from fastybird_fb_bus_connector.receivers.receiver import Receiver
-from fastybird_fb_bus_connector.registry.model import DevicesRegistry, RegistersRegistry
-from fastybird_fb_bus_connector.transporters.transporter import Transporter
+from fastybird_fb_bus_connector.registry.model import (
+    DevicesRegistry,
+    DiscoveredDevicesRegistry,
+    DiscoveredRegistersRegistry,
+    RegistersRegistry,
+)
+from fastybird_fb_bus_connector.transporters.pjon import PjonTransporter
+from fastybird_fb_bus_connector.types import ProtocolVersion
 
 
 def create_connector(
@@ -63,6 +67,16 @@ def create_connector(
     else:
         connector_logger = logger
 
+    connector_settings = {
+        **connector.params,
+        **{
+            "address": 254,
+            "baud_rate": 38400,
+            "interface": "/dev/ttyAMA0",
+            "protocol_version": ProtocolVersion.V1,
+        },
+    }
+
     di[EventDispatcher] = EventDispatcher()
     di["fb-bus-connector_events-dispatcher"] = di[EventDispatcher]
 
@@ -76,32 +90,22 @@ def create_connector(
     )
     di["fb-bus-connector_devices-registry"] = di[DevicesRegistry]
 
+    di[DiscoveredRegistersRegistry] = DiscoveredRegistersRegistry(logger=logger)
+    di["fb-bus-connector_registers-registry"] = di[DiscoveredRegistersRegistry]
+
+    di[DiscoveredDevicesRegistry] = DiscoveredDevicesRegistry(
+        registers_registry=di[DiscoveredRegistersRegistry],
+        devices_registry=di[DevicesRegistry],
+        logger=logger,
+    )
+    di["fb-bus-connector_registers-registry"] = di[DiscoveredDevicesRegistry]
+
     # API utils
     di[V1Parser] = V1Parser(
         devices_registry=di[DevicesRegistry],
         registers_registry=di[RegistersRegistry],
     )
     di["fb-bus-connector_api-v1-parser"] = di[V1Parser]
-
-    # Communication transporter
-    di[Transporter] = Transporter(logger=connector_logger)
-    di["fb-bus-connector_data-transporter-proxy"] = di[Transporter]
-
-    # Devices pairing
-    di[ApiV1Pairing] = ApiV1Pairing(
-        devices_registry=di[DevicesRegistry],
-        registers_registry=di[RegistersRegistry],
-        transporter=di[Transporter],
-        logger=connector_logger,
-    )
-    di["fb-bus-connector_devices-pairing-api-v1"] = di[ApiV1Pairing]
-
-    di[Pairing] = Pairing(
-        pairing=[
-            di[ApiV1Pairing],
-        ],
-    )
-    di["fb-bus-connector_devices-pairing-proxy"] = di[Pairing]
 
     # Messages consumers
     di[DeviceItemConsumer] = DeviceItemConsumer(devices_registry=di[DevicesRegistry], logger=connector_logger)
@@ -114,7 +118,10 @@ def create_connector(
     )
     di["fb-bus-connector_registers-consumer"] = di[RegisterItemConsumer]
 
-    di[DiscoveryConsumer] = DiscoveryConsumer(device_pairing=di[ApiV1Pairing])
+    di[DiscoveryConsumer] = DiscoveryConsumer(
+        discovered_devices_registry=di[DiscoveredDevicesRegistry],
+        discovered_registers_registry=di[DiscoveredRegistersRegistry],
+    )
     di["fb-bus-connector_discovery-consumer"] = di[DiscoveryConsumer]
 
     di[Consumer] = Consumer(
@@ -140,22 +147,33 @@ def create_connector(
     )
     di["fb-bus-connector_receiver-proxy"] = di[Receiver]
 
-    # Data publishers
-    di[ApiV1Publisher] = ApiV1Publisher(
-        devices_registry=di[DevicesRegistry],
-        registers_registry=di[RegistersRegistry],
-        transporter=di[Transporter],
+    # Communication transporter
+    di[PjonTransporter] = PjonTransporter(
+        receiver=di[Receiver],
+        address=int(str(connector_settings.get("address"))),
+        baud_rate=int(str(connector_settings.get("baud_rate"))),
+        interface=str(connector_settings.get("interface")),
         logger=connector_logger,
     )
-    di["fb-bus-connector_api-v1-publisher"] = di[ApiV1Publisher]
+    di["fb-bus-connector_data-transporter"] = di[PjonTransporter]
 
-    di[Publisher] = Publisher(
-        publishers=[
-            di[ApiV1Publisher],
-        ],
+    # Data clients
+    di[ApiV1Client] = ApiV1Client(
         devices_registry=di[DevicesRegistry],
+        registers_registry=di[RegistersRegistry],
+        discovered_registers_registry=di[DiscoveredDevicesRegistry],
+        discovered_devices_registry=di[DiscoveredRegistersRegistry],
+        transporter=di[PjonTransporter],
+        logger=connector_logger,
     )
-    di["fb-bus-connector_publisher-proxy"] = di[Publisher]
+    di["fb-bus-connector_api-v1-client"] = di[ApiV1Client]
+
+    di[Client] = Client(
+        clients=[
+            di[ApiV1Client],
+        ],
+    )
+    di["fb-bus-connector_client-proxy"] = di[Client]
 
     # Inner events system
     di[EventsListener] = EventsListener(  # type: ignore[call-arg]
@@ -169,11 +187,10 @@ def create_connector(
     connector_service = FbBusConnector(  # type: ignore[call-arg]
         connector_id=connector.id,
         consumer=di[Consumer],
-        publisher=di[Publisher],
+        client=di[Client],
         devices_registry=di[DevicesRegistry],
         registers_registry=di[RegistersRegistry],
-        transporter=di[Transporter],
-        pairing=di[Pairing],
+        transporter=di[PjonTransporter],
         logger=connector_logger,
     )
     di[FbBusConnector] = connector_service

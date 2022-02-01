@@ -15,78 +15,72 @@
 #     limitations under the License.
 
 """
-FastyBird BUS connector publishers module proxy
+FastyBird BUS connector clients module proxy
 """
 
 # Python base dependencies
 from abc import ABC, abstractmethod
 from typing import List, Set
 
-# Library libs
-from fastybird_fb_bus_connector.registry.model import DevicesRegistry
-from fastybird_fb_bus_connector.registry.records import DeviceRecord
 
-
-class IPublisher(ABC):  # pylint: disable=too-few-public-methods
+class IClient(ABC):  # pylint: disable=too-few-public-methods
     """
-    Data publisher interface
+    Communication client interface
 
     @package        FastyBird:FbBusConnector!
-    @module         publishers/publisher
+    @module         clients/client
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
+
+    @abstractmethod
+    def enable_discovery(self) -> None:
+        """Enable client devices discovery"""
 
     # -----------------------------------------------------------------------------
 
     @abstractmethod
-    def handle(
-        self,
-        device: DeviceRecord,
-    ) -> None:
-        """Handle publish read or write message to device"""
+    def disable_discovery(self) -> None:
+        """Disable client devices discovery"""
+
+    # -----------------------------------------------------------------------------
+
+    @abstractmethod
+    def handle(self) -> None:
+        """Handle client communication"""
 
 
-class Publisher:  # pylint: disable=too-few-public-methods
+class Client:  # pylint: disable=too-few-public-methods
     """
-    Data publisher proxy
+    Client proxy
 
     @package        FastyBird:FbBusConnector!
-    @module         publishers/publisher
+    @module         clients/client
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
 
-    __publishers: Set[IPublisher]
-
-    __devices_registry: DevicesRegistry
-
-    __processed_devices: List[str] = []
+    __clients: Set[IClient]
 
     # -----------------------------------------------------------------------------
 
     def __init__(
         self,
-        publishers: List[IPublisher],
-        devices_registry: DevicesRegistry,
+        clients: List[IClient],
     ) -> None:
-        self.__publishers = set(publishers)
+        self.__clients = set(clients)
 
-        self.__devices_registry = devices_registry
+    # -----------------------------------------------------------------------------
+
+    def discover(self) -> None:
+        """Discover new devices"""
+        for client in self.__clients:
+            client.enable_discovery()
 
     # -----------------------------------------------------------------------------
 
     def handle(self) -> None:
-        """Handle publish read or write message to device"""
+        """Handle clients communication"""
         # Check for processing queue
-        for device in self.__devices_registry:
-            if not device.enabled:
-                continue
-
-            if device.id.__str__() not in self.__processed_devices:
-                for publisher in self.__publishers:
-                    publisher.handle(device=device)
-
-                self.__processed_devices.append(device.id.__str__())
-
-        self.__processed_devices = []
+        for client in self.__clients:
+            client.handle()
