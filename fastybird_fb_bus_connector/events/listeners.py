@@ -398,7 +398,7 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
             "id": register.id,
             "identifier": RegisterAttribute.STATE.value,  # f"register_{(register.address + 1):02}",
             "data_type": register.data_type,
-            "format": None,
+            "format": register.format,
             "unit": None,
             "invalid": None,
             "queryable": register.queryable,

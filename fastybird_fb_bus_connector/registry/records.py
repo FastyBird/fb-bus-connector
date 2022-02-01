@@ -349,6 +349,38 @@ class RegisterRecord(ABC):  # pylint: disable=too-many-instance-attributes
     # -----------------------------------------------------------------------------
 
     @property
+    def format(
+        self,
+    ) -> Union[
+        Tuple[Optional[int], Optional[int]],
+        Tuple[Optional[float], Optional[float]],
+        List[Union[str, Tuple[str, Optional[str], Optional[str]]]],
+        None,
+    ]:
+        """Attribute register value format"""
+        if self.data_type == DataType.SWITCH:
+            return [
+                SwitchPayload.ON.value,
+                SwitchPayload.OFF.value,
+                SwitchPayload.TOGGLE.value,
+            ]
+
+        if self.data_type == DataType.BUTTON:
+            return [
+                ButtonPayload.PRESSED.value,
+                ButtonPayload.RELEASED.value,
+                ButtonPayload.CLICKED.value,
+                ButtonPayload.DOUBLE_CLICKED.value,
+                ButtonPayload.TRIPLE_CLICKED.value,
+                ButtonPayload.LONG_CLICKED.value,
+                ButtonPayload.EXTRA_LONG_CLICKED.value,
+            ]
+
+        return None
+
+    # -----------------------------------------------------------------------------
+
+    @property
     def data_type_size(self) -> int:
         """Record data type bytes size"""
         if self.data_type in (DataType.UCHAR, DataType.CHAR):

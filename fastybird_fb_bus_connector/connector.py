@@ -427,6 +427,17 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
                 isinstance(value_to_write, (str, int, float, bool, datetime, ButtonPayload, SwitchPayload))
                 or value_to_write is None
             ):
+                if (
+                    isinstance(value_to_write, SwitchPayload)
+                    and register_record.data_type == DataType.SWITCH
+                    and value_to_write == SwitchPayload.TOGGLE
+                ):
+                    if register_record.actual_value == SwitchPayload.ON:
+                        value_to_write = SwitchPayload.OFF
+
+                    else:
+                        value_to_write = SwitchPayload.ON
+
                 self.__registers_registry.set_expected_value(register=register_record, value=value_to_write)
 
                 return
