@@ -261,6 +261,27 @@ class RegisterType(Enum):
 
 
 @unique
+class RegisterName(ExtendedEnum, Enum):
+    """
+    Known register name
+
+    @package        FastyBird:FbBusConnector!
+    @module         types
+
+    @author         Adam Kadlec <adam.kadlec@fastybird.com>
+    """
+
+    INPUT: str = "input"
+    OUTPUT: str = "output"
+    ATTRIBUTE: str = "attribute"
+
+    # -----------------------------------------------------------------------------
+
+    def __hash__(self) -> int:
+        return hash(self._name_)  # pylint: disable=no-member
+
+
+@unique
 class ButtonPayloadType(Enum):
     """
     Button event types
@@ -367,7 +388,7 @@ class RegisterAttribute(ExtendedEnum, Enum):
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
 
-    STATE: str = "state"
+    VALUE: str = "value"
     ADDRESS: str = "addr"
 
     # -----------------------------------------------------------------------------
@@ -377,7 +398,7 @@ class RegisterAttribute(ExtendedEnum, Enum):
 
 
 @unique
-class ControlAction(ExtendedEnum, Enum):
+class ConnectorAction(ExtendedEnum, Enum):
     """
     Connector control action
 

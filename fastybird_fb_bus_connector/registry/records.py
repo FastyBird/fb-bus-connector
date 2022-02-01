@@ -93,6 +93,10 @@ class DeviceRecord:  # pylint: disable=too-many-public-methods,too-many-instance
         self.__firmware_manufacturer = firmware_manufacturer
         self.__firmware_version = firmware_version
 
+        self.__reading_registers_timestamp = 0.0
+        self.__reading_register_address = None
+        self.__reading_register_type = None
+
     # -----------------------------------------------------------------------------
 
     @property
@@ -457,9 +461,7 @@ class RegisterRecord(ABC):  # pylint: disable=too-many-instance-attributes
     ) -> None:
         """Set register expected value"""
         self._expected_value = value
-
-        if value is not None:
-            self.expected_pending = None
+        self.expected_pending = None
 
     # -----------------------------------------------------------------------------
 
@@ -500,7 +502,7 @@ class InputRegisterRecord(RegisterRecord):
     Input register record
 
     @package        FastyBird:FbBusConnector!
-    @module         registry
+    @module         registry/records
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
@@ -530,7 +532,7 @@ class OutputRegisterRecord(RegisterRecord):
     Output register record
 
     @package        FastyBird:FbBusConnector!
-    @module         registry
+    @module         registry/records
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
@@ -560,7 +562,7 @@ class AttributeRegisterRecord(RegisterRecord):
     Attribute register record
 
     @package        FastyBird:FbBusConnector!
-    @module         registry
+    @module         registry/records
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
@@ -628,7 +630,7 @@ class DiscoveredDeviceRecord:  # pylint: disable=too-many-instance-attributes
     Discovered device record
 
     @package        FastyBird:FbBusConnector!
-    @module         registry
+    @module         registry/records
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
@@ -793,7 +795,7 @@ class DiscoveredRegisterRecord(ABC):
     Pairing base register record
 
     @package        FastyBird:FbBusConnector!
-    @module         registry
+    @module         registry/records
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
@@ -875,7 +877,7 @@ class DiscoveredInputRegisterRecord(DiscoveredRegisterRecord):
     Pairing input register record
 
     @package        FastyBird:FbBusConnector!
-    @module         registry
+    @module         registry/records
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
@@ -899,7 +901,7 @@ class DiscoveredOutputRegisterRecord(DiscoveredRegisterRecord):
     Pairing output register record
 
     @package        FastyBird:FbBusConnector!
-    @module         registry
+    @module         registry/records
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
@@ -923,7 +925,7 @@ class DiscoveredAttributeRegisterRecord(DiscoveredRegisterRecord):
     Pairing attribute register record
 
     @package        FastyBird:FbBusConnector!
-    @module         registry
+    @module         registry/records
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """

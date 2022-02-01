@@ -30,12 +30,12 @@ from kink import inject
 
 # Library libs
 from fastybird_fb_bus_connector.api.v1builder import V1Builder
-from fastybird_fb_bus_connector.clients.client import Client
 from fastybird_fb_bus_connector.exceptions import BuildPayloadException
 from fastybird_fb_bus_connector.logger import Logger
 from fastybird_fb_bus_connector.publishers.publisher import IPublisher
 from fastybird_fb_bus_connector.registry.model import DevicesRegistry, RegistersRegistry
 from fastybird_fb_bus_connector.registry.records import DeviceRecord, RegisterRecord
+from fastybird_fb_bus_connector.transporters.transporter import Transporter
 from fastybird_fb_bus_connector.types import (
     DeviceAttribute,
     Packet,
@@ -50,22 +50,22 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
     BUS publisher for API v1
 
     @package        FastyBird:FbBusConnector!
-    @module         publishers
+    @module         publishers/apiv1
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
 
     __MAX_TRANSMIT_ATTEMPTS: int = 5  # Maximum count of sending packets before gateway mark device as lost
 
-    __PING_DELAY: float = 15.0  # Delay in s after reaching maximum packet sending attempts
+    __PING_DELAY: float = 15.0  # Delay between pings packets
 
-    __PACKET_RESPONSE_DELAY: float = 0.5  # Waiting delay before another packet is sent
+    __PACKET_RESPONSE_DELAY: float = 0.5  # Waiting time before another packet is sent
     __PACKET_RESPONSE_WAITING_TIME: float = 0.5
 
     __devices_registry: DevicesRegistry
     __registers_registry: RegistersRegistry
 
-    __client: Client
+    __transporter: Transporter
 
     __logger: Union[Logger, logging.Logger]
 
@@ -75,123 +75,20 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
         self,
         devices_registry: DevicesRegistry,
         registers_registry: RegistersRegistry,
-        client: Client,
+        transporter: Transporter,
         logger: Union[Logger, logging.Logger] = logging.getLogger("dummy"),
     ) -> None:
         self.__devices_registry = devices_registry
         self.__registers_registry = registers_registry
 
-        self.__client = client
+        self.__transporter = transporter
 
         self.__logger = logger
 
     # -----------------------------------------------------------------------------
 
-    def handle(self, device: DeviceRecord) -> bool:  # pylint: disable=too-many-return-statements
+    def handle(self, device: DeviceRecord) -> None:  # pylint: disable=too-many-return-statements
         """Handle publish read or write message to device"""
-        # Maximum send packet attempts was reached device is now marked as lost
-        if device.transmit_attempts >= self.__MAX_TRANSMIT_ATTEMPTS:
-            if self.__devices_registry.is_device_lost(device=device):
-                self.__devices_registry.reset_communication(device=device)
-
-                self.__logger.info(
-                    "Device with address: %s is still lost",
-                    self.__get_address_for_device(device=device),
-                    extra={
-                        "device": {
-                            "id": device.id.__str__(),
-                            "serial_number": device.serial_number,
-                            "address": self.__get_address_for_device(device=device),
-                        },
-                    },
-                )
-
-            else:
-                self.__logger.info(
-                    "Device with address: %s is lost",
-                    self.__get_address_for_device(device=device),
-                    extra={
-                        "device": {
-                            "id": device.id.__str__(),
-                            "serial_number": device.serial_number,
-                            "address": self.__get_address_for_device(device=device),
-                        },
-                    },
-                )
-
-                self.__devices_registry.set_device_is_lost(device=device)
-
-            return True
-
-        # If device is marked as lost...
-        if self.__devices_registry.is_device_lost(device=device):
-            # ...and wait for ping delay...
-            if (time.time() - device.last_packet_timestamp) >= self.__PING_DELAY:
-                # ...then try to PING device
-                self.__send_ping_handler(device=device)
-
-            return True
-
-        # Check for delay between reading
-        if device.waiting_for_packet is None or (
-            device.waiting_for_packet is not None
-            and time.time() - device.last_packet_timestamp >= self.__PACKET_RESPONSE_DELAY
-        ):
-            # Device state is unknown...
-            if self.__devices_registry.is_device_unknown(device=device):
-                # ...ask device for its state
-                self.__send_read_device_state_handler(device=device)
-
-                return True
-
-            # Check if device is in RUNNING mode
-            if not self.__devices_registry.is_device_running(device=device):
-                return False
-
-            if time.time() - device.get_last_register_reading_timestamp() >= device.sampling_time:
-                if self.__read_registers_handler(device=device):
-                    return True
-
-            if self.__write_register_handler(device=device):
-                return True
-
-        return False
-
-    # -----------------------------------------------------------------------------
-
-    def version(self) -> ProtocolVersion:
-        """Pairing supported protocol version"""
-        return ProtocolVersion.V1
-
-    # -----------------------------------------------------------------------------
-
-    def __read_registers_handler(self, device: DeviceRecord) -> bool:
-        reading_address, reading_register_type = device.get_reading_register()
-
-        for register_type in RegisterType:
-            if len(
-                self.__registers_registry.get_all_for_device(device_id=device.id, register_type=register_type)
-            ) > 0 and (reading_register_type == register_type or reading_register_type is None):
-                return self.__read_multiple_registers(
-                    device=device,
-                    register_type=register_type,
-                    start_address=reading_address,
-                )
-
-        return False
-
-    # -----------------------------------------------------------------------------
-
-    def __write_register_handler(self, device: DeviceRecord) -> bool:
-        for register_type in (RegisterType.OUTPUT, RegisterType.ATTRIBUTE):
-            if self.__write_single_register_handler(device=device, register_type=register_type):
-                return True
-
-        return False
-
-    # -----------------------------------------------------------------------------
-
-    def __send_ping_handler(self, device: DeviceRecord) -> None:
         device_address = self.__get_address_for_device(device=device)
 
         if device_address is None:
@@ -209,7 +106,77 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
 
             return
 
-        result = self.__client.send_packet(
+        # Maximum send packet attempts was reached device is now marked as lost
+        if device.transmit_attempts >= self.__MAX_TRANSMIT_ATTEMPTS:
+            if self.__devices_registry.is_device_lost(device=device):
+                self.__devices_registry.reset_communication(device=device)
+
+                self.__logger.info(
+                    "Device with address: %s is still lost",
+                    device_address,
+                    extra={
+                        "device": {
+                            "id": device.id.__str__(),
+                            "serial_number": device.serial_number,
+                            "address": device_address,
+                        },
+                    },
+                )
+
+            else:
+                self.__logger.info(
+                    "Device with address: %s is lost",
+                    device_address,
+                    extra={
+                        "device": {
+                            "id": device.id.__str__(),
+                            "serial_number": device.serial_number,
+                            "address": device_address,
+                        },
+                    },
+                )
+
+                self.__devices_registry.set_device_is_lost(device=device)
+
+            return
+
+        # If device is marked as lost...
+        if self.__devices_registry.is_device_lost(device=device):
+            # ...and wait for ping delay...
+            if (time.time() - device.last_packet_timestamp) >= self.__PING_DELAY:
+                # ...then try to PING device
+                self.__send_ping_handler(device=device, device_address=device_address)
+
+            return
+
+        # Check for delay between reading
+        if device.waiting_for_packet is None or (
+            device.waiting_for_packet is not None
+            and time.time() - device.last_packet_timestamp >= self.__PACKET_RESPONSE_DELAY
+        ):
+            # Device state is unknown...
+            if self.__devices_registry.is_device_unknown(device=device):
+                # ...ask device for its state
+                self.__send_read_device_state_handler(device=device, device_address=device_address)
+
+                return
+
+            # Check if device is in RUNNING mode
+            if not self.__devices_registry.is_device_running(device=device):
+                return
+
+            if self.__write_register_handler(device=device, device_address=device_address):
+                return
+
+            if time.time() - device.get_last_register_reading_timestamp() >= device.sampling_time:
+                if self.__read_registers_handler(device=device, device_address=device_address):
+                    return
+
+    # -----------------------------------------------------------------------------
+
+    def __send_ping_handler(self, device: DeviceRecord, device_address: int) -> None:
+        result = self.__transporter.send_packet(
+            version=ProtocolVersion.V1,
             address=device_address,
             payload=V1Builder.build_ping(),
         )
@@ -218,7 +185,7 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
 
     # -----------------------------------------------------------------------------
 
-    def __send_read_device_state_handler(self, device: DeviceRecord) -> None:
+    def __send_read_device_state_handler(self, device: DeviceRecord, device_address: int) -> None:
         state_attribute = self.__registers_registry.get_by_name(device_id=device.id, name=DeviceAttribute.STATE.value)
 
         if state_attribute is None:
@@ -234,61 +201,62 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
 
             return
 
-        device_address = self.__get_address_for_device(device=device)
-
-        if device_address is None:
-            self.__logger.error(
-                "Device address could not be fetched from registry. Device is disabled and have to be re-discovered",
-                extra={
-                    "device": {
-                        "id": device.id.__str__(),
-                        "serial_number": device.serial_number,
-                    },
-                },
-            )
-
-            self.__devices_registry.disable(device=device)
-
-            return
-
         output_content = V1Builder.build_read_single_register_value(
             register_type=state_attribute.type,
             register_address=state_attribute.address,
         )
 
-        result = self.__client.send_packet(
+        result = self.__transporter.send_packet(
+            version=ProtocolVersion.V1,
             address=device_address,
             payload=output_content,
-            waiting_time=1,
+            waiting_time=self.__PACKET_RESPONSE_WAITING_TIME,
         )
 
         self.__validate_result(result=result, packet_type=Packet.READ_SINGLE_REGISTER_VALUE, device=device)
 
     # -----------------------------------------------------------------------------
 
+    def __write_register_handler(self, device: DeviceRecord, device_address: int) -> bool:
+        for register_type in (RegisterType.OUTPUT, RegisterType.ATTRIBUTE):
+            if self.__write_single_register(
+                device=device,
+                device_address=device_address,
+                register_type=register_type,
+            ):
+                return True
+
+        return False
+
+    # -----------------------------------------------------------------------------
+
+    def __read_registers_handler(self, device: DeviceRecord, device_address: int) -> bool:
+        reading_register_address, reading_register_type = device.get_reading_register()
+
+        if reading_register_type is None:
+            self.__update_reading_pointer(device=device)
+
+            reading_register_address, reading_register_type = device.get_reading_register()
+
+        if reading_register_type is not None:
+            self.__read_multiple_registers(
+                device=device,
+                device_address=device_address,
+                register_type=reading_register_type,
+                start_address=reading_register_address,
+            )
+
+        return True
+
+    # -----------------------------------------------------------------------------
+
     def __read_multiple_registers(
         self,
         device: DeviceRecord,
+        device_address: int,
         register_type: RegisterType,
         start_address: Optional[int],
-    ) -> bool:
-        device_address = self.__get_address_for_device(device=device)
-
-        if device_address is None:
-            self.__logger.error(
-                "Device address could not be fetched from registry. Device is disabled and have to be re-discovered",
-                extra={
-                    "device": {
-                        "id": device.id.__str__(),
-                        "serial_number": device.serial_number,
-                    },
-                },
-            )
-
-            self.__devices_registry.disable(device=device)
-
-            return False
-
+    ) -> None:
         register_size = len(
             self.__registers_registry.get_all_for_device(device_id=device.id, register_type=register_type)
         )
@@ -303,7 +271,9 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
             max_readable_registers_count = (self.__get_max_packet_length_for_device(device=device) - 8) // 4
 
         else:
-            return False
+            self.__update_reading_pointer(device=device)
+
+            return
 
         # Calculate reading address based on maximum reading length and start address
         # e.g. start_address = 0 and max_readable_registers_count = 3 => max_readable_addresses = 2
@@ -314,19 +284,20 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
         if (max_readable_addresses + 1) >= register_size:
             if start_address == 0:
                 read_length = register_size
-                next_address = start_address + read_length
 
             else:
                 read_length = register_size - start_address
-                next_address = start_address + read_length
 
         else:
             read_length = max_readable_registers_count
-            next_address = start_address + read_length
+
+        next_address = start_address + read_length
 
         # Validate registers reading length
         if read_length <= 0:
-            return False
+            self.__update_reading_pointer(device=device)
+
+            return
 
         output_content = V1Builder.build_read_multiple_registers_values(
             register_type=register_type,
@@ -334,7 +305,8 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
             registers_count=read_length,
         )
 
-        result = self.__client.send_packet(
+        result = self.__transporter.send_packet(
+            version=ProtocolVersion.V1,
             address=device_address,
             payload=output_content,
         )
@@ -342,22 +314,27 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
         self.__validate_result(result=result, packet_type=Packet.READ_MULTIPLE_REGISTERS_VALUES, device=device)
 
         if result is True:
-            # ...and update reading pointer
-            device = self.__devices_registry.set_reading_register(
-                device=device,
-                register_address=next_address,
-                register_type=register_type,
-            )
-
             # Check pointer against to registers size
             if (next_address + 1) > register_size:
                 self.__update_reading_pointer(device=device)
 
-        return True
+            else:
+                self.__devices_registry.set_reading_register(
+                    device=device,
+                    register_address=next_address,
+                    register_type=register_type,
+                )
+
+        return
 
     # -----------------------------------------------------------------------------
 
-    def __write_single_register_handler(self, device: DeviceRecord, register_type: RegisterType) -> bool:
+    def __write_single_register(
+        self,
+        device: DeviceRecord,
+        device_address: int,
+        register_type: RegisterType,
+    ) -> bool:
         registers = self.__registers_registry.get_all_for_device(
             device_id=device.id,
             register_type=register_type,
@@ -367,6 +344,7 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
             if register.expected_value is not None and register.expected_pending is None:
                 if self.__write_value_to_single_register(
                     device=device,
+                    device_address=device_address,
                     register=register,
                     write_value=register.expected_value,
                 ):
@@ -381,26 +359,10 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
     def __write_value_to_single_register(
         self,
         device: DeviceRecord,
+        device_address: int,
         register: RegisterRecord,
         write_value: Union[str, int, float, bool, datetime, ButtonPayload, SwitchPayload],
     ) -> bool:
-        device_address = self.__get_address_for_device(device=device)
-
-        if device_address is None:
-            self.__logger.error(
-                "Device address could not be fetched from registry. Device is disabled and have to be re-discovered",
-                extra={
-                    "device": {
-                        "id": device.id.__str__(),
-                        "serial_number": device.serial_number,
-                    },
-                },
-            )
-
-            self.__devices_registry.disable(device=device)
-
-            return False
-
         try:
             output_content = V1Builder.build_write_single_register_value(
                 register_type=register.type,
@@ -429,9 +391,13 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
                 },
             )
 
+            # There is some problem with transforming expected value, write is skipped & cleared
+            self.__registers_registry.set_expected_value(register=register, value=None)
+
             return False
 
-        result = self.__client.send_packet(
+        result = self.__transporter.send_packet(
+            version=ProtocolVersion.V1,
             address=device_address,
             payload=output_content,
             waiting_time=self.__PACKET_RESPONSE_WAITING_TIME,
@@ -456,25 +422,17 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
     def __update_reading_pointer(self, device: DeviceRecord) -> None:
         _, reading_register_type = device.get_reading_register()
 
-        if reading_register_type is not None:
-            if reading_register_type == RegisterType.INPUT:
-                if (
-                    len(
-                        self.__registers_registry.get_all_for_device(
-                            device_id=device.id, register_type=RegisterType.OUTPUT
-                        )
-                    )
-                    > 0
-                ):
-                    self.__devices_registry.set_reading_register(
-                        device=device,
-                        register_address=0,
-                        register_type=RegisterType.OUTPUT,
-                    )
+        for register_type in [RegisterType.INPUT, RegisterType.OUTPUT, RegisterType.ATTRIBUTE]:
+            if (reading_register_type is None or not reading_register_type.__eq__(register_type)) and len(
+                self.__registers_registry.get_all_for_device(device_id=device.id, register_type=register_type)
+            ) > 0:
+                device = self.__devices_registry.set_reading_register(
+                    device=device,
+                    register_address=0,
+                    register_type=register_type,
+                )
 
-                    return
-
-        self.__devices_registry.reset_reading_register(device=device)
+                return
 
     # -----------------------------------------------------------------------------
 

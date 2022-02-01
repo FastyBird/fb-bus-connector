@@ -22,9 +22,6 @@ FastyBird BUS connector pairing module proxy
 from abc import ABC, abstractmethod
 from typing import List
 
-# Library libs
-from fastybird_fb_bus_connector.types import ProtocolVersion
-
 
 class IPairing(ABC):  # pylint: disable=too-few-public-methods
     """
@@ -59,12 +56,6 @@ class IPairing(ABC):  # pylint: disable=too-few-public-methods
     @abstractmethod
     def disable(self) -> None:
         """Disable devices pairing"""
-
-    # -----------------------------------------------------------------------------
-
-    @abstractmethod
-    def version(self) -> ProtocolVersion:
-        """Pairing supported protocol version"""
 
 
 class Pairing:  # pylint: disable=too-few-public-methods

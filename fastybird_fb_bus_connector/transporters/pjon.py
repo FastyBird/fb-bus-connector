@@ -15,7 +15,7 @@
 #     limitations under the License.
 
 """
-FastyBird BUS connector clients module PJON client
+FastyBird BUS connector transporters module PJON transporter
 """
 
 # Python base dependencies
@@ -28,19 +28,19 @@ from kink import inject
 
 # Library libs
 import fastybird_fb_bus_connector.pjon as pjon  # pylint: disable=consider-using-from-import
-from fastybird_fb_bus_connector.clients.base import IClient
 from fastybird_fb_bus_connector.logger import Logger
 from fastybird_fb_bus_connector.receivers.receiver import Receiver
+from fastybird_fb_bus_connector.transporters.base import ITransporter
 from fastybird_fb_bus_connector.types import Packet, PacketContent, ProtocolVersion
 
 
-@inject(alias=IClient)
-class PjonClient(IClient, pjon.ThroughSerialAsync):  # pylint: disable=no-member
+@inject(alias=ITransporter)
+class PjonTransporter(ITransporter, pjon.ThroughSerialAsync):  # pylint: disable=no-member
     """
-    PJON client
+    PJON transporter
 
     @package        FastyBird:FbBusConnector!
-    @module         clients/pjon
+    @module         transporters/pjon
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
@@ -60,24 +60,24 @@ class PjonClient(IClient, pjon.ThroughSerialAsync):  # pylint: disable=no-member
     @inject
     def __init__(  # pylint: disable=too-many-arguments
         self,
-        client_address: Optional[int],
-        client_baud_rate: Optional[int],
-        client_interface: Optional[str],
-        protocol_version: ProtocolVersion,
+        address: Optional[int],
+        baud_rate: Optional[int],
+        interface: Optional[str],
+        version: ProtocolVersion,
         receiver: Receiver,
         logger: Union[Logger, logging.Logger] = logging.getLogger("dummy"),
     ) -> None:
         pjon.ThroughSerialAsync.__init__(  # pylint: disable=no-member
             self,
-            client_address if client_address is not None else self.__MASTER_ADDRESS,
-            (client_interface if client_interface is not None else self.__SERIAL_INTERFACE).encode("utf-8"),
-            client_baud_rate if client_baud_rate is not None else self.__SERIAL_BAUD_RATE,
+            address if address is not None else self.__MASTER_ADDRESS,
+            (interface if interface is not None else self.__SERIAL_INTERFACE).encode("utf-8"),
+            baud_rate if baud_rate is not None else self.__SERIAL_BAUD_RATE,
         )
 
         self.set_synchronous_acknowledge(False)
         self.set_asynchronous_acknowledge(False)
 
-        self.__version = protocol_version
+        self.__version = version
 
         self.__receiver = receiver
 
@@ -87,7 +87,7 @@ class PjonClient(IClient, pjon.ThroughSerialAsync):  # pylint: disable=no-member
 
     @property
     def version(self) -> ProtocolVersion:
-        """Protocol version used by client"""
+        """Protocol version used by transporter"""
         return self.__version
 
     # -----------------------------------------------------------------------------
@@ -173,7 +173,7 @@ class PjonClient(IClient, pjon.ThroughSerialAsync):  # pylint: disable=no-member
     # -----------------------------------------------------------------------------
 
     def handle(self) -> int:
-        """Process client"""
+        """Process transporter"""
         try:
             result = self.loop()
 
@@ -193,7 +193,7 @@ class PjonClient(IClient, pjon.ThroughSerialAsync):  # pylint: disable=no-member
     # -----------------------------------------------------------------------------
 
     def receive(self, received_payload: bytes, length: int, packet_info: Dict) -> None:
-        """Process received message by clients"""
+        """Process received message by transporters"""
         sender_address: Optional[int] = None
 
         try:

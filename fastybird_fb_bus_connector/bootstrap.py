@@ -29,7 +29,6 @@ from whistle import EventDispatcher
 
 # Library libs
 from fastybird_fb_bus_connector.api.v1parser import V1Parser
-from fastybird_fb_bus_connector.clients.client import Client
 from fastybird_fb_bus_connector.connector import FbBusConnector
 from fastybird_fb_bus_connector.entities import FbBusConnectorEntity
 from fastybird_fb_bus_connector.events.listeners import EventsListener
@@ -45,6 +44,7 @@ from fastybird_fb_bus_connector.receivers.device import (
 )
 from fastybird_fb_bus_connector.receivers.receiver import Receiver
 from fastybird_fb_bus_connector.registry.model import DevicesRegistry, RegistersRegistry
+from fastybird_fb_bus_connector.transporters.transporter import Transporter
 
 
 def create_connector(
@@ -80,15 +80,15 @@ def create_connector(
     )
     di["fb-bus-connector_api-v1-parser"] = di[V1Parser]
 
-    # Communication client
-    di[Client] = Client(logger=connector_logger)
-    di["fb-bus-connector_data-client-proxy"] = di[Client]
+    # Communication transporter
+    di[Transporter] = Transporter(logger=connector_logger)
+    di["fb-bus-connector_data-transporter-proxy"] = di[Transporter]
 
     # Devices pairing
     di[ApiV1Pairing] = ApiV1Pairing(
         devices_registry=di[DevicesRegistry],
         registers_registry=di[RegistersRegistry],
-        client=di[Client],
+        transporter=di[Transporter],
         logger=connector_logger,
     )
     di["fb-bus-connector_devices-pairing-api-v1"] = di[ApiV1Pairing]
@@ -129,7 +129,7 @@ def create_connector(
     di[ApiV1Publisher] = ApiV1Publisher(
         devices_registry=di[DevicesRegistry],
         registers_registry=di[RegistersRegistry],
-        client=di[Client],
+        transporter=di[Transporter],
         logger=connector_logger,
     )
     di["fb-bus-connector_api-v1-publisher"] = di[ApiV1Publisher]
@@ -155,7 +155,7 @@ def create_connector(
         publisher=di[Publisher],
         devices_registry=di[DevicesRegistry],
         registers_registry=di[RegistersRegistry],
-        client=di[Client],
+        transporter=di[Transporter],
         pairing=di[Pairing],
         logger=connector_logger,
     )

@@ -38,7 +38,6 @@ from fastybird_fb_bus_connector.receivers.entities import (
     ReadMultipleRegistersEntity,
     ReadSingleRegisterEntity,
     RegisterStructureEntity,
-    ReportSingleRegisterEntity,
     SingleRegisterEntity,
     WriteMultipleRegistersEntity,
     WriteSingleRegisterEntity,
@@ -55,7 +54,7 @@ class DeviceItemReceiver(IReceiver):  # pylint: disable=too-few-public-methods
     BUS messages receiver for devices messages
 
     @package        FastyBird:FbBusConnector!
-    @module         receivers
+    @module         receivers/device
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
@@ -109,7 +108,7 @@ class RegisterItemReceiver(IReceiver):  # pylint: disable=too-few-public-methods
     BUS messages receiver for registers messages
 
     @package        FastyBird:FbBusConnector!
-    @module         receivers
+    @module         receivers/device
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
@@ -215,10 +214,6 @@ class RegisterItemReceiver(IReceiver):  # pylint: disable=too-few-public-methods
             # Reset communication info
             self.__devices_registry.reset_communication(device=device_record)
 
-        if isinstance(entity, ReportSingleRegisterEntity):
-            # Reset reading pointer
-            self.__devices_registry.reset_reading_register(device=device_record)
-
     # -----------------------------------------------------------------------------
 
     def __write_value_to_register(
@@ -238,7 +233,7 @@ class DiscoverReceiver(IReceiver):  # pylint: disable=too-few-public-methods
     BUS messages receiver for devices discovery messages
 
     @package        FastyBird:FbBusConnector!
-    @module         receivers/pairing
+    @module         receivers/device
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """

@@ -68,7 +68,11 @@ from fastybird_fb_bus_connector.registry.records import (
     OutputRegisterRecord,
     RegisterRecord,
 )
-from fastybird_fb_bus_connector.types import DeviceAttribute, RegisterAttribute
+from fastybird_fb_bus_connector.types import (
+    DeviceAttribute,
+    RegisterAttribute,
+    RegisterName,
+)
 
 
 @inject(
@@ -251,10 +255,10 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
             return
 
         if isinstance(event.record, InputRegisterRecord):
-            channel_identifier = f"input_{(event.record.address + 1):02}"
+            channel_identifier = f"{RegisterName.INPUT.value}_{(event.record.address + 1):02}"
 
         elif isinstance(event.record, OutputRegisterRecord):
-            channel_identifier = f"output_{(event.record.address + 1):02}"
+            channel_identifier = f"{RegisterName.OUTPUT.value}_{(event.record.address + 1):02}"
 
         else:
             return
@@ -396,7 +400,7 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
 
         property_data = {
             "id": register.id,
-            "identifier": RegisterAttribute.STATE.value,  # f"register_{(register.address + 1):02}",
+            "identifier": RegisterAttribute.VALUE.value,  # f"register_{(register.address + 1):02}",
             "data_type": register.data_type,
             "format": register.format,
             "unit": None,
@@ -407,7 +411,7 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
 
         channel_property = self.__channels_properties_repository.get_by_identifier(
             channel_id=channel.id,
-            property_identifier=RegisterAttribute.STATE.value,
+            property_identifier=RegisterAttribute.VALUE.value,
         )
 
         if channel_property is None:

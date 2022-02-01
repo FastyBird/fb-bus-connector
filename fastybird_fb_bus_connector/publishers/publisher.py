@@ -25,7 +25,6 @@ from typing import List, Set
 # Library libs
 from fastybird_fb_bus_connector.registry.model import DevicesRegistry
 from fastybird_fb_bus_connector.registry.records import DeviceRecord
-from fastybird_fb_bus_connector.types import ProtocolVersion
 
 
 class IPublisher(ABC):  # pylint: disable=too-few-public-methods
@@ -33,7 +32,7 @@ class IPublisher(ABC):  # pylint: disable=too-few-public-methods
     Data publisher interface
 
     @package        FastyBird:FbBusConnector!
-    @module         publishers
+    @module         publishers/publisher
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
@@ -44,14 +43,8 @@ class IPublisher(ABC):  # pylint: disable=too-few-public-methods
     def handle(
         self,
         device: DeviceRecord,
-    ) -> bool:
+    ) -> None:
         """Handle publish read or write message to device"""
-
-    # -----------------------------------------------------------------------------
-
-    @abstractmethod
-    def version(self) -> ProtocolVersion:
-        """Pairing supported protocol version"""
 
 
 class Publisher:  # pylint: disable=too-few-public-methods
@@ -59,7 +52,7 @@ class Publisher:  # pylint: disable=too-few-public-methods
     Data publisher proxy
 
     @package        FastyBird:FbBusConnector!
-    @module         publishers
+    @module         publishers/publisher
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
@@ -91,15 +84,9 @@ class Publisher:  # pylint: disable=too-few-public-methods
                 continue
 
             if device.id.__str__() not in self.__processed_devices:
-                publisher_result = False
-
                 for publisher in self.__publishers:
-                    if publisher.handle(device=device):
-                        publisher_result = True
+                    publisher.handle(device=device)
 
-                if publisher_result:
-                    self.__processed_devices.append(device.id.__str__())
-
-                    return
+                self.__processed_devices.append(device.id.__str__())
 
         self.__processed_devices = []

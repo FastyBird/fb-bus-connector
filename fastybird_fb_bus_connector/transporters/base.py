@@ -15,7 +15,7 @@
 #     limitations under the License.
 
 """
-FastyBird BUS connector clients module base client
+FastyBird BUS connector transporters module base transporter
 """
 
 # Python base dependencies
@@ -26,12 +26,12 @@ from typing import List
 from fastybird_fb_bus_connector.types import ProtocolVersion
 
 
-class IClient(ABC):
+class ITransporter(ABC):
     """
-    Client interface
+    Transporter interface
 
     @package        FastyBird:FbBusConnector!
-    @module         clients/base
+    @module         transporters/base
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
@@ -41,7 +41,7 @@ class IClient(ABC):
     @property
     @abstractmethod
     def version(self) -> ProtocolVersion:
-        """Protocol version used by client"""
+        """Protocol version used by transporter"""
 
     # -----------------------------------------------------------------------------
 
@@ -59,4 +59,4 @@ class IClient(ABC):
 
     @abstractmethod
     def handle(self) -> int:
-        """Process client requests"""
+        """Process transporter requests"""

@@ -57,8 +57,6 @@ from fastybird_metadata.types import (
 )
 from kink import inject
 
-# Library libs
-from fastybird_fb_bus_connector.clients.client import Client
 from fastybird_fb_bus_connector.entities import FbBusDeviceEntity
 from fastybird_fb_bus_connector.events.listeners import EventsListener
 from fastybird_fb_bus_connector.logger import Logger
@@ -66,8 +64,15 @@ from fastybird_fb_bus_connector.pairing.pairing import Pairing
 from fastybird_fb_bus_connector.publishers.publisher import Publisher
 from fastybird_fb_bus_connector.receivers.receiver import Receiver
 from fastybird_fb_bus_connector.registry.model import DevicesRegistry, RegistersRegistry
-from fastybird_fb_bus_connector.types import ControlAction as ConnectorControlAction
-from fastybird_fb_bus_connector.types import ProtocolVersion, RegisterAttribute
+
+# Library libs
+from fastybird_fb_bus_connector.transporters.transporter import Transporter
+from fastybird_fb_bus_connector.types import (
+    ConnectorAction,
+    ProtocolVersion,
+    RegisterAttribute,
+    RegisterName,
+)
 
 
 @inject(alias=IConnector)
@@ -95,7 +100,7 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
     __devices_registry: DevicesRegistry
     __registers_registry: RegistersRegistry
 
-    __client: Client
+    __transporter: Transporter
 
     __events_listener: EventsListener
 
@@ -113,7 +118,7 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
         publisher: Publisher,
         devices_registry: DevicesRegistry,
         registers_registry: RegistersRegistry,
-        client: Client,
+        transporter: Transporter,
         events_listener: EventsListener,
         pairing: Pairing,
         logger: Union[Logger, logging.Logger] = logging.getLogger("dummy"),
@@ -129,7 +134,7 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
         self.__devices_registry = devices_registry
         self.__registers_registry = registers_registry
 
-        self.__client = client
+        self.__transporter = transporter
 
         self.__events_listener = events_listener
 
@@ -152,7 +157,7 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
 
         protocol_version = connector_settings.get("protocol_version")
 
-        self.__client.initialize(
+        self.__transporter.initialize(
             address=int(str(connector_settings.get("address"))),
             baud_rate=int(str(connector_settings.get("baud_rate"))),
             interface=str(connector_settings.get("interface")),
@@ -240,7 +245,7 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
             ):
                 register_address = channel_property.value
 
-            if channel_property.identifier == RegisterAttribute.STATE.value and isinstance(
+            if channel_property.identifier == RegisterAttribute.VALUE.value and isinstance(
                 channel_property, ChannelDynamicPropertyEntity
             ):
                 register_id = channel_property.id
@@ -279,7 +284,7 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
             )
 
         else:
-            if parsed_channel_identifier.group("name") == "output":
+            if parsed_channel_identifier.group("name") == RegisterName.OUTPUT.value:
                 self.__registers_registry.append_output_register(
                     device_id=channel.device.id,
                     register_id=register_id,
@@ -287,7 +292,7 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
                     register_data_type=register_data_type,
                 )
 
-            elif parsed_channel_identifier.group("name") == "input":
+            elif parsed_channel_identifier.group("name") == RegisterName.INPUT.value:
                 self.__registers_registry.append_input_register(
                     device_id=channel.device.id,
                     register_id=register_id,
@@ -396,7 +401,7 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
                 # Continue processing devices
                 self.__publisher.handle()
 
-        self.__packets_to_be_sent = self.__client.handle()
+        self.__packets_to_be_sent = self.__transporter.handle()
 
     # -----------------------------------------------------------------------------
 
@@ -452,13 +457,13 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
     ) -> None:
         """Write connector control action"""
         if isinstance(control_item, ConnectorControlEntity):
-            if not ConnectorControlAction.has_value(control_item.name):
+            if not ConnectorAction.has_value(control_item.name):
                 return
 
-            control_action = ConnectorControlAction(control_item.name)
+            control_action = ConnectorAction(control_item.name)
 
-            if control_action == ConnectorControlAction.DISCOVER:
+            if control_action == ConnectorAction.DISCOVER:
                 self.__pairing.enable()
 
-            if control_action == ConnectorControlAction.RESTART:
+            if control_action == ConnectorAction.RESTART:
                 pass

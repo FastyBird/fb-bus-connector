@@ -42,7 +42,7 @@ class IReceiver(ABC):  # pylint: disable=too-few-public-methods
     Data receiver interface
 
     @package        FastyBird:FbBusConnector!
-    @module         receivers
+    @module         receivers/receiver
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
@@ -59,7 +59,7 @@ class Receiver:
     BUS messages receivers proxy
 
     @package        FastyBird:FbBusConnector!
-    @module         receivers
+    @module         receivers/receiver
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """

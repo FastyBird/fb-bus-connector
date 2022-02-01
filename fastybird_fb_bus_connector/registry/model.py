@@ -386,21 +386,6 @@ class DevicesRegistry:  # pylint: disable=too-many-public-methods
 
     # -----------------------------------------------------------------------------
 
-    def reset_reading_register(self, device: DeviceRecord, reset_timestamp: bool = False) -> DeviceRecord:
-        """Reset device register reading pointer"""
-        device.reset_reading_register(reset_timestamp=reset_timestamp)
-
-        self.__update(updated_device=device)
-
-        updated_device = self.get_by_id(device.id)
-
-        if updated_device is None:
-            raise InvalidStateException("Device record could not be re-fetched from registry after update")
-
-        return updated_device
-
-    # -----------------------------------------------------------------------------
-
     def set_last_packet_timestamp(self, device: DeviceRecord, last_packet_timestamp: float) -> DeviceRecord:
         """Reset device last packet sent timestamp"""
         device.last_packet_timestamp = last_packet_timestamp

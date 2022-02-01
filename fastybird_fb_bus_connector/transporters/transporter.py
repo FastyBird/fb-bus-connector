@@ -15,31 +15,32 @@
 #     limitations under the License.
 
 """
-FastyBird BUS connector clients module proxy
+FastyBird BUS connector transporters module proxy
 """
 
 # Python base dependencies
 import logging
 from typing import List, Set, Union
 
-# Library libs
-from fastybird_fb_bus_connector.clients.base import IClient
-from fastybird_fb_bus_connector.clients.pjon import PjonClient
 from fastybird_fb_bus_connector.logger import Logger
+
+# Library libs
+from fastybird_fb_bus_connector.transporters.base import ITransporter
+from fastybird_fb_bus_connector.transporters.pjon import PjonTransporter
 from fastybird_fb_bus_connector.types import ProtocolVersion
 
 
-class Client:
+class Transporter:
     """
-    Clients proxy
+    Transporters proxy
 
     @package        FastyBird:FbBusConnector!
-    @module         clients/client
+    @module         transporters/transporter
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
 
-    __clients: Set[IClient]
+    __transporters: Set[ITransporter]
 
     __logger: Union[Logger, logging.Logger]
 
@@ -49,7 +50,7 @@ class Client:
         self,
         logger: Union[Logger, logging.Logger] = logging.getLogger("dummy"),
     ) -> None:
-        self.__clients = set()
+        self.__transporters = set()
 
         self.__logger = logger
 
@@ -62,13 +63,13 @@ class Client:
         interface: str,
         protocol_version: ProtocolVersion = ProtocolVersion.V1,
     ) -> None:
-        """Register new client to proxy"""
-        self.__clients.add(
-            PjonClient(  # pylint: disable=no-value-for-parameter
-                client_address=address,
-                client_baud_rate=baud_rate,
-                client_interface=interface,
-                protocol_version=protocol_version,
+        """Register new transporter to proxy"""
+        self.__transporters.add(
+            PjonTransporter(  # pylint: disable=no-value-for-parameter
+                address=address,
+                baud_rate=baud_rate,
+                interface=interface,
+                version=protocol_version,
                 logger=self.__logger,
             )
         )
@@ -77,14 +78,18 @@ class Client:
 
     def broadcast_packet(
         self,
+        version: ProtocolVersion,
         payload: List[int],
         waiting_time: float = 0.0,
     ) -> bool:
         """Broadcast packet to all devices"""
         result = True
 
-        for client in self.__clients:
-            if not client.broadcast_packet(payload=payload, waiting_time=waiting_time):
+        for transporter in self.__transporters:
+            if not transporter.version.__eq__(version):
+                continue
+
+            if not transporter.broadcast_packet(payload=payload, waiting_time=waiting_time):
                 result = False
 
         return result
@@ -93,6 +98,7 @@ class Client:
 
     def send_packet(
         self,
+        version: ProtocolVersion,
         address: int,
         payload: List[int],
         waiting_time: float = 0.0,
@@ -100,8 +106,11 @@ class Client:
         """Send packet to specific device address"""
         result = True
 
-        for client in self.__clients:
-            if not client.send_packet(address=address, payload=payload, waiting_time=waiting_time):
+        for transporter in self.__transporters:
+            if not transporter.version.__eq__(version):
+                continue
+
+            if not transporter.send_packet(address=address, payload=payload, waiting_time=waiting_time):
                 result = False
 
         return result
@@ -109,12 +118,12 @@ class Client:
     # -----------------------------------------------------------------------------
 
     def handle(self) -> int:
-        """Handle communication from client"""
+        """Handle communication from transporters"""
         packets_to_be_sent = 0
 
-        for client in self.__clients:
-            client_packets_to_be_sent = client.handle()
+        for transporter in self.__transporters:
+            transporter_packets_to_be_sent = transporter.handle()
 
-            packets_to_be_sent = packets_to_be_sent + client_packets_to_be_sent
+            packets_to_be_sent = packets_to_be_sent + transporter_packets_to_be_sent
 
         return packets_to_be_sent
