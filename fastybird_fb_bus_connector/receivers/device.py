@@ -226,11 +226,10 @@ class RegisterItemReceiver(IReceiver):  # pylint: disable=too-few-public-methods
         register_record: RegisterRecord,
         value: Union[str, int, float, bool, datetime, ButtonPayload, SwitchPayload, None],
     ) -> None:
-        if value is not None:
-            self.__registers_registry.set_actual_value(
-                register=register_record,
-                value=value,
-            )
+        self.__registers_registry.set_actual_value(
+            register=register_record,
+            value=value,
+        )
 
 
 @inject(alias=IReceiver)

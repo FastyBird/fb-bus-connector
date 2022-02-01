@@ -61,7 +61,7 @@ class ApiV1Pairing(IPairing):  # pylint: disable=too-many-instance-attributes
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
 
-    __enabled: bool = True
+    __enabled: bool = False
 
     __discovered_devices: Set[DiscoveredDeviceRecord] = set()
 
