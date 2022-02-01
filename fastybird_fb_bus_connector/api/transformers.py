@@ -334,15 +334,51 @@ class ValueTransformHelpers:
             return struct.pack("<I", 0xFF00 if bool(value) is True else 0x0000)  # pylint: disable=no-member
 
         if data_type == DataType.BUTTON:
+            if value == ButtonPayload.PRESSED:
+                transformed_value = ButtonPayloadType.PRESS
+
+            elif value == ButtonPayload.RELEASED:
+                transformed_value = ButtonPayloadType.RELEASE
+
+            elif value == ButtonPayload.CLICKED:
+                transformed_value = ButtonPayloadType.CLICK
+
+            elif value == ButtonPayload.DOUBLE_CLICKED:
+                transformed_value = ButtonPayloadType.DOUBLE_CLICK
+
+            elif value == ButtonPayload.TRIPLE_CLICKED:
+                transformed_value = ButtonPayloadType.TRIPLE_CLICK
+
+            elif value == ButtonPayload.LONG_CLICKED:
+                transformed_value = ButtonPayloadType.LONG_CLICK
+
+            elif value == ButtonPayload.EXTRA_LONG_CLICKED:
+                transformed_value = ButtonPayloadType.LONG_LONG_CLICK
+
+            else:
+                return None
+
             return struct.pack(  # pylint: disable=no-member
                 "<I",
-                (value if isinstance(value, int) else fast_int(str(value))),  # type: ignore[arg-type]
+                transformed_value.value,
             )
 
         if data_type == DataType.SWITCH:
+            if value == SwitchPayload.ON:
+                transformed_value = SwitchPayloadType.ON
+
+            elif value == SwitchPayload.OFF:
+                transformed_value = SwitchPayloadType.OFF
+
+            elif value == SwitchPayload.TOGGLE:
+                transformed_value = SwitchPayloadType.TOGGLE
+
+            else:
+                return None
+
             return struct.pack(  # pylint: disable=no-member
                 "<I",
-                (value if isinstance(value, int) else fast_int(str(value))),  # type: ignore[arg-type]
+                transformed_value.value,
             )
 
         if data_type == DataType.STRING:

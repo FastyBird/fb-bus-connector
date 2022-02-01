@@ -173,6 +173,26 @@ class V1Builder:
             for value in transformed_value:
                 output_content.append(value)
 
+        elif (
+            register_data_type
+            in (
+                DataType.BUTTON,
+                DataType.SWITCH,
+            )
+            and isinstance(write_value, (SwitchPayload, ButtonPayload))
+        ):
+            transformed_value = ValueTransformHelpers.transform_to_bytes(
+                data_type=register_data_type,
+                value=write_value,
+            )
+
+            # Value could not be transformed
+            if transformed_value is None:
+                raise BuildPayloadException("Value to be written into register could not be transformed")
+
+            for value in transformed_value:
+                output_content.append(value)
+
         # SPECIAL TRANSFORMING FOR STATE ATTRIBUTE
         elif (
             register_data_type == DataType.ENUM
