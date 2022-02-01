@@ -674,6 +674,8 @@ class V1Parser:
             DataType.INT,
             DataType.FLOAT,
             DataType.BOOLEAN,
+            DataType.BUTTON,
+            DataType.SWITCH,
         ):
             return register_type, (
                 register_address,
@@ -767,6 +769,8 @@ class V1Parser:
                 DataType.INT,
                 DataType.FLOAT,
                 DataType.BOOLEAN,
+                DataType.BUTTON,
+                DataType.SWITCH,
             ):
                 parsed_value = list(map(int, payload[position_byte:]))
 
