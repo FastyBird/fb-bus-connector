@@ -433,7 +433,7 @@ class RegisterRecord(ABC):  # pylint: disable=too-many-instance-attributes
     # -----------------------------------------------------------------------------
 
     @actual_value.setter
-    def actual_value(self, value: Union[str, int, float, bool, datetime, ButtonPayload, SwitchPayload]) -> None:
+    def actual_value(self, value: Union[str, int, float, bool, datetime, ButtonPayload, SwitchPayload, None]) -> None:
         """Set register actual value"""
         self._actual_value = value
 

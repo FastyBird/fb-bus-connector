@@ -800,7 +800,7 @@ class RegistersRegistry:
     def set_actual_value(
         self,
         register: RegisterRecord,
-        value: Union[str, int, float, bool, datetime, ButtonPayload, SwitchPayload],
+        value: Union[str, int, float, bool, datetime, ButtonPayload, SwitchPayload, None],
     ) -> RegisterRecord:
         """Set actual value to register"""
         existing_record = self.get_by_id(register_id=register.id)
