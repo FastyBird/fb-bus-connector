@@ -35,8 +35,7 @@ from fastybird_fb_bus_connector.api.transformers import (
 
 # Library libs
 from fastybird_fb_bus_connector.api.v1validator import V1Validator
-from fastybird_fb_bus_connector.exceptions import ParsePayloadException
-from fastybird_fb_bus_connector.receivers.entities import (
+from fastybird_fb_bus_connector.consumers.entities import (
     BaseEntity,
     DeviceDiscoveryEntity,
     PongEntity,
@@ -47,6 +46,7 @@ from fastybird_fb_bus_connector.receivers.entities import (
     WriteMultipleRegistersEntity,
     WriteSingleRegisterEntity,
 )
+from fastybird_fb_bus_connector.exceptions import ParsePayloadException
 from fastybird_fb_bus_connector.registry.model import DevicesRegistry, RegistersRegistry
 from fastybird_fb_bus_connector.registry.records import AttributeRegisterRecord
 from fastybird_fb_bus_connector.types import (

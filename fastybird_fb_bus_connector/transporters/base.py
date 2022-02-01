@@ -22,9 +22,6 @@ FastyBird BUS connector transporters module base transporter
 from abc import ABC, abstractmethod
 from typing import List
 
-# Library libs
-from fastybird_fb_bus_connector.types import ProtocolVersion
-
 
 class ITransporter(ABC):
     """
@@ -35,13 +32,6 @@ class ITransporter(ABC):
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
-
-    # -----------------------------------------------------------------------------
-
-    @property
-    @abstractmethod
-    def version(self) -> ProtocolVersion:
-        """Protocol version used by transporter"""
 
     # -----------------------------------------------------------------------------
 

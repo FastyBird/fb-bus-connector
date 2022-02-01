@@ -57,12 +57,12 @@ from fastybird_metadata.types import (
 )
 from kink import inject
 
+from fastybird_fb_bus_connector.consumers.consumer import Consumer
 from fastybird_fb_bus_connector.entities import FbBusDeviceEntity
 from fastybird_fb_bus_connector.events.listeners import EventsListener
 from fastybird_fb_bus_connector.logger import Logger
 from fastybird_fb_bus_connector.pairing.pairing import Pairing
 from fastybird_fb_bus_connector.publishers.publisher import Publisher
-from fastybird_fb_bus_connector.receivers.receiver import Receiver
 from fastybird_fb_bus_connector.registry.model import DevicesRegistry, RegistersRegistry
 
 # Library libs
@@ -94,7 +94,7 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
 
     __packets_to_be_sent: int = 0
 
-    __receiver: Receiver
+    __consumer: Consumer
     __publisher: Publisher
 
     __devices_registry: DevicesRegistry
@@ -114,7 +114,7 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
         self,
         connector_id: uuid.UUID,
         devices_repository: DevicesRepository,
-        receiver: Receiver,
+        consumer: Consumer,
         publisher: Publisher,
         devices_registry: DevicesRegistry,
         registers_registry: RegistersRegistry,
@@ -127,8 +127,8 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
 
         self.__devices_repository = devices_repository
 
-        self.__receiver = receiver
         self.__publisher = publisher
+        self.__consumer = consumer
         self.__pairing = pairing
 
         self.__devices_registry = devices_registry
@@ -155,13 +155,10 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
             },
         }
 
-        protocol_version = connector_settings.get("protocol_version")
-
         self.__transporter.initialize(
             address=int(str(connector_settings.get("address"))),
             baud_rate=int(str(connector_settings.get("baud_rate"))),
             interface=str(connector_settings.get("interface")),
-            protocol_version=protocol_version if isinstance(protocol_version, ProtocolVersion) else ProtocolVersion.V1,
         )
         self.__devices_registry.reset()
 
@@ -374,7 +371,7 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
 
     def has_unfinished_tasks(self) -> bool:
         """Check if connector has some unfinished task"""
-        return not self.__receiver.is_empty()
+        return not self.__consumer.is_empty()
 
     # -----------------------------------------------------------------------------
 
@@ -385,7 +382,7 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
 
             return
 
-        self.__receiver.handle()
+        self.__consumer.handle()
 
         if self.__stopped:
             return

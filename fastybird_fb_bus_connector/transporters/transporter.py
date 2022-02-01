@@ -27,7 +27,6 @@ from fastybird_fb_bus_connector.logger import Logger
 # Library libs
 from fastybird_fb_bus_connector.transporters.base import ITransporter
 from fastybird_fb_bus_connector.transporters.pjon import PjonTransporter
-from fastybird_fb_bus_connector.types import ProtocolVersion
 
 
 class Transporter:
@@ -61,7 +60,6 @@ class Transporter:
         address: int,
         baud_rate: int,
         interface: str,
-        protocol_version: ProtocolVersion = ProtocolVersion.V1,
     ) -> None:
         """Register new transporter to proxy"""
         self.__transporters.add(
@@ -69,7 +67,6 @@ class Transporter:
                 address=address,
                 baud_rate=baud_rate,
                 interface=interface,
-                version=protocol_version,
                 logger=self.__logger,
             )
         )
@@ -78,7 +75,6 @@ class Transporter:
 
     def broadcast_packet(
         self,
-        version: ProtocolVersion,
         payload: List[int],
         waiting_time: float = 0.0,
     ) -> bool:
@@ -86,9 +82,6 @@ class Transporter:
         result = True
 
         for transporter in self.__transporters:
-            if not transporter.version.__eq__(version):
-                continue
-
             if not transporter.broadcast_packet(payload=payload, waiting_time=waiting_time):
                 result = False
 
@@ -98,7 +91,6 @@ class Transporter:
 
     def send_packet(
         self,
-        version: ProtocolVersion,
         address: int,
         payload: List[int],
         waiting_time: float = 0.0,
@@ -107,9 +99,6 @@ class Transporter:
         result = True
 
         for transporter in self.__transporters:
-            if not transporter.version.__eq__(version):
-                continue
-
             if not transporter.send_packet(address=address, payload=payload, waiting_time=waiting_time):
                 result = False
 

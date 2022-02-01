@@ -15,7 +15,7 @@
 #     limitations under the License.
 
 """
-FastyBird BUS connector receivers module receiver for device messages
+FastyBird BUS connector consumers module consumer for device messages
 """
 
 # Library dependencies
@@ -27,10 +27,8 @@ from fastybird_metadata.devices_module import ConnectionState
 from fastybird_metadata.types import ButtonPayload, SwitchPayload
 from kink import inject
 
-# Library libs
-from fastybird_fb_bus_connector.logger import Logger
-from fastybird_fb_bus_connector.pairing.apiv1 import ApiV1Pairing
-from fastybird_fb_bus_connector.receivers.entities import (
+from fastybird_fb_bus_connector.consumers.consumer import IConsumer
+from fastybird_fb_bus_connector.consumers.entities import (
     BaseEntity,
     DeviceDiscoveryEntity,
     MultipleRegistersEntity,
@@ -42,19 +40,22 @@ from fastybird_fb_bus_connector.receivers.entities import (
     WriteMultipleRegistersEntity,
     WriteSingleRegisterEntity,
 )
-from fastybird_fb_bus_connector.receivers.receiver import IReceiver
+
+# Library libs
+from fastybird_fb_bus_connector.logger import Logger
+from fastybird_fb_bus_connector.pairing.apiv1 import ApiV1Pairing
 from fastybird_fb_bus_connector.registry.model import DevicesRegistry, RegistersRegistry
 from fastybird_fb_bus_connector.registry.records import RegisterRecord
 from fastybird_fb_bus_connector.types import RegisterType
 
 
-@inject(alias=IReceiver)
-class DeviceItemReceiver(IReceiver):  # pylint: disable=too-few-public-methods
+@inject(alias=IConsumer)
+class DeviceItemConsumer(IConsumer):  # pylint: disable=too-few-public-methods
     """
-    BUS messages receiver for devices messages
+    BUS messages consumer for devices messages
 
     @package        FastyBird:FbBusConnector!
-    @module         receivers/device
+    @module         consumers/device
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
@@ -76,8 +77,8 @@ class DeviceItemReceiver(IReceiver):  # pylint: disable=too-few-public-methods
 
     # -----------------------------------------------------------------------------
 
-    def receive(self, entity: BaseEntity) -> None:
-        """Handle received message"""
+    def consume(self, entity: BaseEntity) -> None:
+        """Consume received message"""
         if not isinstance(entity, PongEntity):
             return
 
@@ -102,13 +103,13 @@ class DeviceItemReceiver(IReceiver):  # pylint: disable=too-few-public-methods
         self.__devices_registry.reset_communication(device=device_record)
 
 
-@inject(alias=IReceiver)
-class RegisterItemReceiver(IReceiver):  # pylint: disable=too-few-public-methods
+@inject(alias=IConsumer)
+class RegisterItemConsumer(IConsumer):  # pylint: disable=too-few-public-methods
     """
-    BUS messages receiver for registers messages
+    BUS messages consumer for registers messages
 
     @package        FastyBird:FbBusConnector!
-    @module         receivers/device
+    @module         consumers/device
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
@@ -133,8 +134,8 @@ class RegisterItemReceiver(IReceiver):  # pylint: disable=too-few-public-methods
 
     # -----------------------------------------------------------------------------
 
-    def receive(self, entity: BaseEntity) -> None:  # pylint: disable=too-many-branches
-        """Handle received message"""
+    def consume(self, entity: BaseEntity) -> None:  # pylint: disable=too-many-branches
+        """Consume received message"""
         if not isinstance(entity, (SingleRegisterEntity, MultipleRegistersEntity)):
             return
 
@@ -227,13 +228,13 @@ class RegisterItemReceiver(IReceiver):  # pylint: disable=too-few-public-methods
         )
 
 
-@inject(alias=IReceiver)
-class DiscoverReceiver(IReceiver):  # pylint: disable=too-few-public-methods
+@inject(alias=IConsumer)
+class DiscoveryConsumer(IConsumer):  # pylint: disable=too-few-public-methods
     """
-    BUS messages receiver for devices discovery messages
+    BUS messages consumer for devices discovery messages
 
     @package        FastyBird:FbBusConnector!
-    @module         receivers/device
+    @module         consumers/device
 
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
@@ -250,21 +251,21 @@ class DiscoverReceiver(IReceiver):  # pylint: disable=too-few-public-methods
 
     # -----------------------------------------------------------------------------
 
-    def receive(self, entity: BaseEntity) -> None:
-        """Handle received message"""
+    def consume(self, entity: BaseEntity) -> None:
+        """Consume received message"""
         if isinstance(entity, DeviceDiscoveryEntity):
-            self.__receive_set_device_discovery(entity=entity)
+            self.__consume_set_device_discovery(entity=entity)
 
             return
 
         if isinstance(entity, RegisterStructureEntity):
-            self.__receive_register_structure(entity=entity)
+            self.__consume_register_structure(entity=entity)
 
             return
 
     # -----------------------------------------------------------------------------
 
-    def __receive_set_device_discovery(self, entity: DeviceDiscoveryEntity) -> None:
+    def __consume_set_device_discovery(self, entity: DeviceDiscoveryEntity) -> None:
         self.__device_pairing.append_device(
             # Device description
             device_address=entity.device_address,
@@ -284,7 +285,7 @@ class DiscoverReceiver(IReceiver):  # pylint: disable=too-few-public-methods
 
     # -----------------------------------------------------------------------------
 
-    def __receive_register_structure(self, entity: RegisterStructureEntity) -> None:
+    def __consume_register_structure(self, entity: RegisterStructureEntity) -> None:
         if entity.register_type in (RegisterType.INPUT, RegisterType.OUTPUT, RegisterType.ATTRIBUTE):
             if entity.register_type == RegisterType.INPUT:
                 # Update register record

@@ -45,8 +45,6 @@ class PjonTransporter(ITransporter, pjon.ThroughSerialAsync):  # pylint: disable
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
 
-    __version: ProtocolVersion
-
     __receiver: Receiver
 
     __logger: Union[Logger, logging.Logger]
@@ -60,11 +58,10 @@ class PjonTransporter(ITransporter, pjon.ThroughSerialAsync):  # pylint: disable
     @inject
     def __init__(  # pylint: disable=too-many-arguments
         self,
-        address: Optional[int],
-        baud_rate: Optional[int],
-        interface: Optional[str],
-        version: ProtocolVersion,
         receiver: Receiver,
+        address: Optional[int] = None,
+        baud_rate: Optional[int] = None,
+        interface: Optional[str] = None,
         logger: Union[Logger, logging.Logger] = logging.getLogger("dummy"),
     ) -> None:
         pjon.ThroughSerialAsync.__init__(  # pylint: disable=no-member
@@ -77,18 +74,9 @@ class PjonTransporter(ITransporter, pjon.ThroughSerialAsync):  # pylint: disable
         self.set_synchronous_acknowledge(False)
         self.set_asynchronous_acknowledge(False)
 
-        self.__version = version
-
         self.__receiver = receiver
 
         self.__logger = logger
-
-    # -----------------------------------------------------------------------------
-
-    @property
-    def version(self) -> ProtocolVersion:
-        """Protocol version used by transporter"""
-        return self.__version
 
     # -----------------------------------------------------------------------------
 
@@ -253,5 +241,4 @@ class PjonTransporter(ITransporter, pjon.ThroughSerialAsync):  # pylint: disable
             payload=bytearray(payload),
             length=len(payload),
             address=sender_address,
-            protocol_version=self.version,
         )

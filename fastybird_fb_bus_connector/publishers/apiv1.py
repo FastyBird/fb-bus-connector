@@ -36,12 +36,7 @@ from fastybird_fb_bus_connector.publishers.publisher import IPublisher
 from fastybird_fb_bus_connector.registry.model import DevicesRegistry, RegistersRegistry
 from fastybird_fb_bus_connector.registry.records import DeviceRecord, RegisterRecord
 from fastybird_fb_bus_connector.transporters.transporter import Transporter
-from fastybird_fb_bus_connector.types import (
-    DeviceAttribute,
-    Packet,
-    ProtocolVersion,
-    RegisterType,
-)
+from fastybird_fb_bus_connector.types import DeviceAttribute, Packet, RegisterType
 
 
 @inject(alias=IPublisher)
@@ -176,7 +171,6 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
 
     def __send_ping_handler(self, device: DeviceRecord, device_address: int) -> None:
         result = self.__transporter.send_packet(
-            version=ProtocolVersion.V1,
             address=device_address,
             payload=V1Builder.build_ping(),
         )
@@ -207,7 +201,6 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
         )
 
         result = self.__transporter.send_packet(
-            version=ProtocolVersion.V1,
             address=device_address,
             payload=output_content,
             waiting_time=self.__PACKET_RESPONSE_WAITING_TIME,
@@ -306,7 +299,6 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
         )
 
         result = self.__transporter.send_packet(
-            version=ProtocolVersion.V1,
             address=device_address,
             payload=output_content,
         )
@@ -397,7 +389,6 @@ class ApiV1Publisher(IPublisher):  # pylint: disable=too-few-public-methods
             return False
 
         result = self.__transporter.send_packet(
-            version=ProtocolVersion.V1,
             address=device_address,
             payload=output_content,
             waiting_time=self.__PACKET_RESPONSE_WAITING_TIME,

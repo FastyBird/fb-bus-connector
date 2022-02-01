@@ -30,6 +30,12 @@ from whistle import EventDispatcher
 # Library libs
 from fastybird_fb_bus_connector.api.v1parser import V1Parser
 from fastybird_fb_bus_connector.connector import FbBusConnector
+from fastybird_fb_bus_connector.consumers.consumer import Consumer
+from fastybird_fb_bus_connector.consumers.device import (
+    DeviceItemConsumer,
+    DiscoveryConsumer,
+    RegisterItemConsumer,
+)
 from fastybird_fb_bus_connector.entities import FbBusConnectorEntity
 from fastybird_fb_bus_connector.events.listeners import EventsListener
 from fastybird_fb_bus_connector.logger import Logger
@@ -37,11 +43,7 @@ from fastybird_fb_bus_connector.pairing.apiv1 import ApiV1Pairing
 from fastybird_fb_bus_connector.pairing.pairing import Pairing
 from fastybird_fb_bus_connector.publishers.apiv1 import ApiV1Publisher
 from fastybird_fb_bus_connector.publishers.publisher import Publisher
-from fastybird_fb_bus_connector.receivers.device import (
-    DeviceItemReceiver,
-    DiscoverReceiver,
-    RegisterItemReceiver,
-)
+from fastybird_fb_bus_connector.receivers.apiv1 import ApiV1Receiver
 from fastybird_fb_bus_connector.receivers.receiver import Receiver
 from fastybird_fb_bus_connector.registry.model import DevicesRegistry, RegistersRegistry
 from fastybird_fb_bus_connector.transporters.transporter import Transporter
@@ -67,6 +69,7 @@ def create_connector(
     # Registers
     di[RegistersRegistry] = RegistersRegistry(event_dispatcher=di[EventDispatcher])
     di["fb-bus-connector_registers-registry"] = di[RegistersRegistry]
+
     di[DevicesRegistry] = DevicesRegistry(
         registers_registry=di[RegistersRegistry],
         event_dispatcher=di[EventDispatcher],
@@ -100,27 +103,39 @@ def create_connector(
     )
     di["fb-bus-connector_devices-pairing-proxy"] = di[Pairing]
 
-    # Communication receivers
-    di[RegisterItemReceiver] = RegisterItemReceiver(
+    # Messages consumers
+    di[DeviceItemConsumer] = DeviceItemConsumer(devices_registry=di[DevicesRegistry], logger=connector_logger)
+    di["fb-bus-connector_device-receiver"] = di[DeviceItemConsumer]
+
+    di[RegisterItemConsumer] = RegisterItemConsumer(
         devices_registry=di[DevicesRegistry],
         registers_registry=di[RegistersRegistry],
         logger=connector_logger,
     )
-    di["fb-bus-connector_registers-receiver"] = di[RegisterItemReceiver]
+    di["fb-bus-connector_registers-consumer"] = di[RegisterItemConsumer]
 
-    di[DeviceItemReceiver] = DeviceItemReceiver(devices_registry=di[DevicesRegistry], logger=connector_logger)
-    di["fb-bus-connector_device-receiver"] = di[DeviceItemReceiver]
+    di[DiscoveryConsumer] = DiscoveryConsumer(device_pairing=di[ApiV1Pairing])
+    di["fb-bus-connector_discovery-consumer"] = di[DiscoveryConsumer]
 
-    di[DiscoverReceiver] = DiscoverReceiver(device_pairing=di[ApiV1Pairing])
-    di["fb-bus-connector_discovery-receiver"] = di[DiscoverReceiver]
+    di[Consumer] = Consumer(
+        consumers=[
+            di[RegisterItemConsumer],
+            di[DeviceItemConsumer],
+            di[DiscoveryConsumer],
+        ],
+        logger=connector_logger,
+    )
+    di["fb-bus-connector_consumer-proxy"] = di[Consumer]
+
+    # Communication receivers
+    di[ApiV1Receiver] = ApiV1Receiver(parser=di[V1Parser])
+    di["fb-bus-connector_api-v1-receiver"] = di[ApiV1Receiver]
 
     di[Receiver] = Receiver(
         receivers=[
-            di[DeviceItemReceiver],
-            di[RegisterItemReceiver],
-            di[DiscoverReceiver],
+            di[ApiV1Receiver],
         ],
-        parser=di[V1Parser],
+        consumer=di[Consumer],
         logger=connector_logger,
     )
     di["fb-bus-connector_receiver-proxy"] = di[Receiver]
@@ -135,7 +150,9 @@ def create_connector(
     di["fb-bus-connector_api-v1-publisher"] = di[ApiV1Publisher]
 
     di[Publisher] = Publisher(
-        publishers=[di[ApiV1Publisher]],
+        publishers=[
+            di[ApiV1Publisher],
+        ],
         devices_registry=di[DevicesRegistry],
     )
     di["fb-bus-connector_publisher-proxy"] = di[Publisher]
@@ -151,7 +168,7 @@ def create_connector(
     # Main connector service
     connector_service = FbBusConnector(  # type: ignore[call-arg]
         connector_id=connector.id,
-        receiver=di[Receiver],
+        consumer=di[Consumer],
         publisher=di[Publisher],
         devices_registry=di[DevicesRegistry],
         registers_registry=di[RegistersRegistry],

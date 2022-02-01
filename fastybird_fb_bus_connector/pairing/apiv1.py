@@ -43,11 +43,7 @@ from fastybird_fb_bus_connector.registry.records import (
     DiscoveredRegisterRecord,
 )
 from fastybird_fb_bus_connector.transporters.transporter import Transporter
-from fastybird_fb_bus_connector.types import (
-    DeviceAttribute,
-    ProtocolVersion,
-    RegisterType,
-)
+from fastybird_fb_bus_connector.types import DeviceAttribute, RegisterType
 
 
 @inject(alias=IPairing)
@@ -593,7 +589,6 @@ class ApiV1Pairing(IPairing):  # pylint: disable=too-many-instance-attributes
         self.__logger.debug("Preparing to broadcast search devices")
 
         self.__transporter.broadcast_packet(
-            version=ProtocolVersion.V1,
             payload=V1Builder.build_discovery(),
             waiting_time=self.__BROADCAST_WAITING_DELAY,
         )
@@ -623,14 +618,12 @@ class ApiV1Pairing(IPairing):  # pylint: disable=too-many-instance-attributes
 
         if discovered_device.address == self.__ADDRESS_NOT_ASSIGNED:
             self.__transporter.broadcast_packet(
-                version=ProtocolVersion.V1,
                 payload=output_content,
                 waiting_time=self.__BROADCAST_WAITING_DELAY,
             )
 
         else:
             result = self.__transporter.send_packet(
-                version=ProtocolVersion.V1,
                 address=discovered_device.address,
                 payload=output_content,
             )
@@ -819,14 +812,12 @@ class ApiV1Pairing(IPairing):  # pylint: disable=too-many-instance-attributes
         # After device update their address, it should be restarted in running mode
         if actual_address == self.__ADDRESS_NOT_ASSIGNED:
             self.__transporter.broadcast_packet(
-                version=ProtocolVersion.V1,
                 payload=output_content,
                 waiting_time=self.__BROADCAST_WAITING_DELAY,
             )
 
         else:
             result = self.__transporter.send_packet(
-                version=ProtocolVersion.V1,
                 address=actual_address,
                 payload=output_content,
                 waiting_time=self.__BROADCAST_WAITING_DELAY,
@@ -907,7 +898,6 @@ class ApiV1Pairing(IPairing):  # pylint: disable=too-many-instance-attributes
 
         # When device state is changed, discovery mode will be deactivated
         result = self.__transporter.send_packet(
-            version=ProtocolVersion.V1,
             address=discovered_device.address,
             payload=output_content,
         )

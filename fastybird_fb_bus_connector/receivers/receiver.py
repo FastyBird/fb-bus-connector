@@ -21,20 +21,13 @@ FastyBird BUS connector receivers module proxy
 # Python base dependencies
 import logging
 from abc import ABC, abstractmethod
-from queue import Full as QueueFull
-from queue import Queue
 from typing import List, Optional, Set, Union
 
 # Library libs
-from fastybird_fb_bus_connector.api.v1parser import V1Parser
-from fastybird_fb_bus_connector.api.v1validator import V1Validator
-from fastybird_fb_bus_connector.exceptions import (
-    InvalidStateException,
-    ParsePayloadException,
-)
+from fastybird_fb_bus_connector.consumers.consumer import Consumer
+from fastybird_fb_bus_connector.consumers.entities import BaseEntity
+from fastybird_fb_bus_connector.exceptions import ParsePayloadException
 from fastybird_fb_bus_connector.logger import Logger
-from fastybird_fb_bus_connector.receivers.entities import BaseEntity
-from fastybird_fb_bus_connector.types import ProtocolVersion
 
 
 class IReceiver(ABC):  # pylint: disable=too-few-public-methods
@@ -50,11 +43,11 @@ class IReceiver(ABC):  # pylint: disable=too-few-public-methods
     # -----------------------------------------------------------------------------
 
     @abstractmethod
-    def receive(self, entity: BaseEntity) -> None:
+    def receive(self, payload: bytearray, length: int, address: Optional[int]) -> Optional[BaseEntity]:
         """Handle received entity"""
 
 
-class Receiver:
+class Receiver:  # pylint: disable=too-few-public-methods
     """
     BUS messages receivers proxy
 
@@ -65,8 +58,7 @@ class Receiver:
     """
 
     __receivers: Set[IReceiver]
-    __queue: Queue
-    __parser: V1Parser
+    __consumer: Consumer
 
     __logger: Union[Logger, logging.Logger]
 
@@ -75,96 +67,39 @@ class Receiver:
     def __init__(
         self,
         receivers: List[IReceiver],
-        parser: V1Parser,
+        consumer: Consumer,
         logger: Union[Logger, logging.Logger] = logging.getLogger("dummy"),
     ) -> None:
         self.__receivers = set(receivers)
-        self.__parser = parser
+        self.__consumer = consumer
 
         self.__logger = logger
 
-        self.__queue = Queue(maxsize=1000)
-
     # -----------------------------------------------------------------------------
 
-    def append(self, entity: BaseEntity) -> None:
-        """Append new entity to process"""
-        try:
-            self.__queue.put(item=entity)
-
-        except QueueFull:
-            self.__logger.error("Connector receiver processing queue is full. New messages could not be added")
-
-    # -----------------------------------------------------------------------------
-
-    def handle(self) -> None:
-        """Process received message"""
-        try:
-            if not self.__queue.empty():
-                entity = self.__queue.get()
-
-                if isinstance(entity, BaseEntity):
-                    for receiver in self.__receivers:
-                        receiver.receive(entity=entity)
-
-        except InvalidStateException as ex:
-            self.__logger.error(
-                "Received message could not be processed",
-                extra={
-                    "exception": {
-                        "message": str(ex),
-                        "code": type(ex).__name__,
-                    },
-                },
-            )
-
-    # -----------------------------------------------------------------------------
-
-    def is_empty(self) -> bool:
-        """Check if all messages are processed"""
-        return self.__queue.empty()
-
-    # -----------------------------------------------------------------------------
-
-    def on_message(  # pylint: disable=too-many-arguments
+    def on_message(
         self,
         payload: bytearray,
         length: int,
         address: Optional[int],
-        protocol_version: ProtocolVersion,
     ) -> None:
         """Handle received message"""
-        if V1Validator.version() == protocol_version and V1Validator.validate_version(payload=payload) is False:
-            return
+        for receiver in self.__receivers:
+            try:
+                result = receiver.receive(payload=payload, length=length, address=address)
 
-        if V1Validator.version() == protocol_version and V1Validator.validate(payload=payload) is False:
-            self.__logger.warning(
-                "Received message is not valid FIB v%s convention message: %s",
-                protocol_version.value,
-                payload,
-            )
+                if result is not None:
+                    self.__consumer.append(entity=result)
 
-            return
+                    return
 
-        try:
-            if V1Validator.version() == protocol_version:
-                self.append(
-                    entity=self.__parser.parse_message(
-                        payload=payload,
-                        length=length,
-                        address=address,
-                    ),
-                )
-
-        except ParsePayloadException as ex:
-            self.__logger.error(
-                "Received message could not be successfully parsed to entity",
-                extra={
-                    "exception": {
-                        "message": str(ex),
-                        "code": type(ex).__name__,
+            except ParsePayloadException as ex:
+                self.__logger.error(
+                    "Received message could not be successfully parsed to entity",
+                    extra={
+                        "exception": {
+                            "message": str(ex),
+                            "code": type(ex).__name__,
+                        },
                     },
-                },
-            )
-
-            return
+                )
