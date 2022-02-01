@@ -117,7 +117,7 @@ class StateTransformHelpers:
             return DeviceConnectionState.RUNNING
 
         if device_state == ConnectionState.STOPPED:
-            return DeviceConnectionState.STOPPED
+            return DeviceConnectionState.STOPPED_BY_OPERATOR
 
         # Unsupported state
         return DeviceConnectionState.UNKNOWN

@@ -383,10 +383,18 @@ class RegisterRecord(ABC):  # pylint: disable=too-many-instance-attributes
     @property
     def data_type_size(self) -> int:
         """Record data type bytes size"""
-        if self.data_type in (DataType.UCHAR, DataType.CHAR):
+        if self.data_type in (
+            DataType.UCHAR,
+            DataType.CHAR,
+            DataType.BUTTON,
+            DataType.SWITCH,
+        ):
             return 1
 
-        if self.data_type in (DataType.USHORT, DataType.SHORT):
+        if self.data_type in (
+            DataType.USHORT,
+            DataType.SHORT,
+        ):
             return 2
 
         if self.data_type in (
@@ -420,7 +428,7 @@ class RegisterRecord(ABC):  # pylint: disable=too-many-instance-attributes
     @property
     def actual_value(self) -> Union[str, int, float, bool, datetime, ButtonPayload, SwitchPayload, None]:
         """Register actual value"""
-        return normalize_value(data_type=self.data_type, value=self._actual_value)
+        return normalize_value(data_type=self.data_type, value=self._actual_value, value_format=self.format)
 
     # -----------------------------------------------------------------------------
 
@@ -438,7 +446,7 @@ class RegisterRecord(ABC):  # pylint: disable=too-many-instance-attributes
     @property
     def expected_value(self) -> Union[str, int, float, bool, datetime, ButtonPayload, SwitchPayload, None]:
         """Register expected value"""
-        return normalize_value(data_type=self.data_type, value=self._expected_value)
+        return normalize_value(data_type=self.data_type, value=self._expected_value, value_format=self.format)
 
     # -----------------------------------------------------------------------------
 
@@ -589,37 +597,6 @@ class AttributeRegisterRecord(RegisterRecord):
     def name(self) -> Optional[str]:
         """Register name"""
         return self.__name
-
-    # -----------------------------------------------------------------------------
-
-    @property
-    def actual_value(self) -> Union[str, int, float, bool, datetime, ButtonPayload, SwitchPayload, None]:
-        """Register actual value"""
-        return normalize_value(data_type=self.data_type, value=self._actual_value, value_format=self.format)
-
-    # -----------------------------------------------------------------------------
-
-    @actual_value.setter
-    def actual_value(self, value: Union[str, int, float, bool, datetime, ButtonPayload, SwitchPayload]) -> None:
-        """Set register actual value"""
-        self._actual_value = value
-
-    # -----------------------------------------------------------------------------
-
-    @property
-    def expected_value(self) -> Union[str, int, float, bool, datetime, ButtonPayload, SwitchPayload, None]:
-        """Register expected value"""
-        return normalize_value(data_type=self.data_type, value=self._expected_value, value_format=self.format)
-
-    # -----------------------------------------------------------------------------
-
-    @expected_value.setter
-    def expected_value(
-        self,
-        value: Union[str, int, float, bool, datetime, ButtonPayload, SwitchPayload, None],
-    ) -> None:
-        """Set register expected value"""
-        self._expected_value = value
 
     # -----------------------------------------------------------------------------
 
