@@ -524,15 +524,13 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
 
         register = event.updated_record
 
-        if isinstance(register, (InputRegisterRecord, OutputRegisterRecord)):
+        if isinstance(register, (InputRegisterRecord, OutputRegisterRecord, AttributeRegisterRecord)):
             self.__write_channel_property_actual_value(register=register)
 
-        if isinstance(register, AttributeRegisterRecord):
-            self.__write_channel_property_actual_value(register=register)
-
-            # Special mapping for known attributes
-            if register.name is not None and DeviceAttribute.has_value(register.name):
-                self.__write_device_property_value(register=register)
+            if isinstance(register, AttributeRegisterRecord):
+                # Special mapping for known attributes
+                if register.name is not None and DeviceAttribute.has_value(register.name):
+                    self.__write_device_property_value(register=register)
 
     # -----------------------------------------------------------------------------
 
