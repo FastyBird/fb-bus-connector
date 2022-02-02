@@ -33,12 +33,8 @@ from fastybird_fb_bus_connector.consumers.entities import (
     DeviceDiscoveryEntity,
     MultipleRegistersEntity,
     PongEntity,
-    ReadMultipleRegistersEntity,
-    ReadSingleRegisterEntity,
     RegisterStructureEntity,
     SingleRegisterEntity,
-    WriteMultipleRegistersEntity,
-    WriteSingleRegisterEntity,
 )
 
 # Library libs
@@ -102,9 +98,6 @@ class DeviceItemConsumer(IConsumer):  # pylint: disable=too-few-public-methods
             return
 
         self.__devices_registry.set_state(device=device_record, state=ConnectionState.UNKNOWN)
-
-        # Reset communication info
-        self.__devices_registry.reset_communication(device=device_record)
 
 
 @inject(alias=IConsumer)
@@ -207,18 +200,6 @@ class RegisterItemConsumer(IConsumer):  # pylint: disable=too-few-public-methods
 
                 self.__write_value_to_register(register_record=register_record, value=register_value)
 
-        if isinstance(
-            entity,
-            (
-                ReadSingleRegisterEntity,
-                ReadMultipleRegistersEntity,
-                WriteSingleRegisterEntity,
-                WriteMultipleRegistersEntity,
-            ),
-        ):
-            # Reset communication info
-            self.__devices_registry.reset_communication(device=device_record)
-
     # -----------------------------------------------------------------------------
 
     def __write_value_to_register(
@@ -297,6 +278,8 @@ class DiscoveryConsumer(IConsumer):  # pylint: disable=too-few-public-methods
 
         if discovered_device is None:
             return
+
+        self.__discovered_devices_registry.set_waiting_for_packet(device=discovered_device, packet_type=None)
 
         if entity.register_type in (RegisterType.INPUT, RegisterType.OUTPUT, RegisterType.ATTRIBUTE):
             if entity.register_type == RegisterType.INPUT:

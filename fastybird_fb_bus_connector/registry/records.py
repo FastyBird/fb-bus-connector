@@ -65,10 +65,6 @@ class DeviceRecord:  # pylint: disable=too-many-public-methods,too-many-instance
 
     __sampling_time: float = 10.0
 
-    __reading_registers_timestamp: float = 0.0
-    __reading_register_address: Optional[int] = None
-    __reading_register_type: Optional[RegisterType] = None
-
     __lost_timestamp: float = 0.0
 
     # -----------------------------------------------------------------------------
@@ -94,10 +90,6 @@ class DeviceRecord:  # pylint: disable=too-many-public-methods,too-many-instance
 
         self.__firmware_manufacturer = firmware_manufacturer
         self.__firmware_version = firmware_version
-
-        self.__reading_registers_timestamp = 0.0
-        self.__reading_register_address = None
-        self.__reading_register_type = None
 
     # -----------------------------------------------------------------------------
 
@@ -179,27 +171,16 @@ class DeviceRecord:  # pylint: disable=too-many-public-methods,too-many-instance
     # -----------------------------------------------------------------------------
 
     @property
-    def waiting_for_packet(self) -> Optional[Packet]:
-        """Packet gateway is waiting from device"""
-        return self.__waiting_for_packet
-
-    # -----------------------------------------------------------------------------
-
-    @waiting_for_packet.setter
-    def waiting_for_packet(self, waiting_for_packet: Optional[Packet]) -> None:
-        """Set that gateway is waiting for specific packet from device"""
-        self.__waiting_for_packet = waiting_for_packet
-
-        if waiting_for_packet is not None:
-            self.__last_packet_sent_timestamp = time.time()
-            self.__attempts = self.__attempts + 1
-
-    # -----------------------------------------------------------------------------
-
-    @property
     def transmit_attempts(self) -> int:
         """Transmit packet attempts count"""
         return self.__attempts
+
+    # -----------------------------------------------------------------------------
+
+    @transmit_attempts.setter
+    def transmit_attempts(self, attempts: int) -> None:
+        """Transmit packet attempts count setter"""
+        self.__attempts = attempts
 
     # -----------------------------------------------------------------------------
 
@@ -226,40 +207,7 @@ class DeviceRecord:  # pylint: disable=too-many-public-methods,too-many-instance
 
     def reset_communication(self) -> None:
         """Reset device communication pointer"""
-        self.__waiting_for_packet = None
         self.__attempts = 0
-
-    # -----------------------------------------------------------------------------
-
-    def set_reading_register(self, register_address: int, register_type: RegisterType) -> None:
-        """Set reading register pointer"""
-        self.__reading_register_address = register_address
-        self.__reading_register_type = register_type
-
-    # -----------------------------------------------------------------------------
-
-    def reset_reading_register(self, reset_timestamp: bool = False) -> None:
-        """Reset reading register pointer"""
-        if reset_timestamp:
-            self.__reading_registers_timestamp = 0.0
-
-        else:
-            self.__reading_registers_timestamp = time.time()
-
-        self.__reading_register_address = None
-        self.__reading_register_type = None
-
-    # -----------------------------------------------------------------------------
-
-    def get_reading_register(self) -> Tuple[Optional[int], Optional[RegisterType]]:
-        """Get reading register pointer"""
-        return self.__reading_register_address, self.__reading_register_type
-
-    # -----------------------------------------------------------------------------
-
-    def get_last_register_reading_timestamp(self) -> float:
-        """Get reading register time stamp"""
-        return self.__reading_registers_timestamp
 
     # -----------------------------------------------------------------------------
 
@@ -290,7 +238,7 @@ class RegisterRecord(ABC):  # pylint: disable=too-many-instance-attributes
     _expected_value: Union[str, int, float, bool, datetime, ButtonPayload, SwitchPayload, None] = None
     _expected_pending: Optional[float] = None
 
-    __waiting_for_data: bool = False
+    __reading_timestamp: float = 0.0
 
     # -----------------------------------------------------------------------------
 
@@ -482,16 +430,16 @@ class RegisterRecord(ABC):  # pylint: disable=too-many-instance-attributes
     # -----------------------------------------------------------------------------
 
     @property
-    def waiting_for_data(self) -> bool:
-        """Is register waiting for any data?"""
-        return self.__waiting_for_data
+    def reading_timestamp(self) -> float:
+        """Timestamp when register data was requested"""
+        return self.__reading_timestamp
 
     # -----------------------------------------------------------------------------
 
-    @waiting_for_data.setter
-    def waiting_for_data(self, waiting_for_data: bool) -> None:
-        """Set waiting for data flag"""
-        self.__waiting_for_data = waiting_for_data
+    @reading_timestamp.setter
+    def reading_timestamp(self, reading_timestamp: float) -> None:
+        """Timestamp setter when register data was requested"""
+        self.__reading_timestamp = reading_timestamp
 
     # -----------------------------------------------------------------------------
 
@@ -692,6 +640,11 @@ class DiscoveredDeviceRecord:  # pylint: disable=too-many-instance-attributes
         self.__output_registers_size = output_registers_size
         self.__attributes_registers_size = attributes_registers_size
 
+        self.__waiting_for_packet = None
+        self.__last_packet_sent_timestamp = 0.0
+
+        self.__attempts = 0
+
     # -----------------------------------------------------------------------------
 
     @property
@@ -814,6 +767,9 @@ class DiscoveredDeviceRecord:  # pylint: disable=too-many-instance-attributes
         if waiting_for_packet is not None:
             self.__last_packet_sent_timestamp = time.time()
             self.__attempts = self.__attempts + 1
+
+        else:
+            self.__attempts = 0
 
     # -----------------------------------------------------------------------------
 

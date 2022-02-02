@@ -101,11 +101,12 @@ def create_connector(
     di["fb-bus-connector_registers-registry"] = di[DiscoveredDevicesRegistry]
 
     # API utils
-    di[V1Parser] = V1Parser(
-        devices_registry=di[DevicesRegistry],
-        registers_registry=di[RegistersRegistry],
-    )
-    di["fb-bus-connector_api-v1-parser"] = di[V1Parser]
+    if connector_settings.get("protocol_version") == ProtocolVersion.V1:
+        di[V1Parser] = V1Parser(
+            devices_registry=di[DevicesRegistry],
+            registers_registry=di[RegistersRegistry],
+        )
+        di["fb-bus-connector_api-v1-parser"] = di[V1Parser]
 
     # Messages consumers
     di[DeviceItemConsumer] = DeviceItemConsumer(devices_registry=di[DevicesRegistry], logger=connector_logger)
@@ -135,13 +136,16 @@ def create_connector(
     di["fb-bus-connector_consumer-proxy"] = di[Consumer]
 
     # Communication receivers
-    di[ApiV1Receiver] = ApiV1Receiver(parser=di[V1Parser])
-    di["fb-bus-connector_api-v1-receiver"] = di[ApiV1Receiver]
+    receivers = []
+
+    if connector_settings.get("protocol_version") == ProtocolVersion.V1:
+        di[ApiV1Receiver] = ApiV1Receiver(parser=di[V1Parser])
+        di["fb-bus-connector_api-v1-receiver"] = di[ApiV1Receiver]
+
+        receivers.append(di[ApiV1Receiver])
 
     di[Receiver] = Receiver(
-        receivers=[
-            di[ApiV1Receiver],
-        ],
+        receivers=receivers,
         consumer=di[Consumer],
         logger=connector_logger,
     )
@@ -158,20 +162,23 @@ def create_connector(
     di["fb-bus-connector_data-transporter"] = di[PjonTransporter]
 
     # Data clients
-    di[ApiV1Client] = ApiV1Client(
-        devices_registry=di[DevicesRegistry],
-        registers_registry=di[RegistersRegistry],
-        discovered_registers_registry=di[DiscoveredDevicesRegistry],
-        discovered_devices_registry=di[DiscoveredRegistersRegistry],
-        transporter=di[PjonTransporter],
-        logger=connector_logger,
-    )
-    di["fb-bus-connector_api-v1-client"] = di[ApiV1Client]
+    clients = []
+
+    if connector_settings.get("protocol_version") == ProtocolVersion.V1:
+        di[ApiV1Client] = ApiV1Client(
+            devices_registry=di[DevicesRegistry],
+            registers_registry=di[RegistersRegistry],
+            discovered_devices_registry=di[DiscoveredDevicesRegistry],
+            discovered_registers_registry=di[DiscoveredRegistersRegistry],
+            transporter=di[PjonTransporter],
+            logger=connector_logger,
+        )
+        di["fb-bus-connector_api-v1-client"] = di[ApiV1Client]
+
+        clients.append(di[ApiV1Client])
 
     di[Client] = Client(
-        clients=[
-            di[ApiV1Client],
-        ],
+        clients=clients,
     )
     di["fb-bus-connector_client-proxy"] = di[Client]
 

@@ -253,25 +253,16 @@ class DevicesRegistry:  # pylint: disable=too-many-public-methods
                 "Device state could not be updated. Attribute register was not found in registry",
             )
 
-        if state == ConnectionState.RUNNING:
-            device.reset_reading_register(True)
+        if state in (ConnectionState.RUNNING, ConnectionState.UNKNOWN, ConnectionState.LOST):
             # Reset lost timestamp
             device.lost_timestamp = 0
+            # Reset device communication state
+            device.reset_communication()
 
         if state == ConnectionState.LOST:
             if actual_state is None or actual_state.actual_value != state.value:
                 # Set lost timestamp
                 device.lost_timestamp = time.time()
-
-            # Reset device communication state
-            device.reset_communication()
-
-        if state == ConnectionState.UNKNOWN:
-            device.reset_reading_register(True)
-            # Reset lost timestamp
-            device.lost_timestamp = 0
-            # Reset device communication state
-            device.reset_communication()
 
         self.__registers_registry.set_actual_value(register=actual_state, value=state.value)
 
@@ -359,44 +350,24 @@ class DevicesRegistry:  # pylint: disable=too-many-public-methods
 
     # -----------------------------------------------------------------------------
 
-    def set_waiting_for_packet(self, device: DeviceRecord, packet_type: Optional[Packet]) -> DeviceRecord:
-        """Mark that gateway is waiting for reply from device"""
-        device.waiting_for_packet = packet_type
-
-        self.__update(updated_device=device)
-
-        updated_device = self.get_by_id(device.id)
-
-        if updated_device is None:
-            raise InvalidStateException("Device record could not be re-fetched from registry after update")
-
-        return updated_device
-
-    # -----------------------------------------------------------------------------
-
-    def set_reading_register(
-        self,
-        device: DeviceRecord,
-        register_address: int,
-        register_type: RegisterType,
-    ) -> DeviceRecord:
-        """Set device register reading pointer"""
-        device.set_reading_register(register_address=register_address, register_type=register_type)
-
-        self.__update(updated_device=device)
-
-        updated_device = self.get_by_id(device.id)
-
-        if updated_device is None:
-            raise InvalidStateException("Device record could not be re-fetched from registry after update")
-
-        return updated_device
-
-    # -----------------------------------------------------------------------------
-
     def set_last_packet_timestamp(self, device: DeviceRecord, last_packet_timestamp: float) -> DeviceRecord:
         """Reset device last packet sent timestamp"""
         device.last_packet_timestamp = last_packet_timestamp
+
+        self.__update(updated_device=device)
+
+        updated_device = self.get_by_id(device.id)
+
+        if updated_device is None:
+            raise InvalidStateException("Device record could not be re-fetched from registry after update")
+
+        return updated_device
+
+    # -----------------------------------------------------------------------------
+
+    def increment_transmit_attempts(self, device: DeviceRecord) -> DeviceRecord:
+        """Mark that gateway is waiting for reply from device"""
+        device.transmit_attempts = device.transmit_attempts + 1
 
         self.__update(updated_device=device)
 
@@ -853,9 +824,9 @@ class RegistersRegistry:
 
     # -----------------------------------------------------------------------------
 
-    def set_waiting_for_data(self, register: RegisterRecord, waiting_for_data: bool) -> RegisterRecord:
-        """Set register is waiting for any data"""
-        register.waiting_for_data = waiting_for_data
+    def set_reading_timestamp(self, register: RegisterRecord, timestamp: float) -> RegisterRecord:
+        """Set expected value transmit timestamp"""
+        register.reading_timestamp = timestamp
 
         self.__update(register=register)
 
@@ -974,6 +945,8 @@ class DiscoveredDevicesRegistry:
         if discovered_device in self.__items:
             return
 
+        self.__items.add(discovered_device)
+
         self.__logger.info(
             "Discovered device %s[%d] %s[%s]:%s",
             device_serial_number,
@@ -981,110 +954,6 @@ class DiscoveredDevicesRegistry:
             device_hardware_version,
             device_hardware_model,
             device_firmware_version,
-        )
-
-        # Try to find device in registry
-        existing_device = self.__devices_registry.get_by_serial_number(
-            serial_number=discovered_device.serial_number,
-        )
-
-        # Discovering new device...
-        if existing_device is None:
-            # Check if device has address or not
-            if discovered_device.address != self.__ADDRESS_NOT_ASSIGNED:
-                # Check if other device with same address is present in registry
-                device_by_address = self.__devices_registry.get_by_address(address=discovered_device.address)
-
-                if device_by_address is not None:
-                    self.__logger.warning(
-                        "Address used by discovered device is assigned to other registered device",
-                        extra={
-                            "device": {
-                                "serial_number": discovered_device.serial_number,
-                                "address": discovered_device.address,
-                            },
-                        },
-                    )
-
-                    return
-
-            self.__logger.info(
-                "New device: %s with address: %d was successfully prepared for registering",
-                discovered_device.serial_number,
-                discovered_device.address,
-                extra={
-                    "device": {
-                        "serial_number": discovered_device.serial_number,
-                        "address": discovered_device.address,
-                    },
-                },
-            )
-
-        # Discovering existing device...
-        else:
-            # Check if other device with same address is present in registry
-            device_by_address = self.__devices_registry.get_by_address(address=discovered_device.address)
-
-            if device_by_address is not None and device_by_address.serial_number != discovered_device.serial_number:
-                self.__logger.warning(
-                    "Address used by discovered device is assigned to other registered device",
-                    extra={
-                        "device": {
-                            "serial_number": discovered_device.serial_number,
-                            "address": discovered_device.address,
-                        },
-                    },
-                )
-
-                return
-
-            self.__logger.info(
-                "Existing device: %s with address: %d was successfully prepared for updating",
-                discovered_device.serial_number,
-                discovered_device.address,
-                extra={
-                    "device": {
-                        "serial_number": discovered_device.serial_number,
-                        "address": discovered_device.address,
-                    },
-                },
-            )
-
-            # Update device state
-            self.__devices_registry.set_state(device=existing_device, state=ConnectionState.INIT)
-
-        self.__items.add(discovered_device)
-
-        # Input registers
-        self.__configure_device_registers(
-            discovered_device=discovered_device,
-            registers_type=RegisterType.INPUT,
-        )
-
-        # Output registers
-        self.__configure_device_registers(
-            discovered_device=discovered_device,
-            registers_type=RegisterType.OUTPUT,
-        )
-
-        # Attribute registers
-        self.__configure_device_registers(
-            discovered_device=discovered_device,
-            registers_type=RegisterType.ATTRIBUTE,
-        )
-
-        self.__logger.info(
-            "Configured registers: (Input: %d, Output: %d, Attribute: %d) for device: %s",
-            discovered_device.input_registers_size,
-            discovered_device.output_registers_size,
-            discovered_device.attributes_registers_size,
-            discovered_device.serial_number,
-            extra={
-                "device": {
-                    "serial_number": discovered_device.serial_number,
-                    "address": discovered_device.address,
-                },
-            },
         )
 
     # -----------------------------------------------------------------------------
@@ -1131,6 +1000,113 @@ class DiscoveredDevicesRegistry:
             raise InvalidStateException("Device record could not be re-fetched from registry after update")
 
         return updated_device
+
+    # -----------------------------------------------------------------------------
+
+    def prepare_devices(self) -> None:
+        """Prepare discovered devices"""
+        for discovered_device in self.__items:
+            # Try to find device in registry
+            existing_device = self.__devices_registry.get_by_serial_number(
+                serial_number=discovered_device.serial_number,
+            )
+
+            # Discovering new device...
+            if existing_device is None:
+                # Check if device has address or not
+                if discovered_device.address != self.__ADDRESS_NOT_ASSIGNED:
+                    # Check if other device with same address is present in registry
+                    device_by_address = self.__devices_registry.get_by_address(address=discovered_device.address)
+
+                    if device_by_address is not None:
+                        self.__logger.warning(
+                            "Address used by discovered device is assigned to other registered device",
+                            extra={
+                                "device": {
+                                    "serial_number": discovered_device.serial_number,
+                                    "address": discovered_device.address,
+                                },
+                            },
+                        )
+
+                        return
+
+                self.__logger.info(
+                    "New device: %s with address: %d was successfully prepared for registering",
+                    discovered_device.serial_number,
+                    discovered_device.address,
+                    extra={
+                        "device": {
+                            "serial_number": discovered_device.serial_number,
+                            "address": discovered_device.address,
+                        },
+                    },
+                )
+
+            # Discovering existing device...
+            else:
+                # Check if other device with same address is present in registry
+                device_by_address = self.__devices_registry.get_by_address(address=discovered_device.address)
+
+                if device_by_address is not None and device_by_address.serial_number != discovered_device.serial_number:
+                    self.__logger.warning(
+                        "Address used by discovered device is assigned to other registered device",
+                        extra={
+                            "device": {
+                                "serial_number": discovered_device.serial_number,
+                                "address": discovered_device.address,
+                            },
+                        },
+                    )
+
+                    return
+
+                self.__logger.info(
+                    "Existing device: %s with address: %d was successfully prepared for updating",
+                    discovered_device.serial_number,
+                    discovered_device.address,
+                    extra={
+                        "device": {
+                            "serial_number": discovered_device.serial_number,
+                            "address": discovered_device.address,
+                        },
+                    },
+                )
+
+                # Update device state
+                self.__devices_registry.set_state(device=existing_device, state=ConnectionState.INIT)
+
+            # Input registers
+            self.__configure_device_registers(
+                discovered_device=discovered_device,
+                registers_type=RegisterType.INPUT,
+            )
+
+            # Output registers
+            self.__configure_device_registers(
+                discovered_device=discovered_device,
+                registers_type=RegisterType.OUTPUT,
+            )
+
+            # Attribute registers
+            self.__configure_device_registers(
+                discovered_device=discovered_device,
+                registers_type=RegisterType.ATTRIBUTE,
+            )
+
+            self.__logger.info(
+                "Configured registers: (Input: %d, Output: %d, Attribute: %d) for device: %s",
+                discovered_device.input_registers_size,
+                discovered_device.output_registers_size,
+                discovered_device.attributes_registers_size,
+                discovered_device.serial_number,
+                extra={
+                    "device": {
+                        "serial_number": discovered_device.serial_number,
+                        "address": discovered_device.address,
+                    },
+                },
+            )
 
     # -----------------------------------------------------------------------------
 
@@ -1479,8 +1455,10 @@ class DiscoveredRegistersRegistry:
 
     def reset(self, device_serial_number: Optional[str] = None) -> None:
         """Reset registry to initial state"""
+        items = self.__items.copy()
+
         if device_serial_number is not None:
-            for register in self.__items:
+            for register in items:
                 if register.device_serial_number == device_serial_number:
                     self.__items.remove(register)
 

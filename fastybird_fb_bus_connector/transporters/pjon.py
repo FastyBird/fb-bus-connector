@@ -27,7 +27,7 @@ from typing import Dict, List, Optional, Union
 from kink import inject
 
 # Library libs
-import fastybird_fb_bus_connector.pjon as pjon  # pylint: disable=consider-using-from-import
+import fastybird_fb_bus_connector.pjon._pjon as pjon  # pylint: disable=no-name-in-module,import-error
 from fastybird_fb_bus_connector.logger import Logger
 from fastybird_fb_bus_connector.receivers.receiver import Receiver
 from fastybird_fb_bus_connector.transporters.transporter import ITransporter
@@ -53,6 +53,8 @@ class PjonTransporter(ITransporter, pjon.ThroughSerialAsync):  # pylint: disable
     __SERIAL_BAUD_RATE: int = 38400
     __SERIAL_INTERFACE: str = "/dev/ttyAMA0"
 
+    __packet_to_be_sent = 0
+
     # -----------------------------------------------------------------------------
 
     @inject
@@ -77,6 +79,15 @@ class PjonTransporter(ITransporter, pjon.ThroughSerialAsync):  # pylint: disable
         self.__receiver = receiver
 
         self.__logger = logger
+
+        self.__packet_to_be_sent = 0
+
+    # -----------------------------------------------------------------------------
+
+    @property
+    def packet_to_be_sent(self) -> int:
+        """Number of packets waiting in queue"""
+        return self.__packet_to_be_sent
 
     # -----------------------------------------------------------------------------
 
@@ -163,7 +174,9 @@ class PjonTransporter(ITransporter, pjon.ThroughSerialAsync):  # pylint: disable
     def handle(self) -> None:
         """Process transporter"""
         try:
-            self.loop()
+            result = self.loop()
+
+            self.__packet_to_be_sent = int(result[0])
 
         except pjon.PJON_Connection_Lost:  # pylint: disable=no-member
             self.__logger.warning("Connection with device was lost")

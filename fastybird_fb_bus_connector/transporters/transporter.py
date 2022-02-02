@@ -33,6 +33,11 @@ class ITransporter(ABC):
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
 
+    @property
+    @abstractmethod
+    def packet_to_be_sent(self) -> int:
+        """Number of packets waiting in queue"""
+
     # -----------------------------------------------------------------------------
 
     @abstractmethod
