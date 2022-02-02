@@ -44,7 +44,7 @@ py_cs: pylint
 	pylint **/*.py
 
 py_types: mypy
-	mypy fastybird_fb_bus_connector
+	mypy **/*.py
 
 py_isort: isort
 	isort **/*.py --check

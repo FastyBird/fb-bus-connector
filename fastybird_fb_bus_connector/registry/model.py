@@ -57,7 +57,12 @@ from fastybird_fb_bus_connector.registry.records import (
     OutputRegisterRecord,
     RegisterRecord,
 )
-from fastybird_fb_bus_connector.types import DeviceAttribute, Packet, RegisterType, UNASSIGNED_ADDRESS
+from fastybird_fb_bus_connector.types import (
+    UNASSIGNED_ADDRESS,
+    DeviceAttribute,
+    Packet,
+    RegisterType,
+)
 
 
 class DevicesRegistry:  # pylint: disable=too-many-public-methods

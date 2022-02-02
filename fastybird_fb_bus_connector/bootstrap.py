@@ -50,7 +50,7 @@ from fastybird_fb_bus_connector.registry.model import (
     RegistersRegistry,
 )
 from fastybird_fb_bus_connector.transporters.pjon import PjonTransporter
-from fastybird_fb_bus_connector.types import ProtocolVersion, MASTER_ADDRESS
+from fastybird_fb_bus_connector.types import MASTER_ADDRESS, ProtocolVersion
 
 
 def create_connector(
