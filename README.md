@@ -17,7 +17,7 @@
 
 ## What is FastyBird IoT FB BUS connector?
 
-FB BUS connector is a combined [Nette framework](https://nette.org) extension and [Python](https://www.python.org) module which is integrating [FIB](https://www.fastybird.com) ak **F**astyBird **I**nterface **B**us devices into [FastyBird](https://www.fastybird.com) IoT system
+FB BUS connector is a combined [FastyBird IoT](https://www.fastybird.com) extension which is integrating [FIB](https://www.fastybird.com) aka **F**astyBird **I**nterface **B**us for connected devices
 
 [FastyBird](https://www.fastybird.com) [IoT](https://en.wikipedia.org/wiki/Internet_of_things) FB BUS connector is
 an [Apache2 licensed](http://www.apache.org/licenses/LICENSE-2.0) distributed extension, developed
@@ -25,9 +25,9 @@ in [PHP](https://www.php.net) with [Nette framework](https://nette.org) and in [
 
 ### Features:
 
-- FIB v1 devices support
-- FIB connector integration
-- FIB device management
+- FIB v1 protocol devices support
+- FIB connector management for [FastyBird IoT](https://www.fastybird.com) [devices module](https://github.com/FastyBird/devices-module)
+- FIB device management for [FastyBird IoT](https://www.fastybird.com) [devices module](https://github.com/FastyBird/devices-module)
 - [{JSON:API}](https://jsonapi.org/) schemas for full api access
 - Integrated connector Python worker
 
@@ -40,6 +40,8 @@ and [Nette framework](https://nette.org/en/) 3.0 PHP framework for real programm
 Python part of [FastyBird](https://www.fastybird.com) FB BUS connector is tested against [Python 3.7](http://python.org)
 
 ## Installation
+
+### Manual installation
 
 #### Application backend in PHP
 
@@ -56,6 +58,10 @@ The best way to install **fastybird-fb-bus-connector** is using [Pip](https://pi
 ```sh
 pip install fastybird-fb-bus-connector
 ```
+
+### Marketplace installation
+
+You could install it your [FastyBird IoT](https://www.fastybird.com) application under marketplace section
 
 ## Documentation
 

@@ -378,7 +378,7 @@ jobs :
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
       - name : "Run code check"
-        run : "make python_qa"
+        run : "make py_qa"
 
   test-install-python :
     name : "Test installation of Python distribution"

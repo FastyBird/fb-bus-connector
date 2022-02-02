@@ -57,7 +57,7 @@ from fastybird_fb_bus_connector.registry.records import (
     OutputRegisterRecord,
     RegisterRecord,
 )
-from fastybird_fb_bus_connector.types import DeviceAttribute, Packet, RegisterType
+from fastybird_fb_bus_connector.types import DeviceAttribute, Packet, RegisterType, UNASSIGNED_ADDRESS
 
 
 class DevicesRegistry:  # pylint: disable=too-many-public-methods
@@ -870,8 +870,6 @@ class DiscoveredDevicesRegistry:
 
     __iterator_index = 0
 
-    __ADDRESS_NOT_ASSIGNED: int = 255
-
     # -----------------------------------------------------------------------------
 
     def __init__(
@@ -1014,7 +1012,7 @@ class DiscoveredDevicesRegistry:
             # Discovering new device...
             if existing_device is None:
                 # Check if device has address or not
-                if discovered_device.address != self.__ADDRESS_NOT_ASSIGNED:
+                if discovered_device.address != UNASSIGNED_ADDRESS:
                     # Check if other device with same address is present in registry
                     device_by_address = self.__devices_registry.get_by_address(address=discovered_device.address)
 

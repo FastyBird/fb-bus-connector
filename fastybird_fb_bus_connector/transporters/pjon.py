@@ -49,9 +49,9 @@ class PjonTransporter(ITransporter, pjon.ThroughSerialAsync):  # pylint: disable
 
     __logger: Union[Logger, logging.Logger]
 
-    __MASTER_ADDRESS: int = 254
-    __SERIAL_BAUD_RATE: int = 38400
-    __SERIAL_INTERFACE: str = "/dev/ttyAMA0"
+    __MASTER_ADDRESS: int
+    __SERIAL_BAUD_RATE: int
+    __SERIAL_INTERFACE: str
 
     __packet_to_be_sent = 0
 
@@ -61,9 +61,9 @@ class PjonTransporter(ITransporter, pjon.ThroughSerialAsync):  # pylint: disable
     def __init__(  # pylint: disable=too-many-arguments
         self,
         receiver: Receiver,
-        address: Optional[int] = None,
-        baud_rate: Optional[int] = None,
-        interface: Optional[str] = None,
+        address: int,
+        baud_rate: int,
+        interface: str,
         logger: Union[Logger, logging.Logger] = logging.getLogger("dummy"),
     ) -> None:
         pjon.ThroughSerialAsync.__init__(  # pylint: disable=no-member

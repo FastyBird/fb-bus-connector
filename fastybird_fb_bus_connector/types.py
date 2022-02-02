@@ -27,6 +27,9 @@ from fastybird_metadata.enum import ExtendedEnum
 CONNECTOR_NAME: str = "fb-bus"
 DEVICE_NAME: str = "fb-bus"
 
+MASTER_ADDRESS: int = 254
+UNASSIGNED_ADDRESS: int = 255
+
 
 @unique
 class Packet(Enum):

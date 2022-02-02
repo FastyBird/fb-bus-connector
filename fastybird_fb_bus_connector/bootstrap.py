@@ -50,7 +50,7 @@ from fastybird_fb_bus_connector.registry.model import (
     RegistersRegistry,
 )
 from fastybird_fb_bus_connector.transporters.pjon import PjonTransporter
-from fastybird_fb_bus_connector.types import ProtocolVersion
+from fastybird_fb_bus_connector.types import ProtocolVersion, MASTER_ADDRESS
 
 
 def create_connector(
@@ -68,13 +68,13 @@ def create_connector(
         connector_logger = logger
 
     connector_settings = {
-        **connector.params,
         **{
-            "address": 254,
+            "address": MASTER_ADDRESS,
             "baud_rate": 38400,
             "interface": "/dev/ttyAMA0",
             "protocol_version": ProtocolVersion.V1,
         },
+        **connector.params,
     }
 
     di[EventDispatcher] = EventDispatcher()

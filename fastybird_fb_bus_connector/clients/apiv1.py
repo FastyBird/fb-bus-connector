@@ -53,7 +53,7 @@ from fastybird_fb_bus_connector.registry.records import (
     RegisterRecord,
 )
 from fastybird_fb_bus_connector.transporters.transporter import ITransporter
-from fastybird_fb_bus_connector.types import DeviceAttribute, Packet, RegisterType
+from fastybird_fb_bus_connector.types import DeviceAttribute, Packet, RegisterType, UNASSIGNED_ADDRESS
 
 
 @inject(alias=IClient)
@@ -103,8 +103,6 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
     )
     __DISCOVERY_BROADCAST_DELAY: float = 2.0  # Waiting delay before another broadcast is sent
     __DEVICE_DISCOVERY_DELAY: float = 5.0  # Waiting delay paring is marked as unsuccessful
-
-    __ADDRESS_NOT_ASSIGNED: int = 255
 
     # -----------------------------------------------------------------------------
 
@@ -500,7 +498,7 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
             register_type=discovered_register.type,
             register_address=discovered_register.address,
             serial_number=(
-                discovered_device.serial_number if discovered_device.address == self.__ADDRESS_NOT_ASSIGNED else None
+                discovered_device.serial_number if discovered_device.address == UNASSIGNED_ADDRESS else None
             ),
         )
 
@@ -512,7 +510,7 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
 
         self.__total_discovery_attempts += 1
 
-        if discovered_device.address == self.__ADDRESS_NOT_ASSIGNED:
+        if discovered_device.address == UNASSIGNED_ADDRESS:
             self.__transporter.broadcast_packet(
                 payload=output_content,
                 waiting_time=self.__BROADCAST_WAITING_DELAY,
@@ -535,7 +533,7 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
 
         if (
             # New device is without bus address
-            discovered_device.address == self.__ADDRESS_NOT_ASSIGNED
+            discovered_device.address == UNASSIGNED_ADDRESS
             or (
                 # Or device bus address is different from stored in connector registry
                 existing_device is not None
@@ -830,7 +828,7 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
         if updated_device is not None:
             updated_device_address = self.__devices_registry.get_address(device=updated_device)
 
-            if updated_device_address is not None and updated_device_address != self.__ADDRESS_NOT_ASSIGNED:
+            if updated_device_address is not None and updated_device_address != UNASSIGNED_ADDRESS:
                 # Use address stored before
                 discovered_device.address = updated_device_address
 
@@ -842,7 +840,7 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
                 register_name=address_register.name,
                 write_value=discovered_device.address,
                 serial_number=(
-                    discovered_device.serial_number if actual_address == self.__ADDRESS_NOT_ASSIGNED else None
+                    discovered_device.serial_number if actual_address == UNASSIGNED_ADDRESS else None
                 ),
             )
 
@@ -867,7 +865,7 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
         self.__finalize_discovered_device(discovered_device=discovered_device)
 
         # After device update their address, it should be restarted in running mode
-        if actual_address == self.__ADDRESS_NOT_ASSIGNED:
+        if actual_address == UNASSIGNED_ADDRESS:
             self.__transporter.broadcast_packet(
                 payload=output_content,
                 waiting_time=self.__BROADCAST_WAITING_DELAY,
