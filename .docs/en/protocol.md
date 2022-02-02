@@ -1,5 +1,11 @@
-# Pairing process
+# Discovery process
 
-1. Gateway send `SEARCH_DEVICES - 0x01` packet
-2. Device in pairing mode send reply `SEARCH_DEVICES - 0x01` packet with its current address and serial number/unique identifier
-3. Gateway will check received address and serial number/unique identifier against database:
+This connector has implemented semi-automatic auto discovery proces. Discovery mode could be enabled via user interface. 
+
+### Discovery of new devices
+
+When discovery is enabled triggered, connector start broadcasting of `DISCOVER - 0x04` packet. Each device in discovery mode should reply to this packet with its own description
+
+When new device is discovered by connector, device details are processed and prepared for pairing.
+
+TBD...
