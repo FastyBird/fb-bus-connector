@@ -61,7 +61,7 @@ pip install fastybird-fb-bus-connector
 
 ### Marketplace installation
 
-You could install it your [FastyBird IoT](https://www.fastybird.com) application under marketplace section
+You could install this connector in your [FastyBird IoT](https://www.fastybird.com) application under marketplace section
 
 ## Documentation
 
