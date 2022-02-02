@@ -20,7 +20,7 @@ use FastyBird\DevicesModule\Entities as DevicesModuleEntities;
 /**
  * FastyBird BUS connector entity interface
  *
- * @package        FastyBird:v!
+ * @package        FastyBird:FbBusConnector!
  * @subpackage     Entities
  *
  * @author         Adam Kadlec <adam.kadlec@fastybird.com>

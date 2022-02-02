@@ -21,10 +21,10 @@ use FastyBird\FbBusConnector\Entities;
 /**
  * FastyBird BUS connector entity schema
  *
- * @package         FastyBird:FbBusConnector!
- * @subpackage      Schemas
+ * @package        FastyBird:FbBusConnector!
+ * @subpackage     Schemas
  *
- * @author          Adam Kadlec <adam.kadlec@fastybird.com>
+ * @author         Adam Kadlec <adam.kadlec@fastybird.com>
  *
  * @phpstan-extends DevicesModuleSchemas\Devices\DeviceSchema<Entities\IFbBusDevice>
  */
