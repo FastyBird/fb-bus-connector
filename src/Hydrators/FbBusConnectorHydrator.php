@@ -17,6 +17,9 @@ namespace FastyBird\FbBusConnector\Hydrators;
 
 use FastyBird\DevicesModule\Hydrators as DevicesModuleHydrators;
 use FastyBird\FbBusConnector\Entities;
+use FastyBird\FbBusConnector\Types;
+use FastyBird\JsonApi\Exceptions as JsonApiExceptions;
+use Fig\Http\Message\StatusCodeInterface;
 use IPub\JsonAPIDocument;
 
 /**
@@ -37,9 +40,10 @@ final class FbBusConnectorHydrator extends DevicesModuleHydrators\Connectors\Con
 		0 => 'name',
 		1 => 'enabled',
 		2 => 'address',
+		3 => 'interface',
+		4 => 'protocol',
 
-		'serial_interface' => 'serialInterface',
-		'baud_rate'        => 'baudRate',
+		'baud_rate' => 'baudRate',
 	];
 
 	/**
@@ -72,16 +76,16 @@ final class FbBusConnectorHydrator extends DevicesModuleHydrators\Connectors\Con
 	 *
 	 * @return string|null
 	 */
-	protected function hydrateSerialInterfaceAttribute(JsonAPIDocument\Objects\IStandardObject $attributes): ?string
+	protected function hydrateInterfaceAttribute(JsonAPIDocument\Objects\IStandardObject $attributes): ?string
 	{
 		if (
-			!is_scalar($attributes->get('serial_interface'))
-			|| (string) $attributes->get('serial_interface') === ''
+			!is_scalar($attributes->get('interface'))
+			|| (string) $attributes->get('interface') === ''
 		) {
 			return null;
 		}
 
-		return (string) $attributes->get('serial_interface');
+		return (string) $attributes->get('interface');
 	}
 
 	/**
@@ -99,6 +103,34 @@ final class FbBusConnectorHydrator extends DevicesModuleHydrators\Connectors\Con
 		}
 
 		return (int) $attributes->get('baud_rate');
+	}
+
+	/**
+	 * @param JsonAPIDocument\Objects\IStandardObject $attributes
+	 *
+	 * @return Types\ProtocolVersionType|null
+	 */
+	protected function hydrateProtocolAttribute(JsonAPIDocument\Objects\IStandardObject $attributes): ?Types\ProtocolVersionType
+	{
+		if (
+			!is_scalar($attributes->get('protocol'))
+			|| (string) $attributes->get('protocol') === ''
+		) {
+			return null;
+		}
+
+		if (!Types\ProtocolVersionType::isValidValue((int) $attributes->get('protocol'))) {
+			throw new JsonApiExceptions\JsonApiErrorException(
+				StatusCodeInterface::STATUS_UNPROCESSABLE_ENTITY,
+				$this->translator->translate('//fb-bus-connector.base.messages.invalidAttribute.heading'),
+				$this->translator->translate('//fb-bus-connector.base.messages.invalidAttribute.message'),
+				[
+					'pointer' => 'data/protocol',
+				]
+			);
+		}
+
+		return Types\ProtocolVersionType::get((int) $attributes->get('protocol'));
 	}
 
 }

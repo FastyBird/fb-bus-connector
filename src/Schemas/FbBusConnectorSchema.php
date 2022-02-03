@@ -64,9 +64,10 @@ final class FbBusConnectorSchema extends DevicesModuleSchemas\Connectors\Connect
 	public function getAttributes($connector, JsonApi\Contracts\Schema\ContextInterface $context): iterable
 	{
 		return array_merge((array) parent::getAttributes($connector, $context), [
-			'address'          => $connector->getAddress(),
-			'serial_interface' => $connector->getSerialInterface(),
-			'baud_rate'        => $connector->getBaudRate(),
+			'address'   => $connector->getAddress(),
+			'interface' => $connector->getInterface(),
+			'baud_rate' => $connector->getBaudRate(),
+			'protocol'  => $connector->getProtocol()->getValue(),
 		]);
 	}
 

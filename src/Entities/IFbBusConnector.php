@@ -16,6 +16,7 @@
 namespace FastyBird\FbBusConnector\Entities;
 
 use FastyBird\DevicesModule\Entities as DevicesModuleEntities;
+use FastyBird\FbBusConnector\Types;
 
 /**
  * FastyBird BUS connector entity interface
@@ -29,33 +30,33 @@ interface IFbBusConnector extends DevicesModuleEntities\Connectors\IConnector
 {
 
 	/**
-	 * @return int|null
+	 * @return int
 	 */
-	public function getAddress(): ?int;
+	public function getAddress(): int;
 
 	/**
-	 * @param int $address
+	 * @param int|null $address
 	 *
 	 * @return void
 	 */
-	public function setAddress(int $address): void;
+	public function setAddress(?int $address): void;
 
 	/**
-	 * @return string|null
+	 * @return string
 	 */
-	public function getSerialInterface(): ?string;
+	public function getInterface(): string;
 
 	/**
-	 * @param string $serialInterface
+	 * @param string|null $serialInterface
 	 *
 	 * @return void
 	 */
-	public function setSerialInterface(string $serialInterface): void;
+	public function setInterface(?string $serialInterface): void;
 
 	/**
-	 * @return int|null
+	 * @return int
 	 */
-	public function getBaudRate(): ?int;
+	public function getBaudRate(): int;
 
 	/**
 	 * @param int|null $baudRate
@@ -63,5 +64,17 @@ interface IFbBusConnector extends DevicesModuleEntities\Connectors\IConnector
 	 * @return void
 	 */
 	public function setBaudRate(?int $baudRate): void;
+
+	/**
+	 * @return Types\ProtocolVersionType
+	 */
+	public function getProtocol(): Types\ProtocolVersionType;
+
+	/**
+	 * @param Types\ProtocolVersionType|null $protocol
+	 *
+	 * @return void
+	 */
+	public function setProtocol(?Types\ProtocolVersionType $protocol): void;
 
 }

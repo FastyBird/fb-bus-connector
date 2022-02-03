@@ -50,7 +50,7 @@ from fastybird_fb_bus_connector.registry.model import (
     RegistersRegistry,
 )
 from fastybird_fb_bus_connector.transporters.pjon import PjonTransporter
-from fastybird_fb_bus_connector.types import MASTER_ADDRESS, ProtocolVersion
+from fastybird_fb_bus_connector.types import ProtocolVersion
 
 
 def create_connector(
@@ -66,16 +66,6 @@ def create_connector(
 
     else:
         connector_logger = logger
-
-    connector_settings = {
-        **{
-            "address": MASTER_ADDRESS,
-            "baud_rate": 38400,
-            "interface": "/dev/ttyAMA0",
-            "protocol_version": ProtocolVersion.V1,
-        },
-        **connector.params,
-    }
 
     di[EventDispatcher] = EventDispatcher()
     di["fb-bus-connector_events-dispatcher"] = di[EventDispatcher]
@@ -101,7 +91,7 @@ def create_connector(
     di["fb-bus-connector_registers-registry"] = di[DiscoveredDevicesRegistry]
 
     # API utils
-    if connector_settings.get("protocol_version") == ProtocolVersion.V1:
+    if connector.protocol == ProtocolVersion.V1:
         di[V1Parser] = V1Parser(
             devices_registry=di[DevicesRegistry],
             registers_registry=di[RegistersRegistry],
@@ -138,7 +128,7 @@ def create_connector(
     # Communication receivers
     receivers = []
 
-    if connector_settings.get("protocol_version") == ProtocolVersion.V1:
+    if connector.protocol == ProtocolVersion.V1:
         di[ApiV1Receiver] = ApiV1Receiver(parser=di[V1Parser])
         di["fb-bus-connector_api-v1-receiver"] = di[ApiV1Receiver]
 
@@ -154,9 +144,9 @@ def create_connector(
     # Communication transporter
     di[PjonTransporter] = PjonTransporter(
         receiver=di[Receiver],
-        address=int(str(connector_settings.get("address"))),
-        baud_rate=int(str(connector_settings.get("baud_rate"))),
-        interface=str(connector_settings.get("interface")),
+        address=connector.address,
+        baud_rate=connector.baud_rate,
+        interface=connector.interface,
         logger=connector_logger,
     )
     di["fb-bus-connector_data-transporter"] = di[PjonTransporter]
@@ -164,7 +154,7 @@ def create_connector(
     # Data clients
     clients = []
 
-    if connector_settings.get("protocol_version") == ProtocolVersion.V1:
+    if connector.protocol == ProtocolVersion.V1:
         di[ApiV1Client] = ApiV1Client(
             devices_registry=di[DevicesRegistry],
             registers_registry=di[RegistersRegistry],
