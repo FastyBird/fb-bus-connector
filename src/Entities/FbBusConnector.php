@@ -86,7 +86,7 @@ class FbBusConnector extends DevicesModuleEntities\Connectors\Connector implemen
 	 */
 	public function getInterface(): string
 	{
-		$interface = $this->getParam('serial_interface', '/dev/ttyAMA0');
+		$interface = $this->getParam('interface', '/dev/ttyAMA0');
 
 		return $interface ?? '/dev/ttyAMA0';
 	}
@@ -96,7 +96,7 @@ class FbBusConnector extends DevicesModuleEntities\Connectors\Connector implemen
 	 */
 	public function setinterface(?string $interface): void
 	{
-		$this->setParam('serial_interface', $interface);
+		$this->setParam('interface', $interface);
 	}
 
 	/**
@@ -142,7 +142,7 @@ class FbBusConnector extends DevicesModuleEntities\Connectors\Connector implemen
 	{
 		return array_merge(parent::toArray(), [
 			'address'          => $this->getAddress(),
-			'serial_interface' => $this->getinterface(),
+			'interface' => $this->getinterface(),
 			'baud_rate'        => $this->getBaudRate(),
 			'protocol'         => $this->getProtocol()->getValue(),
 		]);

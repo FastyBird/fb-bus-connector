@@ -47,11 +47,11 @@ interface IFbBusConnector extends DevicesModuleEntities\Connectors\IConnector
 	public function getInterface(): string;
 
 	/**
-	 * @param string|null $serialInterface
+	 * @param string|null $interface
 	 *
 	 * @return void
 	 */
-	public function setInterface(?string $serialInterface): void;
+	public function setInterface(?string $interface): void;
 
 	/**
 	 * @return int
