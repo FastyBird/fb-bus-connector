@@ -25,7 +25,7 @@ import logging
 import time
 import uuid
 from datetime import datetime
-from typing import Dict, List, Optional, Set, Union
+from typing import Dict, List, Set, Union
 
 # Library dependencies
 from fastybird_metadata.devices_module import ConnectionState
@@ -80,16 +80,17 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
     __discovered_devices_registry: DiscoveredDevicesRegistry
     __discovered_registers_registry: DiscoveredRegistersRegistry
 
-    __discovery_attempts: int = 0
-    __total_discovery_attempts: int = 0
-
     __transporter: ITransporter
 
-    __processed_devices: List[str] = []
-    __processed_devices_registers: Dict[str, Set[str]] = {}
+    __discovery_attempts: int = 0
+    __discovery_total_attempts: int = 0
+    __discovery_broadcasting_finished: bool = False
+    __discovery_last_broadcast_request_send_timestamp: float = 0.0
 
-    __broadcasting_discovery_finished: bool = False
-    __last_discovery_broadcast_request_send_timestamp: float = 0.0
+    __processed_devices: List[str] = []
+    __processed_devices_inputs_registers: Dict[str, Set[str]] = {}
+    __processed_devices_outputs_registers: Dict[str, Set[str]] = {}
+    __processed_devices_attributes_registers: Dict[str, Set[str]] = {}
 
     __logger: Union[Logger, logging.Logger]
 
@@ -98,16 +99,13 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
     __PING_DELAY: float = 15.0  # Delay between pings packets
     __READ_STATE_DELAY: float = 5.0  # Delay between read state packets
 
-    __PACKET_RESPONSE_DELAY: float = 0.5  # Waiting time before another packet is sent
-    __PACKET_RESPONSE_WAITING_TIME: float = 0.5
-    __BROADCAST_WAITING_DELAY: float = 2.0  # Maximum time gateway will wait for reply during broadcasting
-
-    __MAX_DISCOVERY_ATTEMPTS: int = 5  # Maxim count of sending search device packets
-    __MAX_TOTAL_DISCOVERY_ATTEMPTS: int = (
+    __DISCOVERY_MAX_ATTEMPTS: int = 5  # Maxim count of sending search device packets
+    __DISCOVERY_MAX_TOTAL_ATTEMPTS: int = (
         100  # Maximum total count of packets before gateway mark paring as unsuccessful
     )
     __DISCOVERY_BROADCAST_DELAY: float = 2.0  # Waiting delay before another broadcast is sent
-    __DEVICE_DISCOVERY_DELAY: float = 5.0  # Waiting delay paring is marked as unsuccessful
+    __DISCOVERY_DEVICE_DELAY: float = 5.0  # Waiting delay paring is marked as unsuccessful
+    __DISCOVERY_BROADCAST_WAITING_DELAY: float = 2.0  # Maximum time gateway will wait for reply during broadcasting
 
     # -----------------------------------------------------------------------------
 
@@ -131,7 +129,9 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
         self.__logger = logger
 
         self.__processed_devices = []
-        self.__processed_devices_registers = {}
+        self.__processed_devices_inputs_registers = {}
+        self.__processed_devices_outputs_registers = {}
+        self.__processed_devices_attributes_registers = {}
 
     # -----------------------------------------------------------------------------
 
@@ -147,12 +147,12 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
         """Disable client devices discovery"""
         self.__discovery_enabled = False
 
-        self.__total_discovery_attempts = 0
-        self.__last_discovery_broadcast_request_send_timestamp = 0.0
-        self.__total_discovery_attempts = 0
+        self.__discovery_total_attempts = 0
+        self.__discovery_last_broadcast_request_send_timestamp = 0.0
+        self.__discovery_total_attempts = 0
         self.__discovery_attempts = 0
 
-        self.__broadcasting_discovery_finished = False
+        self.__discovery_broadcasting_finished = False
 
         self.__discovered_devices_registry.reset()
 
@@ -186,7 +186,7 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
 
     def __process_device(self, device: DeviceRecord) -> None:  # pylint: disable=too-many-return-statements
         """Handle client read or write message to device"""
-        device_address = self.__get_address_for_device(device=device)
+        device_address = self.__devices_registry.get_address(device=device)
 
         if device_address is None:
             self.__logger.error(
@@ -205,9 +205,7 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
 
         # Maximum send packet attempts was reached device is now marked as lost
         if device.transmit_attempts >= self.__MAX_TRANSMIT_ATTEMPTS:
-            if self.__devices_registry.is_device_lost(device=device):
-                self.__devices_registry.reset_communication(device=device)
-
+            if device.is_lost:
                 self.__logger.info(
                     "Device with address: %s is still lost",
                     device_address,
@@ -219,6 +217,8 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
                         },
                     },
                 )
+
+                self.__devices_registry.set_state(device=device, state=ConnectionState.LOST)
 
             else:
                 self.__logger.info(
@@ -233,14 +233,14 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
                     },
                 )
 
-                self.__devices_registry.set_device_is_lost(device=device)
+                self.__devices_registry.set_state(device=device, state=ConnectionState.LOST)
 
             return
 
         # Device state is lost...
-        if self.__devices_registry.is_device_lost(device=device):
+        if device.is_lost:
             # ...wait for ping delay...
-            if (time.time() - device.last_packet_timestamp) >= self.__PING_DELAY:
+            if (time.time() - device.last_misc_packet_timestamp) >= self.__PING_DELAY:
                 # ...then try to PING device
                 self.__send_ping_handler(device=device, device_address=device_address)
 
@@ -249,7 +249,7 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
         # Device state is unknown...
         if self.__devices_registry.is_device_unknown(device=device):
             # ...wait for read state delay...
-            if (time.time() - device.last_packet_timestamp) >= self.__READ_STATE_DELAY:
+            if (time.time() - device.last_misc_packet_timestamp) >= self.__READ_STATE_DELAY:
                 # ...ask device for its state
                 self.__send_read_device_state_handler(device=device, device_address=device_address)
 
@@ -270,20 +270,20 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
     def __process_discovery(self) -> None:
         """Handle discovery process"""
         # Connector protection
-        if self.__total_discovery_attempts >= self.__MAX_TOTAL_DISCOVERY_ATTEMPTS:
+        if self.__discovery_total_attempts >= self.__DISCOVERY_MAX_TOTAL_ATTEMPTS:
             self.__logger.info("Maximum attempts reached. Disabling discovery procedure to prevent infinite loop")
 
             self.disable_discovery()
 
             return
 
-        if not self.__broadcasting_discovery_finished:
+        if not self.__discovery_broadcasting_finished:
             # Check if search counter is reached
-            if self.__discovery_attempts < self.__MAX_DISCOVERY_ATTEMPTS:
+            if self.__discovery_attempts < self.__DISCOVERY_MAX_ATTEMPTS:
                 # Search timeout is not reached, new devices could be searched
                 if (
-                    self.__last_discovery_broadcast_request_send_timestamp == 0
-                    or time.time() - self.__last_discovery_broadcast_request_send_timestamp
+                    self.__discovery_last_broadcast_request_send_timestamp == 0
+                    or time.time() - self.__discovery_last_broadcast_request_send_timestamp
                     >= self.__DISCOVERY_BROADCAST_DELAY
                 ):
                     # Broadcast discovery request for new device
@@ -291,7 +291,7 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
 
             # Searching for devices finished
             else:
-                self.__broadcasting_discovery_finished = True
+                self.__discovery_broadcasting_finished = True
 
                 self.__discovered_devices_registry.prepare_devices()
 
@@ -308,7 +308,7 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
             # Max device discovery attempts were reached
             if discovered_device.transmit_attempts >= self.__MAX_TRANSMIT_ATTEMPTS or (
                 discovered_device.last_packet_timestamp != 0.0
-                and time.time() - discovered_device.last_packet_timestamp >= self.__DEVICE_DISCOVERY_DELAY
+                and time.time() - discovered_device.last_packet_timestamp >= self.__DISCOVERY_DEVICE_DELAY
             ):
                 self.__logger.warning(
                     "Discovery could not be finished, device: %s is lost. Moving to next device in queue",
@@ -362,7 +362,7 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
             payload=V1Builder.build_ping(),
         )
 
-        self.__validate_result(result=result, device=device)
+        self.__devices_registry.set_misc_packet_timestamp(device=device, success=result)
 
     # -----------------------------------------------------------------------------
 
@@ -390,88 +390,139 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
         result = self.__transporter.send_packet(
             address=device_address,
             payload=output_content,
-            waiting_time=self.__PACKET_RESPONSE_WAITING_TIME,
         )
 
-        self.__validate_result(result=result, device=device)
+        self.__devices_registry.set_misc_packet_timestamp(device=device, success=result)
 
     # -----------------------------------------------------------------------------
 
     def __write_register_handler(self, device: DeviceRecord, device_address: int) -> bool:
         for register_type in (RegisterType.OUTPUT, RegisterType.ATTRIBUTE):
-            if self.__write_single_register(
-                device=device,
-                device_address=device_address,
+            registers = self.__registers_registry.get_all_for_device(
+                device_id=device.id,
                 register_type=register_type,
-            ):
-                return True
+            )
+
+            for register in registers:
+                if register.expected_value is not None and register.expected_pending is None:
+                    if self.__write_value_to_single_register(
+                        device=device,
+                        device_address=device_address,
+                        register=register,
+                        write_value=register.expected_value,
+                    ):
+                        return True
 
         return False
 
     # -----------------------------------------------------------------------------
 
-    def __read_registers_handler(self, device: DeviceRecord, device_address: int) -> bool:
-        input_registers = self.__registers_registry.get_all_for_device(
+    def __read_registers_handler(  # pylint: disable=too-many-return-statements,too-many-branches
+        self,
+        device: DeviceRecord,
+        device_address: int,
+    ) -> bool:
+        """Process devices registers reading"""
+
+        # INPUT REGISTERS
+        if device.id.__str__() not in self.__processed_devices_inputs_registers:
+            self.__processed_devices_inputs_registers[device.id.__str__()] = set()
+
+        registers = self.__registers_registry.get_all_for_device(
             device_id=device.id,
             register_type=RegisterType.INPUT,
         )
 
-        output_registers = self.__registers_registry.get_all_for_device(
+        if 0 < len(registers) != len(self.__processed_devices_inputs_registers[device.id.__str__()]):
+            if self.__is_all_registers_readable(device=device, registers_count=len(registers)):
+                reading_result = self.__read_multiple_registers(
+                    device=device,
+                    device_address=device_address,
+                    registers_type=RegisterType.INPUT,
+                    registers_count=len(registers),
+                )
+
+                for register in registers:
+                    self.__processed_devices_inputs_registers[device.id.__str__()].add(register.id.__str__())
+
+                return reading_result
+
+            for register in registers:
+                reading_result = self.__read_single_register(
+                    device=device,
+                    device_address=device_address,
+                    register_type=register.type,
+                    register_address=register.address,
+                )
+
+                self.__processed_devices_inputs_registers[device.id.__str__()].add(register.id.__str__())
+
+                return reading_result
+
+        # OUTPUT REGISTERS
+        if device.id.__str__() not in self.__processed_devices_outputs_registers:
+            self.__processed_devices_outputs_registers[device.id.__str__()] = set()
+
+        registers = self.__registers_registry.get_all_for_device(
             device_id=device.id,
             register_type=RegisterType.OUTPUT,
         )
 
-        # Get all input & output registers for device
-        registers = input_registers + output_registers
-        # Sort them by ID
-        registers.sort(key=lambda r: (r.type.value, r.address))
+        if 0 < len(registers) != len(self.__processed_devices_outputs_registers[device.id.__str__()]):
+            if self.__is_all_registers_readable(device=device, registers_count=len(registers)):
+                reading_result = self.__read_multiple_registers(
+                    device=device,
+                    device_address=device_address,
+                    registers_type=RegisterType.OUTPUT,
+                    registers_count=len(registers),
+                )
 
-        if device.id.__str__() not in self.__processed_devices_registers:
-            self.__processed_devices_registers[device.id.__str__()] = set()
+                for register in registers:
+                    self.__processed_devices_outputs_registers[device.id.__str__()].add(register.id.__str__())
 
-        for register in registers:
-            if (
-                register.id.__str__() not in self.__processed_devices_registers[register.device_id.__str__()]
-                and time.time() - register.reading_timestamp >= device.sampling_time
-            ):
-                read_result = self.__read_multiple_registers(
+                return reading_result
+
+            for register in registers:
+                reading_result = self.__read_single_register(
                     device=device,
                     device_address=device_address,
                     register_type=register.type,
-                    start_address=register.address,
+                    register_address=register.address,
                 )
 
-                self.__processed_devices_registers[device.id.__str__()].add(register.id.__str__())
+                self.__processed_devices_outputs_registers[device.id.__str__()].add(register.id.__str__())
 
-                return read_result
+                return reading_result
 
-        attribute_registers = self.__registers_registry.get_all_for_device(
+        # ATTRIBUTES REGISTERS
+        if device.id.__str__() not in self.__processed_devices_attributes_registers:
+            self.__processed_devices_attributes_registers[device.id.__str__()] = set()
+
+        registers = self.__registers_registry.get_all_for_device(
             device_id=device.id,
             register_type=RegisterType.ATTRIBUTE,
         )
-        attribute_registers.sort(key=lambda r: r.address)
+        registers = [register for register in registers if register.queryable]
 
-        for attribute_register in attribute_registers:
-            if (
-                attribute_register.id.__str__()
-                not in self.__processed_devices_registers[attribute_register.device_id.__str__()]
-                and time.time() - attribute_register.reading_timestamp >= device.sampling_time
-                and attribute_register.queryable
-            ):
-                read_result = self.__read_single_register(
+        if 0 < len(registers) != len(self.__processed_devices_attributes_registers[device.id.__str__()]):
+            for register in registers:
+                reading_result = self.__read_single_register(
                     device=device,
                     device_address=device_address,
-                    register_type=attribute_register.type,
-                    register_address=attribute_register.address,
+                    register_type=register.type,
+                    register_address=register.address,
                 )
 
-                self.__processed_devices_registers[device.id.__str__()].add(attribute_register.id.__str__())
+                self.__processed_devices_attributes_registers[device.id.__str__()].add(register.id.__str__())
 
-                self.__registers_registry.set_reading_timestamp(register=attribute_register, timestamp=time.time())
+                return reading_result
 
-                return read_result
+        if time.time() - device.last_reading_packet_timestamp >= device.sampling_time:
+            return True
 
-        self.__processed_devices_registers[device.id.__str__()] = set()
+        self.__processed_devices_inputs_registers[device.id.__str__()] = set()
+        self.__processed_devices_outputs_registers[device.id.__str__()] = set()
+        self.__processed_devices_attributes_registers[device.id.__str__()] = set()
 
         return True
 
@@ -481,14 +532,14 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
         """Broadcast devices discovery packet to bus"""
         # Set counters & flags...
         self.__discovery_attempts += 1
-        self.__total_discovery_attempts += 1
-        self.__last_discovery_broadcast_request_send_timestamp = time.time()
+        self.__discovery_total_attempts += 1
+        self.__discovery_last_broadcast_request_send_timestamp = time.time()
 
         self.__logger.debug("Preparing to broadcast search devices")
 
         self.__transporter.broadcast_packet(
             payload=V1Builder.build_discovery(),
-            waiting_time=self.__BROADCAST_WAITING_DELAY,
+            waiting_time=self.__DISCOVERY_BROADCAST_WAITING_DELAY,
         )
 
     # -----------------------------------------------------------------------------
@@ -513,12 +564,12 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
             packet_type=Packet.READ_SINGLE_REGISTER_STRUCTURE,
         )
 
-        self.__total_discovery_attempts += 1
+        self.__discovery_total_attempts += 1
 
         if discovered_device.address == UNASSIGNED_ADDRESS:
             self.__transporter.broadcast_packet(
                 payload=output_content,
-                waiting_time=self.__BROADCAST_WAITING_DELAY,
+                waiting_time=self.__DISCOVERY_BROADCAST_WAITING_DELAY,
             )
 
         else:
@@ -580,7 +631,7 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
             payload=output_content,
         )
 
-        self.__validate_result(result=result, device=device)
+        self.__devices_registry.set_read_packet_timestamp(device=device, success=result)
 
         return True
 
@@ -590,51 +641,15 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
         self,
         device: DeviceRecord,
         device_address: int,
-        register_type: RegisterType,
-        start_address: Optional[int],
+        registers_type: RegisterType,
+        registers_count: int,
     ) -> bool:
-        register_size = len(
-            self.__registers_registry.get_all_for_device(device_id=device.id, register_type=register_type)
-        )
-
-        if start_address is None:
-            start_address = 0
-
-        if register_type in (RegisterType.INPUT, RegisterType.OUTPUT):
-            # Calculate maximum count registers per one packet
-            # e.g. max_packet_length = 24 => max_readable_registers_count = 4
-            #   - only 4 registers could be read in one packet
-            max_readable_registers_count = (self.__get_max_packet_length_for_device(device=device) - 8) // 4
-
-        else:
-            return True
-
-        # Calculate reading address based on maximum reading length and start address
-        # e.g. start_address = 0 and max_readable_registers_count = 3 => max_readable_addresses = 2
-        # e.g. start_address = 3 and max_readable_registers_count = 3 => max_readable_addresses = 5
-        # e.g. start_address = 0 and max_readable_registers_count = 8 => max_readable_addresses = 7
-        max_readable_addresses = start_address + max_readable_registers_count - 1
-
-        if (max_readable_addresses + 1) >= register_size:
-            if start_address == 0:
-                read_length = register_size
-
-            else:
-                read_length = register_size - start_address
-
-        else:
-            read_length = max_readable_registers_count
-
-        next_address = start_address + read_length
-
-        # Validate registers reading length
-        if read_length <= 0:
-            return True
+        start_address = 0
 
         output_content = V1Builder.build_read_multiple_registers_values(
-            register_type=register_type,
+            register_type=registers_type,
             start_address=start_address,
-            registers_count=read_length,
+            registers_count=registers_count,
         )
 
         result = self.__transporter.send_packet(
@@ -642,49 +657,9 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
             payload=output_content,
         )
 
-        self.__validate_result(result=result, device=device)
+        self.__devices_registry.set_read_packet_timestamp(device=device, success=result)
 
-        if result is True:
-            for register_address in range(start_address, next_address):
-                register = self.__registers_registry.get_by_address(
-                    device_id=device.id,
-                    register_type=register_type,
-                    register_address=register_address,
-                )
-
-                if register is not None:
-                    self.__processed_devices_registers[device.id.__str__()].add(register.id.__str__())
-
-                    self.__registers_registry.set_reading_timestamp(register=register, timestamp=time.time())
-
-        return True
-
-    # -----------------------------------------------------------------------------
-
-    def __write_single_register(
-        self,
-        device: DeviceRecord,
-        device_address: int,
-        register_type: RegisterType,
-    ) -> bool:
-        registers = self.__registers_registry.get_all_for_device(
-            device_id=device.id,
-            register_type=register_type,
-        )
-
-        for register in registers:
-            if register.expected_value is not None and register.expected_pending is None:
-                if self.__write_value_to_single_register(
-                    device=device,
-                    device_address=device_address,
-                    register=register,
-                    write_value=register.expected_value,
-                ):
-                    self.__registers_registry.set_expected_pending(register=register, timestamp=time.time())
-
-                    return True
-
-        return False
+        return result
 
     # -----------------------------------------------------------------------------
 
@@ -731,47 +706,15 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
         result = self.__transporter.send_packet(
             address=device_address,
             payload=output_content,
-            waiting_time=self.__PACKET_RESPONSE_WAITING_TIME,
         )
 
-        self.__validate_result(result=result, device=device)
+        if result:
+            self.__registers_registry.set_expected_pending(register=register, timestamp=time.time())
+
+        # Update communication timestamp
+        self.__devices_registry.set_write_packet_timestamp(device=device, success=result)
 
         return result
-
-    # -----------------------------------------------------------------------------
-
-    def __validate_result(self, result: bool, device: DeviceRecord) -> None:
-        self.__devices_registry.set_last_packet_timestamp(device=device, last_packet_timestamp=time.time())
-
-        if not result:
-            # ...but packet was not received by device, mark that gateway is not waiting for reply from device
-            self.__devices_registry.increment_transmit_attempts(device=device)
-
-    # -----------------------------------------------------------------------------
-
-    def __get_address_for_device(self, device: DeviceRecord) -> Optional[int]:
-        address_attribute = self.__registers_registry.get_by_name(
-            device_id=device.id,
-            name=DeviceAttribute.ADDRESS.value,
-        )
-
-        if address_attribute is None or not isinstance(address_attribute.actual_value, int):
-            return None
-
-        return address_attribute.actual_value
-
-    # -----------------------------------------------------------------------------
-
-    def __get_max_packet_length_for_device(self, device: DeviceRecord) -> int:
-        max_packet_length_attribute = self.__registers_registry.get_by_name(
-            device_id=device.id,
-            name=DeviceAttribute.MAX_PACKET_LENGTH.value,
-        )
-
-        if max_packet_length_attribute is None or not isinstance(max_packet_length_attribute.actual_value, int):
-            return 80
-
-        return max_packet_length_attribute.actual_value
 
     # -----------------------------------------------------------------------------
 
@@ -844,9 +787,7 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
                 register_data_type=address_register.data_type,
                 register_name=address_register.name,
                 write_value=discovered_device.address,
-                serial_number=(
-                    discovered_device.serial_number if actual_address == UNASSIGNED_ADDRESS else None
-                ),
+                serial_number=(discovered_device.serial_number if actual_address == UNASSIGNED_ADDRESS else None),
             )
 
         except BuildPayloadException as ex:
@@ -873,14 +814,14 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
         if actual_address == UNASSIGNED_ADDRESS:
             self.__transporter.broadcast_packet(
                 payload=output_content,
-                waiting_time=self.__BROADCAST_WAITING_DELAY,
+                waiting_time=self.__DISCOVERY_BROADCAST_WAITING_DELAY,
             )
 
         else:
             result = self.__transporter.send_packet(
                 address=actual_address,
                 payload=output_content,
-                waiting_time=self.__BROADCAST_WAITING_DELAY,
+                waiting_time=self.__DISCOVERY_BROADCAST_WAITING_DELAY,
             )
 
             if result is False:
@@ -1045,5 +986,19 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
 
         # Update device state
         device_record = self.__devices_registry.set_state(device=device_record, state=ConnectionState.UNKNOWN)
-        # Update lact packet sent status
-        self.__devices_registry.set_last_packet_timestamp(device=device_record, last_packet_timestamp=time.time())
+
+        # Update last packet sent status
+        self.__devices_registry.set_misc_packet_timestamp(device=device_record)
+
+    # -----------------------------------------------------------------------------
+
+    def __is_all_registers_readable(self, device: DeviceRecord, registers_count: int) -> bool:
+        """Check if all registers could be read at once """
+        # Calculate maximum count registers per one packet
+        # e.g. max_packet_length = 24 => max_readable_registers_count = 4
+        #   - only 4 registers could be read in one packet
+        max_readable_registers_count = (
+            self.__devices_registry.get_max_packet_length_for_device(device=device) - 8
+        ) // 4
+
+        return max_readable_registers_count >= registers_count

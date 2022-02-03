@@ -58,8 +58,9 @@ class DeviceRecord:  # pylint: disable=too-many-public-methods,too-many-instance
 
     __enabled: bool = False
 
-    __waiting_for_packet: Optional[Packet] = None
-    __last_packet_sent_timestamp: float = 0.0  # Timestamp when request was sent to the device
+    __last_writing_packet_timestamp: float = 0.0  # Timestamp writing when request was sent to the device
+    __last_reading_packet_timestamp: float = 0.0  # Timestamp reading when request was sent to the device
+    __last_misc_packet_timestamp: float = 0.0  # Timestamp reading misc when request was sent to the device
 
     __attempts: int = 0
 
@@ -157,16 +158,44 @@ class DeviceRecord:  # pylint: disable=too-many-public-methods,too-many-instance
     # -----------------------------------------------------------------------------
 
     @property
-    def last_packet_timestamp(self) -> float:
-        """Last packet sent time stamp"""
-        return self.__last_packet_sent_timestamp
+    def last_reading_packet_timestamp(self) -> float:
+        """Last reading packet sent time stamp"""
+        return self.__last_reading_packet_timestamp
 
     # -----------------------------------------------------------------------------
 
-    @last_packet_timestamp.setter
-    def last_packet_timestamp(self, last_packet_timestamp: float) -> None:
-        """Last packet sent time stamp setter"""
-        self.__last_packet_sent_timestamp = last_packet_timestamp
+    @last_reading_packet_timestamp.setter
+    def last_reading_packet_timestamp(self, timestamp: float) -> None:
+        """Last reading packet sent time stamp setter"""
+        self.__last_reading_packet_timestamp = timestamp
+
+    # -----------------------------------------------------------------------------
+
+    @property
+    def last_writing_packet_timestamp(self) -> float:
+        """Last writing packet sent time stamp"""
+        return self.__last_writing_packet_timestamp
+
+    # -----------------------------------------------------------------------------
+
+    @last_writing_packet_timestamp.setter
+    def last_writing_packet_timestamp(self, timestamp: float) -> None:
+        """Last writing packet sent time stamp setter"""
+        self.__last_writing_packet_timestamp = timestamp
+
+    # -----------------------------------------------------------------------------
+
+    @property
+    def last_misc_packet_timestamp(self) -> float:
+        """Last misc packet sent time stamp"""
+        return self.__last_misc_packet_timestamp
+
+    # -----------------------------------------------------------------------------
+
+    @last_misc_packet_timestamp.setter
+    def last_misc_packet_timestamp(self, timestamp: float) -> None:
+        """Last misc packet sent time stamp setter"""
+        self.__last_misc_packet_timestamp = timestamp
 
     # -----------------------------------------------------------------------------
 
@@ -199,15 +228,16 @@ class DeviceRecord:  # pylint: disable=too-many-public-methods,too-many-instance
     # -----------------------------------------------------------------------------
 
     @property
-    def sampling_time(self) -> float:
-        """Device registers reading sampling time"""
-        return self.__sampling_time
+    def is_lost(self) -> bool:
+        """Is device in lost state?"""
+        return self.__lost_timestamp != 0
 
     # -----------------------------------------------------------------------------
 
-    def reset_communication(self) -> None:
-        """Reset device communication pointer"""
-        self.__attempts = 0
+    @property
+    def sampling_time(self) -> float:
+        """Device registers reading sampling time"""
+        return self.__sampling_time
 
     # -----------------------------------------------------------------------------
 
@@ -237,8 +267,6 @@ class RegisterRecord(ABC):  # pylint: disable=too-many-instance-attributes
     _actual_value: Union[str, int, float, bool, datetime, ButtonPayload, SwitchPayload, None] = None
     _expected_value: Union[str, int, float, bool, datetime, ButtonPayload, SwitchPayload, None] = None
     _expected_pending: Optional[float] = None
-
-    __reading_timestamp: float = 0.0
 
     # -----------------------------------------------------------------------------
 
@@ -426,20 +454,6 @@ class RegisterRecord(ABC):  # pylint: disable=too-many-instance-attributes
     def expected_pending(self, timestamp: Optional[float]) -> None:
         """Set register expected value transmit timestamp"""
         self._expected_pending = timestamp
-
-    # -----------------------------------------------------------------------------
-
-    @property
-    def reading_timestamp(self) -> float:
-        """Timestamp when register data was requested"""
-        return self.__reading_timestamp
-
-    # -----------------------------------------------------------------------------
-
-    @reading_timestamp.setter
-    def reading_timestamp(self, reading_timestamp: float) -> None:
-        """Timestamp setter when register data was requested"""
-        self.__reading_timestamp = reading_timestamp
 
     # -----------------------------------------------------------------------------
 

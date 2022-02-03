@@ -258,16 +258,20 @@ class DevicesRegistry:  # pylint: disable=too-many-public-methods
                 "Device state could not be updated. Attribute register was not found in registry",
             )
 
-        if state in (ConnectionState.RUNNING, ConnectionState.UNKNOWN, ConnectionState.LOST):
-            # Reset lost timestamp
+        if state in (ConnectionState.RUNNING, ConnectionState.UNKNOWN) and actual_state.actual_value != state.value:
+            # Reset pointers & counters
             device.lost_timestamp = 0
-            # Reset device communication state
-            device.reset_communication()
+            device.transmit_attempts = 0
+            device.last_writing_packet_timestamp = 0
+            device.last_reading_packet_timestamp = 0
 
         if state == ConnectionState.LOST:
-            if actual_state is None or actual_state.actual_value != state.value:
-                # Set lost timestamp
+            if actual_state.actual_value != state.value:
                 device.lost_timestamp = time.time()
+
+            device.transmit_attempts = 0
+            device.last_writing_packet_timestamp = 0
+            device.last_reading_packet_timestamp = 0
 
         self.__registers_registry.set_actual_value(register=actual_state, value=state.value)
 
@@ -301,28 +305,63 @@ class DevicesRegistry:  # pylint: disable=too-many-public-methods
 
     # -----------------------------------------------------------------------------
 
-    def set_device_is_lost(self, device: DeviceRecord) -> DeviceRecord:
-        """Mark device as lost"""
-        return self.set_state(device=device, state=ConnectionState.LOST)
-
-    # -----------------------------------------------------------------------------
-
     def is_device_running(self, device: DeviceRecord) -> bool:
         """Is device in running state?"""
         return self.get_state(device=device) == ConnectionState.RUNNING
 
     # -----------------------------------------------------------------------------
 
-    @staticmethod
-    def is_device_lost(device: DeviceRecord) -> bool:
-        """Is device in lost state?"""
-        return device.lost_timestamp != 0
-
-    # -----------------------------------------------------------------------------
-
     def is_device_unknown(self, device: DeviceRecord) -> bool:
         """Is device in unknown state?"""
         return self.get_state(device=device) == ConnectionState.UNKNOWN
+
+    # -----------------------------------------------------------------------------
+
+    def set_write_packet_timestamp(self, device: DeviceRecord, success: bool = True) -> DeviceRecord:
+        """Set packet timestamp for registers writing"""
+        device.last_writing_packet_timestamp = time.time()
+        device.transmit_attempts = 0 if success else device.transmit_attempts + 1
+
+        self.__update(updated_device=device)
+
+        updated_device = self.get_by_id(device.id)
+
+        if updated_device is None:
+            raise InvalidStateException("Device record could not be re-fetched from registry after update")
+
+        return updated_device
+
+    # -----------------------------------------------------------------------------
+
+    def set_read_packet_timestamp(self, device: DeviceRecord, success: bool = True) -> DeviceRecord:
+        """Set packet timestamp for registers reading"""
+        device.last_reading_packet_timestamp = time.time()
+        device.transmit_attempts = 0 if success else device.transmit_attempts + 1
+
+        self.__update(updated_device=device)
+
+        updated_device = self.get_by_id(device.id)
+
+        if updated_device is None:
+            raise InvalidStateException("Device record could not be re-fetched from registry after update")
+
+        return updated_device
+
+    # -----------------------------------------------------------------------------
+
+    def set_misc_packet_timestamp(self, device: DeviceRecord, success: bool = True) -> DeviceRecord:
+        """Set packet timestamp for registers reading"""
+        device.last_misc_packet_timestamp = time.time()
+        device.transmit_attempts = 0 if success else device.transmit_attempts + 1
+
+        self.__update(updated_device=device)
+
+        updated_device = self.get_by_id(device.id)
+
+        if updated_device is None:
+            raise InvalidStateException("Device record could not be re-fetched from registry after update")
+
+        return updated_device
 
     # -----------------------------------------------------------------------------
 
@@ -340,48 +379,17 @@ class DevicesRegistry:  # pylint: disable=too-many-public-methods
 
     # -----------------------------------------------------------------------------
 
-    def reset_communication(self, device: DeviceRecord) -> DeviceRecord:
-        """Reset device communication registers"""
-        device.reset_communication()
+    def get_max_packet_length_for_device(self, device: DeviceRecord) -> int:
+        """Get device max packet lenght"""
+        max_packet_length_attribute = self.__registers_registry.get_by_name(
+            device_id=device.id,
+            name=DeviceAttribute.MAX_PACKET_LENGTH.value,
+        )
 
-        self.__update(updated_device=device)
+        if max_packet_length_attribute is None or not isinstance(max_packet_length_attribute.actual_value, int):
+            return 80
 
-        updated_device = self.get_by_id(device.id)
-
-        if updated_device is None:
-            raise InvalidStateException("Device record could not be re-fetched from registry after update")
-
-        return updated_device
-
-    # -----------------------------------------------------------------------------
-
-    def set_last_packet_timestamp(self, device: DeviceRecord, last_packet_timestamp: float) -> DeviceRecord:
-        """Reset device last packet sent timestamp"""
-        device.last_packet_timestamp = last_packet_timestamp
-
-        self.__update(updated_device=device)
-
-        updated_device = self.get_by_id(device.id)
-
-        if updated_device is None:
-            raise InvalidStateException("Device record could not be re-fetched from registry after update")
-
-        return updated_device
-
-    # -----------------------------------------------------------------------------
-
-    def increment_transmit_attempts(self, device: DeviceRecord) -> DeviceRecord:
-        """Mark that gateway is waiting for reply from device"""
-        device.transmit_attempts = device.transmit_attempts + 1
-
-        self.__update(updated_device=device)
-
-        updated_device = self.get_by_id(device.id)
-
-        if updated_device is None:
-            raise InvalidStateException("Device record could not be re-fetched from registry after update")
-
-        return updated_device
+        return max_packet_length_attribute.actual_value
 
     # -----------------------------------------------------------------------------
 
@@ -817,21 +825,6 @@ class RegistersRegistry:
     def set_expected_pending(self, register: RegisterRecord, timestamp: float) -> RegisterRecord:
         """Set expected value transmit timestamp"""
         register.expected_pending = timestamp
-
-        self.__update(register=register)
-
-        updated_register = self.get_by_id(register.id)
-
-        if updated_register is None:
-            raise InvalidStateException("Register record could not be re-fetched from registry after update")
-
-        return updated_register
-
-    # -----------------------------------------------------------------------------
-
-    def set_reading_timestamp(self, register: RegisterRecord, timestamp: float) -> RegisterRecord:
-        """Set expected value transmit timestamp"""
-        register.reading_timestamp = timestamp
 
         self.__update(register=register)
 
