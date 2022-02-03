@@ -19,14 +19,19 @@ FastyBird BUS connector entities module
 """
 
 # Python base dependencies
-from typing import Dict, Union, List, Optional
+from typing import Dict, List, Optional, Union
 
 # Library dependencies
 from fastybird_devices_module.entities.connector import ConnectorEntity
 from fastybird_devices_module.entities.device import DeviceEntity
 
 # Library libs
-from fastybird_fb_bus_connector.types import CONNECTOR_NAME, DEVICE_NAME, MASTER_ADDRESS, ProtocolVersion
+from fastybird_fb_bus_connector.types import (
+    CONNECTOR_NAME,
+    DEVICE_NAME,
+    MASTER_ADDRESS,
+    ProtocolVersion,
+)
 
 
 class FbBusConnectorEntity(ConnectorEntity):  # pylint: disable=too-few-public-methods

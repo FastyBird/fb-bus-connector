@@ -88,7 +88,7 @@ class FbBusConnector extends DevicesModuleEntities\Connectors\Connector implemen
 	{
 		$interface = $this->getParam('serial_interface', '/dev/ttyAMA0');
 
-		return $interface === null ? '/dev/ttyAMA0' : $interface;
+		return $interface ?? '/dev/ttyAMA0';
 	}
 
 	/**
