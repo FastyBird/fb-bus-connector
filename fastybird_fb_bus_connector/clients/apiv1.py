@@ -88,9 +88,7 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
     __discovery_last_broadcast_request_send_timestamp: float = 0.0
 
     __processed_devices: List[str] = []
-    __processed_devices_inputs_registers: Dict[str, Set[str]] = {}
-    __processed_devices_outputs_registers: Dict[str, Set[str]] = {}
-    __processed_devices_attributes_registers: Dict[str, Set[str]] = {}
+    __processed_devices_registers: Dict[str, Dict[int, Set[str]]] = {}
 
     __logger: Union[Logger, logging.Logger]
 
@@ -129,9 +127,7 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
         self.__logger = logger
 
         self.__processed_devices = []
-        self.__processed_devices_inputs_registers = {}
-        self.__processed_devices_outputs_registers = {}
-        self.__processed_devices_attributes_registers = {}
+        self.__processed_devices_registers = {}
 
     # -----------------------------------------------------------------------------
 
@@ -423,106 +419,78 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
         device_address: int,
     ) -> bool:
         """Process devices registers reading"""
+        for registers_type in [  # pylint: disable=too-many-nested-blocks
+            RegisterType.INPUT,
+            RegisterType.OUTPUT,
+            RegisterType.ATTRIBUTE,
+        ]:
+            if device.id.__str__() not in self.__processed_devices_registers:
+                self.__processed_devices_registers[device.id.__str__()] = {}
 
-        # INPUT REGISTERS
-        if device.id.__str__() not in self.__processed_devices_inputs_registers:
-            self.__processed_devices_inputs_registers[device.id.__str__()] = set()
+            if registers_type.value not in self.__processed_devices_registers[device.id.__str__()]:
+                self.__processed_devices_registers[device.id.__str__()][registers_type.value] = set()
 
-        registers = self.__registers_registry.get_all_for_device(
-            device_id=device.id,
-            register_type=RegisterType.INPUT,
-        )
+            processed_length = len(self.__processed_devices_registers[device.id.__str__()][registers_type.value])
 
-        if 0 < len(registers) != len(self.__processed_devices_inputs_registers[device.id.__str__()]):
-            if self.__is_all_registers_readable(device=device, registers_count=len(registers)):
-                reading_result = self.__read_multiple_registers(
-                    device=device,
-                    device_address=device_address,
-                    registers_type=RegisterType.INPUT,
-                    registers_count=len(registers),
-                )
+            registers = self.__registers_registry.get_all_for_device(
+                device_id=device.id,
+                register_type=registers_type,
+            )
 
+            if registers_type == RegisterType.ATTRIBUTE:
+                registers = [register for register in registers if register.queryable]
+
+            if 0 < len(registers) != processed_length:
+                # Try to read all registers of one type at once
+                if registers_type != RegisterType.ATTRIBUTE and self.__is_all_registers_readable(
+                    device=device, registers_count=len(registers)
+                ):
+                    reading_result = self.__read_multiple_registers(
+                        device=device,
+                        device_address=device_address,
+                        registers_type=registers_type,
+                        registers_count=len(registers),
+                    )
+
+                    if reading_result:
+                        for register in registers:
+                            self.__processed_devices_registers[device.id.__str__()][registers_type.value].add(
+                                register.id.__str__(),
+                            )
+
+                    return reading_result
+
+                # Registers have to be read one by one
                 for register in registers:
-                    self.__processed_devices_inputs_registers[device.id.__str__()].add(register.id.__str__())
+                    if (
+                        register.id.__str__()
+                        in self.__processed_devices_registers[device.id.__str__()][registers_type.value]
+                    ):
+                        continue
 
-                return reading_result
+                    reading_result = self.__read_single_register(
+                        device=device,
+                        device_address=device_address,
+                        register_type=registers_type,
+                        register_address=register.address,
+                    )
 
-            for register in registers:
-                reading_result = self.__read_single_register(
-                    device=device,
-                    device_address=device_address,
-                    register_type=register.type,
-                    register_address=register.address,
-                )
+                    if reading_result:
+                        self.__processed_devices_registers[device.id.__str__()][registers_type.value].add(
+                            register.id.__str__(),
+                        )
 
-                self.__processed_devices_inputs_registers[device.id.__str__()].add(register.id.__str__())
+                    return reading_result
 
-                return reading_result
-
-        # OUTPUT REGISTERS
-        if device.id.__str__() not in self.__processed_devices_outputs_registers:
-            self.__processed_devices_outputs_registers[device.id.__str__()] = set()
-
-        registers = self.__registers_registry.get_all_for_device(
-            device_id=device.id,
-            register_type=RegisterType.OUTPUT,
-        )
-
-        if 0 < len(registers) != len(self.__processed_devices_outputs_registers[device.id.__str__()]):
-            if self.__is_all_registers_readable(device=device, registers_count=len(registers)):
-                reading_result = self.__read_multiple_registers(
-                    device=device,
-                    device_address=device_address,
-                    registers_type=RegisterType.OUTPUT,
-                    registers_count=len(registers),
-                )
-
-                for register in registers:
-                    self.__processed_devices_outputs_registers[device.id.__str__()].add(register.id.__str__())
-
-                return reading_result
-
-            for register in registers:
-                reading_result = self.__read_single_register(
-                    device=device,
-                    device_address=device_address,
-                    register_type=register.type,
-                    register_address=register.address,
-                )
-
-                self.__processed_devices_outputs_registers[device.id.__str__()].add(register.id.__str__())
-
-                return reading_result
-
-        # ATTRIBUTES REGISTERS
-        if device.id.__str__() not in self.__processed_devices_attributes_registers:
-            self.__processed_devices_attributes_registers[device.id.__str__()] = set()
-
-        registers = self.__registers_registry.get_all_for_device(
-            device_id=device.id,
-            register_type=RegisterType.ATTRIBUTE,
-        )
-        registers = [register for register in registers if register.queryable]
-
-        if 0 < len(registers) != len(self.__processed_devices_attributes_registers[device.id.__str__()]):
-            for register in registers:
-                reading_result = self.__read_single_register(
-                    device=device,
-                    device_address=device_address,
-                    register_type=register.type,
-                    register_address=register.address,
-                )
-
-                self.__processed_devices_attributes_registers[device.id.__str__()].add(register.id.__str__())
-
-                return reading_result
-
-        if time.time() - device.last_reading_packet_timestamp >= device.sampling_time:
+        if time.time() - device.last_reading_packet_timestamp < device.sampling_time:
             return True
 
-        self.__processed_devices_inputs_registers[device.id.__str__()] = set()
-        self.__processed_devices_outputs_registers[device.id.__str__()] = set()
-        self.__processed_devices_attributes_registers[device.id.__str__()] = set()
+        for registers_type in [  # pylint: disable=too-many-nested-blocks
+            RegisterType.INPUT,
+            RegisterType.OUTPUT,
+            RegisterType.ATTRIBUTE,
+        ]:
+            self.__processed_devices_registers[device.id.__str__()][registers_type.value] = set()
 
         return True
 
@@ -993,7 +961,7 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
     # -----------------------------------------------------------------------------
 
     def __is_all_registers_readable(self, device: DeviceRecord, registers_count: int) -> bool:
-        """Check if all registers could be read at once """
+        """Check if all registers could be read at once"""
         # Calculate maximum count registers per one packet
         # e.g. max_packet_length = 24 => max_readable_registers_count = 4
         #   - only 4 registers could be read in one packet

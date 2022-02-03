@@ -20,7 +20,7 @@ FastyBird BUS connector module
 
 from .bootstrap import create_connector
 
-__version__ = "0.13.0"
+__version__ = "0.14.0"
 
 __all__ = ["connector", "bootstrap"]
 
