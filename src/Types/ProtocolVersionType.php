@@ -7,7 +7,7 @@
  * @copyright      https://www.fastybird.com
  * @author         Adam Kadlec <adam.kadlec@fastybird.com>
  * @package        FastyBird:FbBusConnector!
- * @subpackage     Entities
+ * @subpackage     Types
  * @since          0.1.0
  *
  * @date           03.02.22

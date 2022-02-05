@@ -141,10 +141,10 @@ class FbBusConnector extends DevicesModuleEntities\Connectors\Connector implemen
 	public function toArray(): array
 	{
 		return array_merge(parent::toArray(), [
-			'address'          => $this->getAddress(),
+			'address'   => $this->getAddress(),
 			'interface' => $this->getinterface(),
-			'baud_rate'        => $this->getBaudRate(),
-			'protocol'         => $this->getProtocol()->getValue(),
+			'baud_rate' => $this->getBaudRate(),
+			'protocol'  => $this->getProtocol()->getValue(),
 		]);
 	}
 

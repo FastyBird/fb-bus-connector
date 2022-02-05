@@ -1,20 +1,20 @@
 #
 # Connector translations
 #
-# @language		en_US
+# @language      en_US
 #
-# @license		More in LICENSE.md
-# @copyright	https://www.fastybird.com
-# @author		Adam Kadlec <adam.kadlec@fastybird.com>
-# @package		FastyBird:FbBusConnector!
-# @subpackage	Translations
-# @since		0.14.0
+# @license       More in LICENSE.md
+# @copyright     https://www.fastybird.com
+# @author        Adam Kadlec <adam.kadlec@fastybird.com>
+# @package       FastyBird:FbBusConnector!
+# @subpackage    Translations
+# @since         0.14.0
 #
-# @date			03.02.22
+# @date          03.02.22
 #
 
 base:
-	messages:
-		invalidAttribute:
-			heading	: "Invalid attribute"
-			message	: "Provided entity attribute is not valid"
+    messages:
+        invalidAttribute:
+            heading	: "Invalid attribute"
+            message	: "Provided entity attribute is not valid"

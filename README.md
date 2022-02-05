@@ -17,7 +17,7 @@
 
 ## What is FastyBird IoT FB BUS connector?
 
-FB BUS connector is a combined [FastyBird IoT](https://www.fastybird.com) extension which is integrating [FIB](https://www.fastybird.com) aka **F**astyBird **I**nterface **B**us for connected devices
+FB BUS connector is a combined [FastyBird](https://www.fastybird.com) [IoT](https://en.wikipedia.org/wiki/Internet_of_things) extension which is integrating [FIB](https://www.fastybird.com) aka **F**astyBird **I**nterface **B**us for connected devices
 
 [FastyBird](https://www.fastybird.com) [IoT](https://en.wikipedia.org/wiki/Internet_of_things) FB BUS connector is
 an [Apache2 licensed](http://www.apache.org/licenses/LICENSE-2.0) distributed extension, developed
@@ -26,8 +26,8 @@ in [PHP](https://www.php.net) with [Nette framework](https://nette.org) and in [
 ### Features:
 
 - FIB v1 protocol devices support
-- FIB connector management for [FastyBird IoT](https://www.fastybird.com) [devices module](https://github.com/FastyBird/devices-module)
-- FIB device management for [FastyBird IoT](https://www.fastybird.com) [devices module](https://github.com/FastyBird/devices-module)
+- FIB connector management for [FastyBird](https://www.fastybird.com) [IoT](https://en.wikipedia.org/wiki/Internet_of_things) [devices module](https://github.com/FastyBird/devices-module)
+- FIB device management for [FastyBird](https://www.fastybird.com) [IoT](https://en.wikipedia.org/wiki/Internet_of_things) [devices module](https://github.com/FastyBird/devices-module)
 - [{JSON:API}](https://jsonapi.org/) schemas for full api access
 - Integrated connector Python worker
 
@@ -61,7 +61,7 @@ pip install fastybird-fb-bus-connector
 
 ### Marketplace installation
 
-You could install this connector in your [FastyBird IoT](https://www.fastybird.com) application under marketplace section
+You could install this connector in your [FastyBird](https://www.fastybird.com) [IoT](https://en.wikipedia.org/wiki/Internet_of_things) application under marketplace section
 
 ## Documentation
 
