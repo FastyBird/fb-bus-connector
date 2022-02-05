@@ -169,7 +169,7 @@ class DevicesRegistry:  # pylint: disable=too-many-public-methods
         firmware_manufacturer: Optional[str] = None,
         firmware_version: Optional[str] = None,
     ) -> DeviceRecord:
-        """Create new attribute record"""
+        """Create new device or update existing device in registry"""
         device_record = self.append(
             device_id=device_id,
             device_serial_number=device_serial_number,
@@ -209,7 +209,7 @@ class DevicesRegistry:  # pylint: disable=too-many-public-methods
     # -----------------------------------------------------------------------------
 
     def reset(self) -> None:
-        """Reset devices registry to initial state"""
+        """Reset registry to initial state"""
         self.__items = {}
 
         self.__registers_registry.reset()
@@ -232,7 +232,7 @@ class DevicesRegistry:  # pylint: disable=too-many-public-methods
     # -----------------------------------------------------------------------------
 
     def disable(self, device: DeviceRecord) -> DeviceRecord:
-        """Enable device for communication"""
+        """Disable device for communication"""
         device.enabled = False
 
         self.__update(updated_device=device, dispatch=True)
@@ -350,7 +350,7 @@ class DevicesRegistry:  # pylint: disable=too-many-public-methods
     # -----------------------------------------------------------------------------
 
     def set_misc_packet_timestamp(self, device: DeviceRecord, success: bool = True) -> DeviceRecord:
-        """Set packet timestamp for registers reading"""
+        """Set packet timestamp for misc communication"""
         device.last_misc_packet_timestamp = time.time()
         device.transmit_attempts = 0 if success else device.transmit_attempts + 1
 
@@ -366,7 +366,7 @@ class DevicesRegistry:  # pylint: disable=too-many-public-methods
     # -----------------------------------------------------------------------------
 
     def get_address(self, device: DeviceRecord) -> Optional[int]:
-        """Get device actual state"""
+        """Get device address from registry"""
         actual_address = self.__registers_registry.get_by_name(
             device_id=device.id,
             name=DeviceAttribute.ADDRESS.value,
@@ -380,7 +380,7 @@ class DevicesRegistry:  # pylint: disable=too-many-public-methods
     # -----------------------------------------------------------------------------
 
     def get_max_packet_length_for_device(self, device: DeviceRecord) -> int:
-        """Get device max packet lenght"""
+        """Get device max packet length from registry"""
         max_packet_length_attribute = self.__registers_registry.get_by_name(
             device_id=device.id,
             name=DeviceAttribute.MAX_PACKET_LENGTH.value,
@@ -689,7 +689,7 @@ class RegistersRegistry:
         register_settable: bool = False,
         register_queryable: bool = False,
     ) -> RegisterRecord:
-        """Create new register record"""
+        """Create new register or replace existing register in registry"""
         if register_type == RegisterType.INPUT:
             input_register = self.append_input_register(
                 device_id=device_id,
@@ -759,7 +759,7 @@ class RegistersRegistry:
     # -----------------------------------------------------------------------------
 
     def reset(self, device_id: Optional[uuid.UUID] = None, registers_type: Optional[RegisterType] = None) -> None:
-        """Reset registers registry"""
+        """Reset registry to initial state"""
         items = self.__items.copy()
 
         if device_id is not None or registers_type is not None:
@@ -922,7 +922,7 @@ class DiscoveredDevicesRegistry:
         output_registers_size: int,
         attributes_registers_size: int,
     ) -> None:
-        """Set discovered device data"""
+        """Append discovered device data"""
         discovered_device = DiscoveredDeviceRecord(
             device_address=device_address,
             device_max_packet_length=device_max_packet_length,
@@ -1120,7 +1120,7 @@ class DiscoveredDevicesRegistry:
         discovered_device: DiscoveredDeviceRecord,
         registers_type: RegisterType,
     ) -> None:
-        """Prepare discovered devices registers"""
+        """Prepare discovered device registers"""
         if registers_type == RegisterType.INPUT:
             registers_size = discovered_device.input_registers_size
 
@@ -1393,7 +1393,7 @@ class DiscoveredRegistersRegistry:
         register_address: int,
         register_data_type: DataType,
     ) -> None:
-        """Append discovered device input"""
+        """Create discovered device register"""
         self.__items.add(
             DiscoveredInputRegisterRecord(
                 device_address=device_address,
@@ -1412,7 +1412,7 @@ class DiscoveredRegistersRegistry:
         register_address: int,
         register_data_type: DataType,
     ) -> None:
-        """Append discovered device output"""
+        """Create discovered device register"""
         self.__items.add(
             DiscoveredOutputRegisterRecord(
                 device_address=device_address,
@@ -1434,7 +1434,7 @@ class DiscoveredRegistersRegistry:
         register_settable: bool,
         register_queryable: bool,
     ) -> None:
-        """Append discovered device attribute"""
+        """Create discovered device register"""
         self.__items.add(
             DiscoveredAttributeRegisterRecord(
                 device_address=device_address,

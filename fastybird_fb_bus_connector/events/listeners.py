@@ -209,6 +209,7 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
             "enabled": event.record.enabled,
             "hardware_manufacturer": event.record.hardware_manufacturer,
             "hardware_model": event.record.hardware_model,
+            "hardware_version": event.record.hardware_version,
             "firmware_manufacturer": event.record.firmware_manufacturer,
             "firmware_version": event.record.firmware_version,
         }

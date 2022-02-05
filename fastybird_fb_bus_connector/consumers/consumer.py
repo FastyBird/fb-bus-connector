@@ -25,9 +25,8 @@ from queue import Full as QueueFull
 from queue import Queue
 from typing import List, Set, Union
 
-from fastybird_fb_bus_connector.consumers.entities import BaseEntity
-
 # Library libs
+from fastybird_fb_bus_connector.consumers.entities import BaseEntity
 from fastybird_fb_bus_connector.exceptions import InvalidStateException
 from fastybird_fb_bus_connector.logger import Logger
 

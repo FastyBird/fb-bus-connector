@@ -128,7 +128,7 @@ class RegisterActualValueEvent(Event):
     __original_record: Optional[RegisterRecord]
     __updated_record: RegisterRecord
 
-    EVENT_NAME: str = "registry.sensorRecordActualValueUpdated"
+    EVENT_NAME: str = "registry.registerRecordActualValueUpdated"
 
     # -----------------------------------------------------------------------------
 
@@ -140,12 +140,12 @@ class RegisterActualValueEvent(Event):
 
     @property
     def original_record(self) -> Optional[RegisterRecord]:
-        """Original sensor&state record"""
+        """Original register record"""
         return self.__original_record
 
     # -----------------------------------------------------------------------------
 
     @property
     def updated_record(self) -> RegisterRecord:
-        """Updated sensor&state record"""
+        """Updated register record"""
         return self.__updated_record

@@ -96,7 +96,7 @@ class DeviceRecord:  # pylint: disable=too-many-public-methods,too-many-instance
 
     @property
     def id(self) -> uuid.UUID:  # pylint: disable=invalid-name
-        """Device unique identifier"""
+        """Device unique database identifier"""
         return self.__id
 
     # -----------------------------------------------------------------------------
@@ -297,14 +297,14 @@ class RegisterRecord(ABC):  # pylint: disable=too-many-instance-attributes
 
     @property
     def device_id(self) -> uuid.UUID:
-        """Device unique identifier"""
+        """Device unique database identifier"""
         return self.__device_id
 
     # -----------------------------------------------------------------------------
 
     @property
     def id(self) -> uuid.UUID:  # pylint: disable=invalid-name
-        """Register unique identifier"""
+        """Register unique database identifier"""
         return self.__id
 
     # -----------------------------------------------------------------------------
@@ -339,7 +339,7 @@ class RegisterRecord(ABC):  # pylint: disable=too-many-instance-attributes
         List[Union[str, Tuple[str, Optional[str], Optional[str]]]],
         None,
     ]:
-        """Attribute register value format"""
+        """Register value format"""
         if self.data_type == DataType.SWITCH:
             return [
                 SwitchPayload.ON.value,
@@ -364,7 +364,7 @@ class RegisterRecord(ABC):  # pylint: disable=too-many-instance-attributes
 
     @property
     def data_type_size(self) -> int:
-        """Record data type bytes size"""
+        """Register data type bytes size"""
         if self.data_type in (
             DataType.UCHAR,
             DataType.CHAR,
@@ -416,7 +416,7 @@ class RegisterRecord(ABC):  # pylint: disable=too-many-instance-attributes
 
     @actual_value.setter
     def actual_value(self, value: Union[str, int, float, bool, datetime, ButtonPayload, SwitchPayload, None]) -> None:
-        """Set register actual value"""
+        """Register actual value setter"""
         self._actual_value = value
 
         if value == self.expected_value and self.expected_value is not None:
@@ -437,7 +437,7 @@ class RegisterRecord(ABC):  # pylint: disable=too-many-instance-attributes
         self,
         value: Union[str, int, float, bool, datetime, ButtonPayload, SwitchPayload, None],
     ) -> None:
-        """Set register expected value"""
+        """Register expected value setter"""
         self._expected_value = value
         self.expected_pending = None
 
@@ -452,7 +452,7 @@ class RegisterRecord(ABC):  # pylint: disable=too-many-instance-attributes
 
     @expected_pending.setter
     def expected_pending(self, timestamp: Optional[float]) -> None:
-        """Set register expected value transmit timestamp"""
+        """Register expected value transmit timestamp setter"""
         self._expected_pending = timestamp
 
     # -----------------------------------------------------------------------------
@@ -561,7 +561,7 @@ class AttributeRegisterRecord(RegisterRecord):
 
     @property
     def name(self) -> Optional[str]:
-        """Register name"""
+        """Attribute register name"""
         return self.__name
 
     # -----------------------------------------------------------------------------
@@ -586,7 +586,7 @@ class AttributeRegisterRecord(RegisterRecord):
                 ConnectionState.UNKNOWN.value,
             ]
 
-        return None
+        return super().format
 
 
 class DiscoveredDeviceRecord:  # pylint: disable=too-many-instance-attributes
@@ -747,7 +747,7 @@ class DiscoveredDeviceRecord:  # pylint: disable=too-many-instance-attributes
 
     @property
     def attributes_registers_size(self) -> int:
-        """Device attributes registers size"""
+        """Attributes registers size"""
         return self.__attributes_registers_size
 
     # -----------------------------------------------------------------------------
@@ -768,14 +768,14 @@ class DiscoveredDeviceRecord:  # pylint: disable=too-many-instance-attributes
 
     @property
     def waiting_for_packet(self) -> Optional[Packet]:
-        """Packet gateway is waiting from device"""
+        """Packet identifier connector is waiting for"""
         return self.__waiting_for_packet
 
     # -----------------------------------------------------------------------------
 
     @waiting_for_packet.setter
     def waiting_for_packet(self, waiting_for_packet: Optional[Packet]) -> None:
-        """Set that gateway is waiting for specific packet from device"""
+        """Packet identifier connector is waiting for setter"""
         self.__waiting_for_packet = waiting_for_packet
 
         if waiting_for_packet is not None:
@@ -1011,5 +1011,5 @@ class DiscoveredAttributeRegisterRecord(DiscoveredRegisterRecord):
 
     @property
     def name(self) -> Optional[str]:
-        """Register name"""
+        """Attribute register name"""
         return self.__name
