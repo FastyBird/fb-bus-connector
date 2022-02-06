@@ -371,7 +371,7 @@ class DeviceAttribute(ExtendedEnum, Enum):
     """
 
     STATE: str = "state"
-    ADDRESS: str = "addr"
+    ADDRESS: str = "address"
     MAX_PACKET_LENGTH: str = "mpl"
 
     # -----------------------------------------------------------------------------
@@ -392,7 +392,7 @@ class RegisterAttribute(ExtendedEnum, Enum):
     """
 
     VALUE: str = "value"
-    ADDRESS: str = "addr"
+    ADDRESS: str = "address"
 
     # -----------------------------------------------------------------------------
 
