@@ -35,23 +35,9 @@ interface IFbBusConnector extends DevicesModuleEntities\Connectors\IConnector
 	public function getAddress(): int;
 
 	/**
-	 * @param int|null $address
-	 *
-	 * @return void
-	 */
-	public function setAddress(?int $address): void;
-
-	/**
 	 * @return string
 	 */
 	public function getInterface(): string;
-
-	/**
-	 * @param string|null $interface
-	 *
-	 * @return void
-	 */
-	public function setInterface(?string $interface): void;
 
 	/**
 	 * @return int
@@ -59,22 +45,8 @@ interface IFbBusConnector extends DevicesModuleEntities\Connectors\IConnector
 	public function getBaudRate(): int;
 
 	/**
-	 * @param int|null $baudRate
-	 *
-	 * @return void
-	 */
-	public function setBaudRate(?int $baudRate): void;
-
-	/**
 	 * @return Types\ProtocolVersionType
 	 */
 	public function getProtocol(): Types\ProtocolVersionType;
-
-	/**
-	 * @param Types\ProtocolVersionType|null $protocol
-	 *
-	 * @return void
-	 */
-	public function setProtocol(?Types\ProtocolVersionType $protocol): void;
 
 }

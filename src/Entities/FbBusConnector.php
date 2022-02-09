@@ -20,7 +20,6 @@ use Doctrine\ORM\Mapping as ORM;
 use FastyBird\DevicesModule\Entities as DevicesModuleEntities;
 use FastyBird\FbBusConnector\Types;
 use FastyBird\Metadata\Types as MetadataTypes;
-use IPub\DoctrineCrud\Mapping\Annotation as IPubDoctrine;
 
 /**
  * @ORM\Entity
@@ -29,24 +28,6 @@ class FbBusConnector extends DevicesModuleEntities\Connectors\Connector implemen
 {
 
 	public const CONNECTOR_TYPE = 'fb-bus';
-
-	/**
-	 * @var int|null
-	 * @IPubDoctrine\Crud(is="writable")
-	 */
-	protected ?int $address = null;
-
-	/**
-	 * @var string|null
-	 * @IPubDoctrine\Crud(is="writable")
-	 */
-	protected ?string $interface = null;
-
-	/**
-	 * @var int|null
-	 * @IPubDoctrine\Crud(is="writable")
-	 */
-	protected ?int $baudRate = null;
 
 	/**
 	 * @var Types\ProtocolVersionType|null
@@ -69,17 +50,17 @@ class FbBusConnector extends DevicesModuleEntities\Connectors\Connector implemen
 	 */
 	public function getAddress(): int
 	{
-		$address = $this->getParam('address', 254);
+		$property = $this->findProperty(MetadataTypes\ConnectorPropertyNameType::NAME_ADDRESS);
 
-		return $address === null ? 254 : intval($address);
-	}
+		if (
+			$property === null
+			|| !$property instanceof DevicesModuleEntities\Connectors\Properties\IStaticProperty
+			|| !is_int($property->getValue())
+		) {
+			return 254;
+		}
 
-	/**
-	 * {@inheritDoc}
-	 */
-	public function setAddress(?int $address): void
-	{
-		$this->setParam('address', $address);
+		return $property->getValue();
 	}
 
 	/**
@@ -87,17 +68,17 @@ class FbBusConnector extends DevicesModuleEntities\Connectors\Connector implemen
 	 */
 	public function getInterface(): string
 	{
-		$interface = $this->getParam('interface', '/dev/ttyAMA0');
+		$property = $this->findProperty(MetadataTypes\ConnectorPropertyNameType::NAME_INTERFACE);
 
-		return $interface ?? '/dev/ttyAMA0';
-	}
+		if (
+			$property === null
+			|| !$property instanceof DevicesModuleEntities\Connectors\Properties\IStaticProperty
+			|| !is_string($property->getValue())
+		) {
+			return '/dev/ttyAMA0';
+		}
 
-	/**
-	 * {@inheritDoc}
-	 */
-	public function setinterface(?string $interface): void
-	{
-		$this->setParam('interface', $interface);
+		return $property->getValue();
 	}
 
 	/**
@@ -105,17 +86,17 @@ class FbBusConnector extends DevicesModuleEntities\Connectors\Connector implemen
 	 */
 	public function getBaudRate(): int
 	{
-		$baudRate = $this->getParam('baud_rate', 38400);
+		$property = $this->findProperty(MetadataTypes\ConnectorPropertyNameType::NAME_BAUD_RATE);
 
-		return $baudRate === null ? 38400 : intval($baudRate);
-	}
+		if (
+			$property === null
+			|| !$property instanceof DevicesModuleEntities\Connectors\Properties\IStaticProperty
+			|| !is_int($property->getValue())
+		) {
+			return 38400;
+		}
 
-	/**
-	 * {@inheritDoc}
-	 */
-	public function setBaudRate(?int $baudRate): void
-	{
-		$this->setParam('baud_rate', $baudRate);
+		return $property->getValue();
 	}
 
 	/**
@@ -123,17 +104,18 @@ class FbBusConnector extends DevicesModuleEntities\Connectors\Connector implemen
 	 */
 	public function getProtocol(): Types\ProtocolVersionType
 	{
-		$protocol = $this->getParam('protocol', Types\ProtocolVersionType::VERSION_1);
+		$property = $this->findProperty(MetadataTypes\ConnectorPropertyNameType::NAME_BAUD_RATE);
 
-		return $protocol === null ? Types\ProtocolVersionType::get(Types\ProtocolVersionType::VERSION_1) : Types\ProtocolVersionType::get($protocol);
-	}
+		if (
+			$property === null
+			|| !$property instanceof DevicesModuleEntities\Connectors\Properties\IStaticProperty
+			|| !is_numeric($property->getValue())
+			|| !Types\ProtocolVersionType::isValidValue($property->getValue())
+		) {
+			return Types\ProtocolVersionType::get(Types\ProtocolVersionType::VERSION_1);
+		}
 
-	/**
-	 * {@inheritDoc}
-	 */
-	public function setProtocol(?Types\ProtocolVersionType $protocol): void
-	{
-		$this->setParam('protocol', $protocol);
+		return Types\ProtocolVersionType::get($property->getValue());
 	}
 
 	/**

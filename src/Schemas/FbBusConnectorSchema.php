@@ -17,6 +17,7 @@ namespace FastyBird\FbBusConnector\Schemas;
 
 use FastyBird\DevicesModule\Schemas as DevicesModuleSchemas;
 use FastyBird\FbBusConnector\Entities;
+use FastyBird\Metadata\Types as MetadataTypes;
 use Neomerx\JsonApi;
 
 /**
@@ -35,7 +36,7 @@ final class FbBusConnectorSchema extends DevicesModuleSchemas\Connectors\Connect
 	/**
 	 * Define entity schema type string
 	 */
-	public const SCHEMA_TYPE = 'devices-module/connector-fb-bus';
+	public const SCHEMA_TYPE = MetadataTypes\ConnectorSourceType::SOURCE_CONNECTOR_FB_BUS . '/connector/fb-bus';
 
 	/**
 	 * {@inheritDoc}
