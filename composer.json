@@ -42,7 +42,7 @@
     "cweagans/composer-patches": "^1.7",
     "fastybird/devices-module": "^0.34",
     "fastybird/json-api": "^0.8",
-    "fastybird/metadata": "^0.43.0"
+    "fastybird/metadata": "^0.43"
   },
 
   "require-dev" : {
