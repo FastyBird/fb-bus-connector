@@ -41,6 +41,7 @@ from fastybird_devices_module.entities.device import (
     DeviceEntity,
     DevicePropertyEntity,
 )
+from fastybird_devices_module.exceptions import RestartConnectorException
 from fastybird_devices_module.repositories.device import DevicesRepository
 from fastybird_metadata.devices_module import (
     ConnectionState,
@@ -433,4 +434,4 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
                 self.__client.discover()
 
             if control_action == ConnectorAction.RESTART:
-                pass
+                raise RestartConnectorException("Restarting connector")

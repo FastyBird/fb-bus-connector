@@ -19,6 +19,7 @@ use Consistence\Doctrine\Enum\EnumAnnotation as Enum;
 use Doctrine\ORM\Mapping as ORM;
 use FastyBird\DevicesModule\Entities as DevicesModuleEntities;
 use FastyBird\FbBusConnector\Types;
+use FastyBird\Metadata\Types as MetadataTypes;
 use IPub\DoctrineCrud\Mapping\Annotation as IPubDoctrine;
 
 /**
@@ -154,6 +155,14 @@ class FbBusConnector extends DevicesModuleEntities\Connectors\Connector implemen
 	public function getDiscriminatorName(): string
 	{
 		return self::CONNECTOR_TYPE;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public function getSource()
+	{
+		return MetadataTypes\ConnectorSourceType::get(MetadataTypes\ConnectorSourceType::SOURCE_CONNECTOR_FB_BUS);
 	}
 
 }

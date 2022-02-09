@@ -29,8 +29,8 @@ from typing import Dict, List, Optional, Set, Union
 
 # Library dependencies
 from fastybird_devices_module.repositories.state import (
-    IChannelPropertyStateRepository,
-    IDevicePropertyStateRepository,
+    IChannelPropertiesStatesRepository,
+    IDevicePropertiesStatesRepository,
 )
 from fastybird_metadata.devices_module import ConnectionState
 from fastybird_metadata.types import ButtonPayload, DataType, SwitchPayload
@@ -457,8 +457,8 @@ class DevicesRegistry:  # pylint: disable=too-many-public-methods
 
 @inject(
     bind={
-        "device_property_state_repository": IDevicePropertyStateRepository,
-        "channel_property_state_repository": IChannelPropertyStateRepository,
+        "device_property_state_repository": IDevicePropertiesStatesRepository,
+        "channel_property_state_repository": IChannelPropertiesStatesRepository,
     }
 )
 class RegistersRegistry:
@@ -475,16 +475,16 @@ class RegistersRegistry:
 
     __event_dispatcher: EventDispatcher
 
-    __device_property_state_repository: Optional[IDevicePropertyStateRepository] = None
-    __channel_property_state_repository: Optional[IChannelPropertyStateRepository] = None
+    __device_property_state_repository: Optional[IDevicePropertiesStatesRepository] = None
+    __channel_property_state_repository: Optional[IChannelPropertiesStatesRepository] = None
 
     # -----------------------------------------------------------------------------
 
     def __init__(
         self,
         event_dispatcher: EventDispatcher,
-        device_property_state_repository: Optional[IDevicePropertyStateRepository] = None,
-        channel_property_state_repository: Optional[IChannelPropertyStateRepository] = None,
+        device_property_state_repository: Optional[IDevicePropertiesStatesRepository] = None,
+        channel_property_state_repository: Optional[IChannelPropertiesStatesRepository] = None,
     ) -> None:
         self.__items = {}
 
@@ -809,6 +809,8 @@ class RegistersRegistry:
         value: Union[str, int, float, bool, datetime, ButtonPayload, SwitchPayload, None],
     ) -> RegisterRecord:
         """Set expected value to register"""
+        existing_record = self.get_by_id(register_id=register.id)
+
         register.expected_value = value
 
         self.__update(register=register)
@@ -818,12 +820,22 @@ class RegistersRegistry:
         if updated_register is None:
             raise InvalidStateException("Register record could not be re-fetched from registry after update")
 
+        self.__event_dispatcher.dispatch(
+            event_id=RegisterActualValueEvent.EVENT_NAME,
+            event=RegisterActualValueEvent(
+                original_record=existing_record,
+                updated_record=updated_register,
+            ),
+        )
+
         return updated_register
 
     # -----------------------------------------------------------------------------
 
     def set_expected_pending(self, register: RegisterRecord, timestamp: float) -> RegisterRecord:
         """Set expected value transmit timestamp"""
+        existing_record = self.get_by_id(register_id=register.id)
+
         register.expected_pending = timestamp
 
         self.__update(register=register)
@@ -832,6 +844,14 @@ class RegistersRegistry:
 
         if updated_register is None:
             raise InvalidStateException("Register record could not be re-fetched from registry after update")
+
+        self.__event_dispatcher.dispatch(
+            event_id=RegisterActualValueEvent.EVENT_NAME,
+            event=RegisterActualValueEvent(
+                original_record=existing_record,
+                updated_record=updated_register,
+            ),
+        )
 
         return updated_register
 

@@ -19,13 +19,19 @@ FastyBird BUS connector entities module
 """
 
 # Python base dependencies
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Union
 
 # Library dependencies
-from fastybird_devices_module.entities.connector import ConnectorEntity
+from fastybird_devices_module.entities.connector import (
+    ConnectorEntity,
+    ConnectorStaticPropertyEntity,
+)
 from fastybird_devices_module.entities.device import DeviceEntity
+from fastybird_metadata.devices_module import ConnectorPropertyName
 
 # Library libs
+from fastybird_metadata.types import ConnectorSource, ModuleSource, PluginSource
+
 from fastybird_fb_bus_connector.types import (
     CONNECTOR_NAME,
     DEVICE_NAME,
@@ -56,90 +62,85 @@ class FbBusConnectorEntity(ConnectorEntity):  # pylint: disable=too-few-public-m
     # -----------------------------------------------------------------------------
 
     @property
-    def address(self) -> int:
-        """Connector communication master address"""
-        return (
-            int(str(self.params.get("address", MASTER_ADDRESS)))
-            if self.params is not None and self.params.get("address", MASTER_ADDRESS) is not None
-            else MASTER_ADDRESS
-        )
+    def source(self) -> Union[ModuleSource, ConnectorSource, PluginSource]:
+        """Entity source type"""
+        return ConnectorSource.FB_BUS_CONNECTOR
 
     # -----------------------------------------------------------------------------
 
-    @address.setter
-    def address(self, address: Optional[int]) -> None:
-        """Connector communication master address setter"""
-        if self.params is not None and bool(self.params) is True:
-            self.params["address"] = address
+    @property
+    def address(self) -> int:
+        """Connector communication master address"""
+        address_property = next(
+            iter([record for record in self.properties if record.identifier == ConnectorPropertyName.ADDRESS.value]),
+            None,
+        )
 
-        else:
-            self.params = {"address": address}
+        if (
+            address_property is None
+            or not isinstance(address_property, ConnectorStaticPropertyEntity)
+            or not isinstance(address_property.value, int)
+        ):
+            return MASTER_ADDRESS
+
+        return address_property.value
 
     # -----------------------------------------------------------------------------
 
     @property
     def interface(self) -> str:
         """Connector serial interface"""
-        return (
-            str(self.params.get("interface", None))
-            if self.params is not None and self.params.get("interface") is not None
-            else "/dev/ttyAMA0"
+        interface_property = next(
+            iter([record for record in self.properties if record.identifier == ConnectorPropertyName.INTERFACE.value]),
+            None,
         )
 
-    # -----------------------------------------------------------------------------
+        if (
+            interface_property is None
+            or not isinstance(interface_property, ConnectorStaticPropertyEntity)
+            or not isinstance(interface_property.value, str)
+        ):
+            return "/dev/ttyAMA0"
 
-    @interface.setter
-    def interface(self, interface: Optional[str]) -> None:
-        """Connector serial interface setter"""
-        if self.params is not None and bool(self.params) is True:
-            self.params["interface"] = interface
-
-        else:
-            self.params = {"interface": interface}
+        return interface_property.value
 
     # -----------------------------------------------------------------------------
 
     @property
     def baud_rate(self) -> int:
         """Connector communication baud rate"""
-        return (
-            int(str(self.params.get("baud_rate", 38400)))
-            if self.params is not None and self.params.get("baud_rate", 38400) is not None
-            else 38400
+        baud_rate_property = next(
+            iter([record for record in self.properties if record.identifier == ConnectorPropertyName.INTERFACE.value]),
+            None,
         )
 
-    # -----------------------------------------------------------------------------
+        if (
+            baud_rate_property is None
+            or not isinstance(baud_rate_property, ConnectorStaticPropertyEntity)
+            or not isinstance(baud_rate_property.value, int)
+        ):
+            return 38400
 
-    @baud_rate.setter
-    def baud_rate(self, baud_rate: Optional[int]) -> None:
-        """Connector communication baud rate setter"""
-        if self.params is not None and bool(self.params) is True:
-            self.params["baud_rate"] = baud_rate
-
-        else:
-            self.params = {"baud_rate": baud_rate}
+        return baud_rate_property.value
 
     # -----------------------------------------------------------------------------
 
     @property
     def protocol(self) -> ProtocolVersion:
         """Connector communication protocol version"""
-        return (
-            ProtocolVersion(int(str(self.params.get("protocol"))))
-            if self.params is not None and self.params.get("protocol") is not None
-            else ProtocolVersion.V1
+        protocol_property = next(
+            iter([record for record in self.properties if record.identifier == ConnectorPropertyName.INTERFACE.value]),
+            None,
         )
 
-    # -----------------------------------------------------------------------------
+        if (
+            protocol_property is None
+            or not isinstance(protocol_property, ConnectorStaticPropertyEntity)
+            or not ProtocolVersion.has_value(int(str(protocol_property.value)))
+        ):
+            return ProtocolVersion.V1
 
-    @protocol.setter
-    def protocol(self, protocol: Optional[ProtocolVersion]) -> None:
-        """Connector communication protocol version setter"""
-        if self.params is not None and bool(self.params) is True:
-            self.params["protocol"] = protocol.value if protocol is not None else None
-
-        else:
-            self.params = {"protocol": (protocol.value if protocol is not None else None)}
+        return ProtocolVersion(protocol_property.value)
 
     # -----------------------------------------------------------------------------
 
@@ -174,3 +175,10 @@ class FbBusDeviceEntity(DeviceEntity):  # pylint: disable=too-few-public-methods
     def type(self) -> str:
         """Device type"""
         return DEVICE_NAME
+
+    # -----------------------------------------------------------------------------
+
+    @property
+    def source(self) -> Union[ModuleSource, ConnectorSource, PluginSource]:
+        """Entity source type"""
+        return ConnectorSource.FB_BUS_CONNECTOR

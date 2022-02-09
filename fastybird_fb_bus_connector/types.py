@@ -22,6 +22,7 @@ FastyBird BUS connector types module
 from enum import Enum, unique
 
 # Library dependencies
+from fastybird_metadata.devices_module import DevicePropertyName
 from fastybird_metadata.enum import ExtendedEnum
 
 CONNECTOR_NAME: str = "fb-bus"
@@ -370,8 +371,8 @@ class DeviceAttribute(ExtendedEnum, Enum):
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
 
-    STATE: str = "state"
-    ADDRESS: str = "address"
+    STATE: str = DevicePropertyName.STATE.value
+    ADDRESS: str = DevicePropertyName.ADDRESS.value
     MAX_PACKET_LENGTH: str = "mpl"
 
     # -----------------------------------------------------------------------------
