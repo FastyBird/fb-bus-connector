@@ -30,14 +30,6 @@ class FbBusConnector extends DevicesModuleEntities\Connectors\Connector implemen
 	public const CONNECTOR_TYPE = 'fb-bus';
 
 	/**
-	 * @var Types\ProtocolVersionType|null
-	 *
-	 * @Enum(class=Types\ProtocolVersionType::class)
-	 * @IPubDoctrine\Crud(is="writable")
-	 */
-	protected ?Types\ProtocolVersionType $protocol = null;
-
-	/**
 	 * {@inheritDoc}
 	 */
 	public function getType(): string
