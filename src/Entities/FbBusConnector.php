@@ -18,6 +18,7 @@ namespace FastyBird\FbBusConnector\Entities;
 use Consistence\Doctrine\Enum\EnumAnnotation as Enum;
 use Doctrine\ORM\Mapping as ORM;
 use FastyBird\DevicesModule\Entities as DevicesModuleEntities;
+use FastyBird\FbBusConnector\Constants;
 use FastyBird\FbBusConnector\Types;
 use FastyBird\Metadata\Types as MetadataTypes;
 
@@ -104,7 +105,7 @@ class FbBusConnector extends DevicesModuleEntities\Connectors\Connector implemen
 	 */
 	public function getProtocol(): Types\ProtocolVersionType
 	{
-		$property = $this->findProperty(MetadataTypes\ConnectorPropertyNameType::NAME_BAUD_RATE);
+		$property = $this->findProperty(Constants::PROPERTY_NAME_PROTOCOL);
 
 		if (
 			$property === null
