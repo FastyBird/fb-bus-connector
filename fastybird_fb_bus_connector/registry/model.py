@@ -29,8 +29,8 @@ from typing import Dict, List, Optional, Set, Union
 
 # Library dependencies
 from fastybird_devices_module.repositories.state import (
-    IChannelPropertiesStatesRepository,
-    IDevicePropertiesStatesRepository,
+    ChannelPropertiesStatesRepository,
+    DevicePropertiesStatesRepository,
 )
 from fastybird_metadata.devices_module import ConnectionState
 from fastybird_metadata.types import ButtonPayload, DataType, SwitchPayload
@@ -455,12 +455,7 @@ class DevicesRegistry:  # pylint: disable=too-many-public-methods
         raise StopIteration
 
 
-@inject(
-    bind={
-        "device_property_state_repository": IDevicePropertiesStatesRepository,
-        "channel_property_state_repository": IChannelPropertiesStatesRepository,
-    }
-)
+@inject
 class RegistersRegistry:
     """
     Registers registry
@@ -475,16 +470,16 @@ class RegistersRegistry:
 
     __event_dispatcher: EventDispatcher
 
-    __device_property_state_repository: Optional[IDevicePropertiesStatesRepository] = None
-    __channel_property_state_repository: Optional[IChannelPropertiesStatesRepository] = None
+    __device_property_state_repository: DevicePropertiesStatesRepository
+    __channel_property_state_repository: ChannelPropertiesStatesRepository
 
     # -----------------------------------------------------------------------------
 
     def __init__(
         self,
         event_dispatcher: EventDispatcher,
-        device_property_state_repository: Optional[IDevicePropertiesStatesRepository] = None,
-        channel_property_state_repository: Optional[IChannelPropertiesStatesRepository] = None,
+        device_property_state_repository: DevicePropertiesStatesRepository,
+        channel_property_state_repository: ChannelPropertiesStatesRepository,
     ) -> None:
         self.__items = {}
 
@@ -596,13 +591,17 @@ class RegistersRegistry:
             register_data_type=register_data_type,
         )
 
-        if existing_register is None and self.__channel_property_state_repository is not None:
-            stored_state = self.__channel_property_state_repository.get_by_id(property_id=register_id)
+        if existing_register is None:
+            try:
+                stored_state = self.__channel_property_state_repository.get_by_id(property_id=register_id)
 
-            if stored_state is not None:
-                register.actual_value = stored_state.actual_value
-                register.expected_value = stored_state.expected_value
-                register.expected_pending = stored_state.pending
+                if stored_state is not None:
+                    register.actual_value = stored_state.actual_value
+                    register.expected_value = stored_state.expected_value
+                    register.expected_pending = stored_state.pending
+
+            except NotImplementedError:
+                pass
 
         self.__items[register.id.__str__()] = register
 
@@ -627,13 +626,17 @@ class RegistersRegistry:
             register_data_type=register_data_type,
         )
 
-        if existing_register is None and self.__channel_property_state_repository is not None:
-            stored_state = self.__channel_property_state_repository.get_by_id(property_id=register_id)
+        if existing_register is None:
+            try:
+                stored_state = self.__channel_property_state_repository.get_by_id(property_id=register_id)
 
-            if stored_state is not None:
-                register.actual_value = stored_state.actual_value
-                register.expected_value = stored_state.expected_value
-                register.expected_pending = stored_state.pending
+                if stored_state is not None:
+                    register.actual_value = stored_state.actual_value
+                    register.expected_value = stored_state.expected_value
+                    register.expected_pending = stored_state.pending
+
+            except NotImplementedError:
+                pass
 
         self.__items[register.id.__str__()] = register
 
@@ -664,13 +667,17 @@ class RegistersRegistry:
             register_queryable=register_queryable,
         )
 
-        if existing_register is None and self.__device_property_state_repository is not None:
-            stored_state = self.__device_property_state_repository.get_by_id(property_id=register_id)
+        if existing_register is None:
+            try:
+                stored_state = self.__device_property_state_repository.get_by_id(property_id=register_id)
 
-            if stored_state is not None:
-                register.actual_value = stored_state.actual_value
-                register.expected_value = stored_state.expected_value
-                register.expected_pending = stored_state.pending
+                if stored_state is not None:
+                    register.actual_value = stored_state.actual_value
+                    register.expected_value = stored_state.expected_value
+                    register.expected_pending = stored_state.pending
+
+            except NotImplementedError:
+                pass
 
         self.__items[register.id.__str__()] = register
 

@@ -21,7 +21,7 @@ FastyBird BUS connector events module listeners
 # Python base dependencies
 import logging
 import uuid
-from typing import Optional, Union
+from typing import Union
 
 # Library dependencies
 import inflection
@@ -542,7 +542,7 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
             state_data = {
                 "actual_value": register.actual_value,
                 "expected_value": register.expected_value,
-                "pending": register.expected_pending is not None
+                "pending": register.expected_pending is not None,
             }
 
             try:

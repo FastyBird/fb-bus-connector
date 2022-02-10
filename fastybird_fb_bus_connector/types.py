@@ -22,7 +22,7 @@ FastyBird BUS connector types module
 from enum import Enum, unique
 
 # Library dependencies
-from fastybird_metadata.devices_module import DevicePropertyName
+from fastybird_metadata.devices_module import ConnectorPropertyName, DevicePropertyName
 from fastybird_metadata.enum import ExtendedEnum
 
 CONNECTOR_NAME: str = "fb-bus"
@@ -30,6 +30,9 @@ DEVICE_NAME: str = "fb-bus"
 
 MASTER_ADDRESS: int = 254
 UNASSIGNED_ADDRESS: int = 255
+
+DEFAULT_SERIAL_INTERFACE: str = "/dev/ttyAMA0"
+DEFAULT_BAUD_RATE: int = 38400
 
 
 @unique
@@ -394,6 +397,28 @@ class RegisterAttribute(ExtendedEnum, Enum):
 
     VALUE: str = "value"
     ADDRESS: str = "address"
+
+    # -----------------------------------------------------------------------------
+
+    def __hash__(self) -> int:
+        return hash(self._name_)  # pylint: disable=no-member
+
+
+@unique
+class ConnectorAttribute(ExtendedEnum, Enum):
+    """
+    Known connector attribute name
+
+    @package        FastyBird:FbBusConnector!
+    @module         types
+
+    @author         Adam Kadlec <adam.kadlec@fastybird.com>
+    """
+
+    ADDRESS: str = ConnectorPropertyName.ADDRESS.value
+    INTERFACE: str = ConnectorPropertyName.INTERFACE.value
+    BAUD_RATE: str = ConnectorPropertyName.BAUD_RATE.value
+    PROTOCOL: str = "protocol"
 
     # -----------------------------------------------------------------------------
 

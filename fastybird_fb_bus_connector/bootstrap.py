@@ -71,7 +71,7 @@ def create_connector(
     di["fb-bus-connector_events-dispatcher"] = di[EventDispatcher]
 
     # Registers
-    di[RegistersRegistry] = RegistersRegistry(event_dispatcher=di[EventDispatcher])
+    di[RegistersRegistry] = RegistersRegistry(event_dispatcher=di[EventDispatcher])  # type: ignore[call-arg]
     di["fb-bus-connector_registers-registry"] = di[RegistersRegistry]
 
     di[DevicesRegistry] = DevicesRegistry(

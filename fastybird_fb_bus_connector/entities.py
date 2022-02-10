@@ -27,14 +27,16 @@ from fastybird_devices_module.entities.connector import (
     ConnectorStaticPropertyEntity,
 )
 from fastybird_devices_module.entities.device import DeviceEntity
-from fastybird_metadata.devices_module import ConnectorPropertyName
 from fastybird_metadata.types import ConnectorSource, ModuleSource, PluginSource
 
 # Library libs
 from fastybird_fb_bus_connector.types import (
     CONNECTOR_NAME,
+    DEFAULT_BAUD_RATE,
+    DEFAULT_SERIAL_INTERFACE,
     DEVICE_NAME,
     MASTER_ADDRESS,
+    ConnectorAttribute,
     ProtocolVersion,
 )
 
@@ -71,7 +73,7 @@ class FbBusConnectorEntity(ConnectorEntity):  # pylint: disable=too-few-public-m
     def address(self) -> int:
         """Connector communication master address"""
         address_property = next(
-            iter([record for record in self.properties if record.identifier == ConnectorPropertyName.ADDRESS.value]),
+            iter([record for record in self.properties if record.identifier == ConnectorAttribute.ADDRESS.value]),
             None,
         )
 
@@ -90,7 +92,7 @@ class FbBusConnectorEntity(ConnectorEntity):  # pylint: disable=too-few-public-m
     def interface(self) -> str:
         """Connector serial interface"""
         interface_property = next(
-            iter([record for record in self.properties if record.identifier == ConnectorPropertyName.INTERFACE.value]),
+            iter([record for record in self.properties if record.identifier == ConnectorAttribute.INTERFACE.value]),
             None,
         )
 
@@ -99,7 +101,7 @@ class FbBusConnectorEntity(ConnectorEntity):  # pylint: disable=too-few-public-m
             or not isinstance(interface_property, ConnectorStaticPropertyEntity)
             or not isinstance(interface_property.value, str)
         ):
-            return "/dev/ttyAMA0"
+            return DEFAULT_SERIAL_INTERFACE
 
         return interface_property.value
 
@@ -109,7 +111,7 @@ class FbBusConnectorEntity(ConnectorEntity):  # pylint: disable=too-few-public-m
     def baud_rate(self) -> int:
         """Connector communication baud rate"""
         baud_rate_property = next(
-            iter([record for record in self.properties if record.identifier == ConnectorPropertyName.INTERFACE.value]),
+            iter([record for record in self.properties if record.identifier == ConnectorAttribute.BAUD_RATE.value]),
             None,
         )
 
@@ -118,7 +120,7 @@ class FbBusConnectorEntity(ConnectorEntity):  # pylint: disable=too-few-public-m
             or not isinstance(baud_rate_property, ConnectorStaticPropertyEntity)
             or not isinstance(baud_rate_property.value, int)
         ):
-            return 38400
+            return DEFAULT_BAUD_RATE
 
         return baud_rate_property.value
 
@@ -128,7 +130,7 @@ class FbBusConnectorEntity(ConnectorEntity):  # pylint: disable=too-few-public-m
     def protocol(self) -> ProtocolVersion:
         """Connector communication protocol version"""
         protocol_property = next(
-            iter([record for record in self.properties if record.identifier == ConnectorPropertyName.INTERFACE.value]),
+            iter([record for record in self.properties if record.identifier == ConnectorAttribute.PROTOCOL.value]),
             None,
         )
 
