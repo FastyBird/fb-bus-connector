@@ -35,7 +35,7 @@ final class FbBusDeviceSchema extends DevicesModuleSchemas\Devices\DeviceSchema
 	/**
 	 * Define entity schema type string
 	 */
-	public const SCHEMA_TYPE = MetadataTypes\ConnectorSourceType::SOURCE_CONNECTOR_FB_BUS . '/device/fb-bus';
+	public const SCHEMA_TYPE = MetadataTypes\ConnectorSourceType::SOURCE_CONNECTOR_FB_BUS . '/device/' . Entities\FbBusDevice::DEVICE_TYPE;
 
 	/**
 	 * {@inheritDoc}

@@ -28,10 +28,9 @@ from fastybird_devices_module.entities.connector import (
 )
 from fastybird_devices_module.entities.device import DeviceEntity
 from fastybird_metadata.devices_module import ConnectorPropertyName
-
-# Library libs
 from fastybird_metadata.types import ConnectorSource, ModuleSource, PluginSource
 
+# Library libs
 from fastybird_fb_bus_connector.types import (
     CONNECTOR_NAME,
     DEVICE_NAME,

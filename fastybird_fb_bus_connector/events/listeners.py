@@ -549,6 +549,8 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
                 property_state = self.__channels_properties_states_repository.get_by_id(property_id=channel_property.id)
 
             except NotImplementedError:
+                self.__logger.warning("States repository is not configured. State could not be fetched")
+
                 return
 
             if property_state is None:
