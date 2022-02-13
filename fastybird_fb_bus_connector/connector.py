@@ -137,7 +137,8 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
 
     # -----------------------------------------------------------------------------
 
-    def id(self) -> uuid.UUID:
+    @property
+    def id(self) -> uuid.UUID:  # pylint: disable=invalid-name
         """Connector identifier"""
         return self.__connector_id
 
