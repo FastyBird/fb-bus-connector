@@ -38,7 +38,6 @@ from fastybird_devices_module.entities.connector import ConnectorControlEntity
 from fastybird_devices_module.entities.device import (
     DeviceControlEntity,
     DeviceDynamicPropertyEntity,
-    DeviceEntity,
     DevicePropertyEntity,
 )
 from fastybird_devices_module.exceptions import RestartConnectorException
@@ -174,11 +173,11 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
 
         # Channel & channel properties have to be initialized first!
         for channel in device.channels:
-            self.initialize_device_channel(channel=channel)
+            self.initialize_device_channel(device=device, channel=channel)
 
         # Device properties have to be initialized after channel!
         for device_property in device.properties:
-            self.initialize_device_property(device_property=device_property)
+            self.initialize_device_property(device=device, device_property=device_property)
 
         if device.enabled:
             self.__devices_registry.enable(device=device_record)
@@ -197,22 +196,22 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
 
     # -----------------------------------------------------------------------------
 
-    def initialize_device_property(self, device_property: DevicePropertyEntity) -> None:
+    def initialize_device_property(self, device: FbBusDeviceEntity, device_property: DevicePropertyEntity) -> None:
         """Initialize device property aka attribute register in connector registry"""
 
     # -----------------------------------------------------------------------------
 
-    def remove_device_property(self, property_id: uuid.UUID) -> None:
+    def remove_device_property(self, device: FbBusDeviceEntity, property_id: uuid.UUID) -> None:
         """Remove device property from connector registry"""
 
     # -----------------------------------------------------------------------------
 
-    def reset_devices_properties(self, device: DeviceEntity) -> None:
+    def reset_devices_properties(self, device: FbBusDeviceEntity) -> None:
         """Reset devices properties registry to initial state"""
 
     # -----------------------------------------------------------------------------
 
-    def initialize_device_channel(self, channel: ChannelEntity) -> None:
+    def initialize_device_channel(self, device: FbBusDeviceEntity, channel: ChannelEntity) -> None:
         """Initialize device channel aka registers group in connector registry"""
         register_id: Optional[uuid.UUID] = None
         register_address: Optional[int] = None
@@ -298,24 +297,28 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
 
     # -----------------------------------------------------------------------------
 
-    def remove_device_channel(self, channel_id: uuid.UUID) -> None:
+    def remove_device_channel(self, device: FbBusDeviceEntity, channel_id: uuid.UUID) -> None:
         """Remove device channel from connector registry"""
         self.__registers_registry.remove(register_id=channel_id)
 
     # -----------------------------------------------------------------------------
 
-    def reset_devices_channels(self, device: DeviceEntity) -> None:
+    def reset_devices_channels(self, device: FbBusDeviceEntity) -> None:
         """Reset devices channels registry to initial state"""
         self.__registers_registry.reset(device_id=device.id)
 
     # -----------------------------------------------------------------------------
 
-    def initialize_device_channel_property(self, channel_property: ChannelPropertyEntity) -> None:
+    def initialize_device_channel_property(
+        self,
+        channel: ChannelEntity,
+        channel_property: ChannelPropertyEntity,
+    ) -> None:
         """Initialize device channel property aka input or output register in connector registry"""
 
     # -----------------------------------------------------------------------------
 
-    def remove_device_channel_property(self, property_id: uuid.UUID) -> None:
+    def remove_device_channel_property(self, channel: ChannelEntity, property_id: uuid.UUID) -> None:
         """Remove device channel property from connector registry"""
 
     # -----------------------------------------------------------------------------

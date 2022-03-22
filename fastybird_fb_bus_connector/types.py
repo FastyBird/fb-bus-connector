@@ -268,7 +268,7 @@ class RegisterType(Enum):
 
 
 @unique
-class RegisterName(ExtendedEnum, Enum):
+class RegisterName(ExtendedEnum):
     """
     Known register name
 
@@ -364,7 +364,7 @@ class SwitchPayloadType(Enum):
 
 
 @unique
-class DeviceAttribute(ExtendedEnum, Enum):
+class DeviceAttribute(ExtendedEnum):
     """
     Known devices attribute name
 
@@ -385,7 +385,7 @@ class DeviceAttribute(ExtendedEnum, Enum):
 
 
 @unique
-class RegisterAttribute(ExtendedEnum, Enum):
+class RegisterAttribute(ExtendedEnum):
     """
     Known register attribute name
 
@@ -405,7 +405,7 @@ class RegisterAttribute(ExtendedEnum, Enum):
 
 
 @unique
-class ConnectorAttribute(ExtendedEnum, Enum):
+class ConnectorAttribute(ExtendedEnum):
     """
     Known connector attribute name
 
@@ -427,7 +427,7 @@ class ConnectorAttribute(ExtendedEnum, Enum):
 
 
 @unique
-class ConnectorAction(ExtendedEnum, Enum):
+class ConnectorAction(ExtendedEnum):
     """
     Connector control action
 
