@@ -561,7 +561,7 @@ class RegistersRegistry:
     def get_all_for_device(
         self,
         device_id: uuid.UUID,
-        register_type: Optional[RegisterType] = None,
+        register_type: Union[RegisterType, List[RegisterType], None] = None,
     ) -> List[RegisterRecord]:
         """Get all registers for device by type"""
         items = self.__items.copy()
@@ -569,7 +569,12 @@ class RegistersRegistry:
         return [
             record
             for record in items.values()
-            if device_id.__eq__(record.device_id) and (register_type is None or record.type == register_type)
+            if device_id.__eq__(record.device_id)
+            and (
+                register_type is None
+                or (isinstance(register_type, RegisterType) and record.type == register_type)
+                or (isinstance(register_type, list) and record.type in register_type)
+            )
         ]
 
     # -----------------------------------------------------------------------------
@@ -580,6 +585,7 @@ class RegistersRegistry:
         register_id: uuid.UUID,
         register_address: int,
         register_data_type: DataType,
+        channel_id: Optional[uuid.UUID] = None,
     ) -> InputRegisterRecord:
         """Append new register or replace existing register in registry"""
         existing_register = self.get_by_id(register_id=register_id)
@@ -589,6 +595,7 @@ class RegistersRegistry:
             register_id=register_id,
             register_address=register_address,
             register_data_type=register_data_type,
+            channel_id=channel_id,
         )
 
         if existing_register is None:
@@ -600,7 +607,7 @@ class RegistersRegistry:
                     register.expected_value = stored_state.expected_value
                     register.expected_pending = stored_state.pending
 
-            except NotImplementedError:
+            except (NotImplementedError, AttributeError):
                 pass
 
         self.__items[register.id.__str__()] = register
@@ -615,6 +622,7 @@ class RegistersRegistry:
         register_id: uuid.UUID,
         register_address: int,
         register_data_type: DataType,
+        channel_id: Optional[uuid.UUID] = None,
     ) -> OutputRegisterRecord:
         """Append new register or replace existing register in registry"""
         existing_register = self.get_by_id(register_id=register_id)
@@ -624,6 +632,7 @@ class RegistersRegistry:
             register_id=register_id,
             register_address=register_address,
             register_data_type=register_data_type,
+            channel_id=channel_id,
         )
 
         if existing_register is None:
@@ -635,7 +644,7 @@ class RegistersRegistry:
                     register.expected_value = stored_state.expected_value
                     register.expected_pending = stored_state.pending
 
-            except NotImplementedError:
+            except (NotImplementedError, AttributeError):
                 pass
 
         self.__items[register.id.__str__()] = register
@@ -676,7 +685,7 @@ class RegistersRegistry:
                     register.expected_value = stored_state.expected_value
                     register.expected_pending = stored_state.pending
 
-            except NotImplementedError:
+            except (NotImplementedError, AttributeError):
                 pass
 
         self.__items[register.id.__str__()] = register
@@ -695,6 +704,7 @@ class RegistersRegistry:
         register_name: Optional[str] = None,
         register_settable: bool = False,
         register_queryable: bool = False,
+        channel_id: Optional[uuid.UUID] = None,
     ) -> RegisterRecord:
         """Create new register or replace existing register in registry"""
         if register_type == RegisterType.INPUT:
@@ -703,6 +713,7 @@ class RegistersRegistry:
                 register_id=register_id,
                 register_address=register_address,
                 register_data_type=register_data_type,
+                channel_id=channel_id,
             )
 
             self.__event_dispatcher.dispatch(
@@ -718,6 +729,7 @@ class RegistersRegistry:
                 register_id=register_id,
                 register_address=register_address,
                 register_data_type=register_data_type,
+                channel_id=channel_id,
             )
 
             self.__event_dispatcher.dispatch(

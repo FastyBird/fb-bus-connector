@@ -72,7 +72,7 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
 
-    __discovery_enabled: bool = False
+    __discovery_enabled: bool = True
 
     __devices_registry: DevicesRegistry
     __registers_registry: RegistersRegistry

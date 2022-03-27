@@ -474,6 +474,8 @@ class InputRegisterRecord(RegisterRecord):
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
 
+    __channel_id: Optional[uuid.UUID] = None
+
     # -----------------------------------------------------------------------------
 
     def __init__(  # pylint: disable=too-many-arguments
@@ -482,6 +484,7 @@ class InputRegisterRecord(RegisterRecord):
         register_id: uuid.UUID,
         register_address: int,
         register_data_type: DataType,
+        channel_id: Optional[uuid.UUID] = None,
     ) -> None:
         super().__init__(
             device_id=device_id,
@@ -492,6 +495,15 @@ class InputRegisterRecord(RegisterRecord):
             register_settable=False,
             register_queryable=True,
         )
+
+        self.__channel_id = channel_id
+
+    # -----------------------------------------------------------------------------
+
+    @property
+    def channel_id(self) -> Optional[uuid.UUID]:
+        """Device channel unique database identifier"""
+        return self.__channel_id
 
 
 class OutputRegisterRecord(RegisterRecord):
@@ -504,6 +516,8 @@ class OutputRegisterRecord(RegisterRecord):
     @author         Adam Kadlec <adam.kadlec@fastybird.com>
     """
 
+    __channel_id: Optional[uuid.UUID] = None
+
     # -----------------------------------------------------------------------------
 
     def __init__(  # pylint: disable=too-many-arguments
@@ -512,6 +526,7 @@ class OutputRegisterRecord(RegisterRecord):
         register_id: uuid.UUID,
         register_address: int,
         register_data_type: DataType,
+        channel_id: Optional[uuid.UUID] = None,
     ) -> None:
         super().__init__(
             device_id=device_id,
@@ -522,6 +537,15 @@ class OutputRegisterRecord(RegisterRecord):
             register_settable=True,
             register_queryable=True,
         )
+
+        self.__channel_id = channel_id
+
+    # -----------------------------------------------------------------------------
+
+    @property
+    def channel_id(self) -> Optional[uuid.UUID]:
+        """Device channel unique database identifier"""
+        return self.__channel_id
 
 
 class AttributeRegisterRecord(RegisterRecord):

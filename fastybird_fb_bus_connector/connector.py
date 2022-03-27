@@ -32,7 +32,6 @@ from fastybird_devices_module.entities.channel import (
     ChannelDynamicPropertyEntity,
     ChannelEntity,
     ChannelPropertyEntity,
-    ChannelStaticPropertyEntity,
 )
 from fastybird_devices_module.entities.connector import ConnectorControlEntity
 from fastybird_devices_module.entities.device import (
@@ -65,12 +64,9 @@ from fastybird_fb_bus_connector.logger import Logger
 from fastybird_fb_bus_connector.registry.model import DevicesRegistry, RegistersRegistry
 
 # Library libs
+from fastybird_fb_bus_connector.registry.records import OutputRegisterRecord
 from fastybird_fb_bus_connector.transporters.transporter import ITransporter
-from fastybird_fb_bus_connector.types import (
-    ConnectorAction,
-    RegisterAttribute,
-    RegisterName,
-)
+from fastybird_fb_bus_connector.types import ConnectorAction, RegisterName, RegisterType
 
 
 @inject(alias=IConnector)
@@ -171,13 +167,11 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
             firmware_version=device.firmware_version,
         )
 
-        # Channel & channel properties have to be initialized first!
-        for channel in device.channels:
-            self.initialize_device_channel(device=device, channel=channel)
-
-        # Device properties have to be initialized after channel!
         for device_property in device.properties:
             self.initialize_device_property(device=device, device_property=device_property)
+
+        for channel in device.channels:
+            self.initialize_device_channel(device=device, channel=channel)
 
         if device.enabled:
             self.__devices_registry.enable(device=device_record)
@@ -198,88 +192,93 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
 
     def initialize_device_property(self, device: FbBusDeviceEntity, device_property: DevicePropertyEntity) -> None:
         """Initialize device property aka attribute register in connector registry"""
+        match = re.compile("(?P<name>[a-zA-Z_]+)_(?P<address>[0-9]+)")
+
+        parsed_property_identifier = match.fullmatch(device_property.identifier)
+
+        if parsed_property_identifier is not None:
+            self.__registers_registry.append_attribute_register(
+                device_id=device.id,
+                register_id=device_property.id,
+                register_address=int(parsed_property_identifier.group("address")),
+                register_data_type=device_property.data_type,
+                register_name=str(parsed_property_identifier.group("name")),
+                register_settable=device_property.settable,
+                register_queryable=device_property.queryable,
+            )
 
     # -----------------------------------------------------------------------------
 
     def remove_device_property(self, device: FbBusDeviceEntity, property_id: uuid.UUID) -> None:
         """Remove device property from connector registry"""
+        self.__registers_registry.remove(register_id=property_id)
 
     # -----------------------------------------------------------------------------
 
     def reset_devices_properties(self, device: FbBusDeviceEntity) -> None:
         """Reset devices properties registry to initial state"""
+        self.__registers_registry.reset(device_id=device.id, registers_type=RegisterType.ATTRIBUTE)
 
     # -----------------------------------------------------------------------------
 
     def initialize_device_channel(self, device: FbBusDeviceEntity, channel: ChannelEntity) -> None:
         """Initialize device channel aka registers group in connector registry"""
-        register_id: Optional[uuid.UUID] = None
-        register_address: Optional[int] = None
-        register_data_type: Optional[DataType] = None
-        register_queryable: bool = False
-        register_settable: bool = False
-
         for channel_property in channel.properties:
+            self.initialize_device_channel_property(channel=channel, channel_property=channel_property)
+
+    # -----------------------------------------------------------------------------
+
+    def remove_device_channel(self, device: FbBusDeviceEntity, channel_id: uuid.UUID) -> None:
+        """Remove device channel from connector registry"""
+        io_registers = self.__registers_registry.get_all_for_device(
+            device_id=device.id,
+            register_type=[RegisterType.OUTPUT, RegisterType.INPUT],
+        )
+
+        for register in io_registers:
             if (
-                channel_property.identifier == RegisterAttribute.ADDRESS.value
-                and isinstance(channel_property, ChannelStaticPropertyEntity)
-                and isinstance(channel_property.value, int)
+                isinstance(register, OutputRegisterRecord)
+                and register.channel_id is not None
+                and register.channel_id.__eq__(channel_id)
             ):
-                register_address = channel_property.value
+                self.__registers_registry.remove(register_id=register.id)
 
-            if channel_property.identifier == RegisterAttribute.VALUE.value and isinstance(
-                channel_property, ChannelDynamicPropertyEntity
-            ):
-                register_id = channel_property.id
-                register_data_type = channel_property.data_type
-                register_queryable = channel_property.queryable
-                register_settable = channel_property.settable
+    # -----------------------------------------------------------------------------
 
-        if register_id is None or register_address is None or register_data_type is None:
-            self.__logger.warning(
-                "Channel does not have expected properties and can't be mapped to register",
-                extra={
-                    "device": {
-                        "id": channel.device.id.__str__(),
-                    },
-                    "channel": {
-                        "id": channel.device.id.__str__(),
-                    },
-                },
-            )
+    def reset_devices_channels(self, device: FbBusDeviceEntity) -> None:
+        """Reset devices channels registry to initial state"""
+        self.__registers_registry.reset(device_id=device.id, registers_type=RegisterType.OUTPUT)
+        self.__registers_registry.reset(device_id=device.id, registers_type=RegisterType.INPUT)
 
-            return
+    # -----------------------------------------------------------------------------
 
+    def initialize_device_channel_property(
+        self,
+        channel: ChannelEntity,
+        channel_property: ChannelPropertyEntity,
+    ) -> None:
+        """Initialize device channel property aka input or output register in connector registry"""
         match = re.compile("(?P<name>[a-zA-Z_]+)_(?P<address>[0-9]+)")
 
-        parsed_channel_identifier = match.fullmatch(channel.identifier)
+        parsed_property_identifier = match.fullmatch(channel_property.identifier)
 
-        if parsed_channel_identifier is None:
-            self.__registers_registry.append_attribute_register(
-                device_id=channel.device.id,
-                register_id=register_id,
-                register_address=register_address,
-                register_data_type=register_data_type,
-                register_name=channel.identifier,
-                register_settable=register_settable,
-                register_queryable=register_queryable,
-            )
-
-        else:
-            if parsed_channel_identifier.group("name") == RegisterName.OUTPUT.value:
+        if parsed_property_identifier is not None:
+            if channel.identifier == RegisterName.OUTPUT.value:
                 self.__registers_registry.append_output_register(
                     device_id=channel.device.id,
-                    register_id=register_id,
-                    register_address=register_address,
-                    register_data_type=register_data_type,
+                    register_id=channel_property.id,
+                    register_address=int(parsed_property_identifier.group("address")),
+                    register_data_type=channel_property.data_type,
+                    channel_id=channel.id,
                 )
 
-            elif parsed_channel_identifier.group("name") == RegisterName.INPUT.value:
+            elif channel.identifier == RegisterName.INPUT.value:
                 self.__registers_registry.append_input_register(
                     device_id=channel.device.id,
-                    register_id=register_id,
-                    register_address=register_address,
-                    register_data_type=register_data_type,
+                    register_id=channel_property.id,
+                    register_address=int(parsed_property_identifier.group("address")),
+                    register_data_type=channel_property.data_type,
+                    channel_id=channel.id,
                 )
 
             else:
@@ -297,34 +296,19 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
 
     # -----------------------------------------------------------------------------
 
-    def remove_device_channel(self, device: FbBusDeviceEntity, channel_id: uuid.UUID) -> None:
-        """Remove device channel from connector registry"""
-        self.__registers_registry.remove(register_id=channel_id)
-
-    # -----------------------------------------------------------------------------
-
-    def reset_devices_channels(self, device: FbBusDeviceEntity) -> None:
-        """Reset devices channels registry to initial state"""
-        self.__registers_registry.reset(device_id=device.id)
-
-    # -----------------------------------------------------------------------------
-
-    def initialize_device_channel_property(
-        self,
-        channel: ChannelEntity,
-        channel_property: ChannelPropertyEntity,
-    ) -> None:
-        """Initialize device channel property aka input or output register in connector registry"""
-
-    # -----------------------------------------------------------------------------
-
     def remove_device_channel_property(self, channel: ChannelEntity, property_id: uuid.UUID) -> None:
         """Remove device channel property from connector registry"""
+        self.__registers_registry.remove(register_id=property_id)
 
     # -----------------------------------------------------------------------------
 
     def reset_devices_channels_properties(self, channel: ChannelEntity) -> None:
         """Reset devices channels properties registry to initial state"""
+        if channel.identifier == RegisterName.OUTPUT.value:
+            self.__registers_registry.reset(device_id=channel.device.id, registers_type=RegisterType.OUTPUT)
+
+        elif channel.identifier == RegisterName.INPUT.value:
+            self.__registers_registry.reset(device_id=channel.device.id, registers_type=RegisterType.INPUT)
 
     # -----------------------------------------------------------------------------
 

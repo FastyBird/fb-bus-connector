@@ -147,20 +147,16 @@ class V1Builder:
         output_content.append(register_address >> 8)
         output_content.append(register_address & 0xFF)
 
-        if (
-            register_data_type
-            in (
-                DataType.CHAR,
-                DataType.UCHAR,
-                DataType.SHORT,
-                DataType.USHORT,
-                DataType.INT,
-                DataType.UINT,
-                DataType.FLOAT,
-                DataType.BOOLEAN,
-            )
-            and isinstance(write_value, (int, float, bool))
-        ):
+        if register_data_type in (
+            DataType.CHAR,
+            DataType.UCHAR,
+            DataType.SHORT,
+            DataType.USHORT,
+            DataType.INT,
+            DataType.UINT,
+            DataType.FLOAT,
+            DataType.BOOLEAN,
+        ) and isinstance(write_value, (int, float, bool)):
             transformed_value = ValueTransformHelpers.transform_to_bytes(
                 data_type=register_data_type,
                 value=write_value,
@@ -173,14 +169,10 @@ class V1Builder:
             for value in transformed_value:
                 output_content.append(value)
 
-        elif (
-            register_data_type
-            in (
-                DataType.BUTTON,
-                DataType.SWITCH,
-            )
-            and isinstance(write_value, (SwitchPayload, ButtonPayload))
-        ):
+        elif register_data_type in (
+            DataType.BUTTON,
+            DataType.SWITCH,
+        ) and isinstance(write_value, (SwitchPayload, ButtonPayload)):
             transformed_value = ValueTransformHelpers.transform_to_bytes(
                 data_type=register_data_type,
                 value=write_value,

@@ -21,16 +21,16 @@ FastyBird BUS connector events module listeners
 # Python base dependencies
 import logging
 import uuid
-from typing import Union
+from datetime import datetime
+from typing import Dict, Union
 
 # Library dependencies
 import inflection
-from fastybird_devices_module.entities.channel import (
-    ChannelDynamicPropertyEntity,
-    ChannelEntity,
-    ChannelStaticPropertyEntity,
+from fastybird_devices_module.entities.channel import ChannelDynamicPropertyEntity
+from fastybird_devices_module.entities.device import (
+    DeviceDynamicPropertyEntity,
+    DeviceStaticPropertyEntity,
 )
-from fastybird_devices_module.entities.device import DeviceStaticPropertyEntity
 from fastybird_devices_module.managers.channel import (
     ChannelPropertiesManager,
     ChannelsManager,
@@ -39,7 +39,10 @@ from fastybird_devices_module.managers.device import (
     DevicePropertiesManager,
     DevicesManager,
 )
-from fastybird_devices_module.managers.state import ChannelPropertiesStatesManager
+from fastybird_devices_module.managers.state import (
+    ChannelPropertiesStatesManager,
+    DevicePropertiesStatesManager,
+)
 from fastybird_devices_module.repositories.channel import (
     ChannelPropertiesRepository,
     ChannelsRepository,
@@ -50,8 +53,9 @@ from fastybird_devices_module.repositories.device import (
 )
 from fastybird_devices_module.repositories.state import (
     ChannelPropertiesStatesRepository,
+    DevicePropertiesStatesRepository,
 )
-from fastybird_metadata.types import DataType
+from fastybird_metadata.types import ButtonPayload, SwitchPayload
 from kink import inject
 from whistle import Event, EventDispatcher
 
@@ -68,13 +72,8 @@ from fastybird_fb_bus_connector.registry.records import (
     AttributeRegisterRecord,
     InputRegisterRecord,
     OutputRegisterRecord,
-    RegisterRecord,
 )
-from fastybird_fb_bus_connector.types import (
-    DeviceAttribute,
-    RegisterAttribute,
-    RegisterName,
-)
+from fastybird_fb_bus_connector.types import DeviceAttribute, RegisterName
 
 
 @inject
@@ -95,6 +94,8 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
 
     __devices_properties_repository: DevicePropertiesRepository
     __devices_properties_manager: DevicePropertiesManager
+    __devices_properties_states_repository: DevicePropertiesStatesRepository
+    __devices_properties_states_manager: DevicePropertiesStatesManager
 
     __channels_repository: ChannelsRepository
     __channels_manager: ChannelsManager
@@ -117,6 +118,8 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
         devices_manager: DevicesManager,
         devices_properties_repository: DevicePropertiesRepository,
         devices_properties_manager: DevicePropertiesManager,
+        devices_properties_states_repository: DevicePropertiesStatesRepository,
+        devices_properties_states_manager: DevicePropertiesStatesManager,
         channels_repository: ChannelsRepository,
         channels_manager: ChannelsManager,
         channels_properties_repository: ChannelPropertiesRepository,
@@ -133,6 +136,8 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
 
         self.__devices_properties_repository = devices_properties_repository
         self.__devices_properties_manager = devices_properties_manager
+        self.__devices_properties_states_repository = devices_properties_states_repository
+        self.__devices_properties_states_manager = devices_properties_states_manager
 
         self.__channels_repository = channels_repository
         self.__channels_manager = channels_manager
@@ -253,10 +258,10 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
             return
 
         if isinstance(event.record, InputRegisterRecord):
-            channel_identifier = f"{RegisterName.INPUT.value}_{(event.record.address + 1):02}"
+            channel_identifier = RegisterName.INPUT.value
 
         elif isinstance(event.record, OutputRegisterRecord):
-            channel_identifier = f"{RegisterName.OUTPUT.value}_{(event.record.address + 1):02}"
+            channel_identifier = RegisterName.OUTPUT.value
 
         else:
             return
@@ -289,127 +294,20 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
                 },
             )
 
-        self.__create_or_update_channel_properties(channel=channel, register=event.record)
-
-    # -----------------------------------------------------------------------------
-
-    def __handle_create_or_update_attribute_register(self, event: Event) -> None:
-        if not isinstance(event, AttributeRegisterRecordCreatedOrUpdatedEvent) or event.record.name is None:
-            return
-
-        channel = self.__channels_repository.get_by_identifier(
-            device_id=event.record.device_id,
-            channel_identifier=event.record.name,
-        )
-
-        if channel is None or not channel.id.__eq__(event.record.id):
-            if channel is not None:
-                self.__channels_manager.delete(channel=channel)
-
-            channel_data = {
-                "device_id": event.record.device_id,
-                "identifier": event.record.name,
-            }
-
-            channel = self.__channels_manager.create(data=channel_data)
-
-            self.__logger.debug(
-                "Creating new attribute channel",
-                extra={
-                    "device": {
-                        "id": channel.device.id.__str__(),
-                    },
-                    "channel": {
-                        "id": channel.id.__str__(),
-                    },
-                },
-            )
-
-        self.__create_or_update_channel_properties(channel=channel, register=event.record)
-
-        # Special mapping for known attributes
-        if event.record.name is not None and DeviceAttribute.has_value(event.record.name):
-            self.__create_or_update_device_properties(register=event.record)
-
-    # -----------------------------------------------------------------------------
-
-    def __create_or_update_channel_properties(self, channel: ChannelEntity, register: RegisterRecord) -> None:
-        """Transform register configuration into channel properties"""
         property_data = {
-            "identifier": RegisterAttribute.ADDRESS.value,
-            "data_type": DataType.UCHAR,
-            "format": None,
+            "id": event.record.id,
+            "identifier": f"register_{(event.record.address + 1):02}",
+            "data_type": event.record.data_type,
+            "format": event.record.format,
             "unit": None,
             "invalid": None,
-            "queryable": False,
-            "settable": False,
-            "value": register.address,
+            "queryable": event.record.queryable,
+            "settable": event.record.settable,
         }
 
         channel_property = self.__channels_properties_repository.get_by_identifier(
             channel_id=channel.id,
-            property_identifier=RegisterAttribute.ADDRESS.value,
-        )
-
-        if channel_property is None:
-            # Define relation between channel & property
-            property_data["channel_id"] = channel.id
-
-            channel_property = self.__channels_properties_manager.create(
-                data=property_data,
-                property_type=ChannelStaticPropertyEntity,
-            )
-
-            self.__logger.debug(
-                "Creating new channel property with address info",
-                extra={
-                    "device": {
-                        "id": channel_property.channel.device.id.__str__(),
-                    },
-                    "channel": {
-                        "id": channel_property.channel.id.__str__(),
-                    },
-                    "property": {
-                        "id": channel_property.id.__str__(),
-                    },
-                },
-            )
-
-        else:
-            channel_property = self.__channels_properties_manager.update(
-                data=property_data,
-                channel_property=channel_property,
-            )
-
-            self.__logger.debug(
-                "Updating existing channel property with address info",
-                extra={
-                    "device": {
-                        "id": channel_property.channel.device.id.__str__(),
-                    },
-                    "channel": {
-                        "id": channel_property.channel.id.__str__(),
-                    },
-                    "property": {
-                        "id": channel_property.id.__str__(),
-                    },
-                },
-            )
-
-        property_data = {
-            "id": register.id,
-            "identifier": RegisterAttribute.VALUE.value,  # f"register_{(register.address + 1):02}",
-            "data_type": register.data_type,
-            "format": register.format,
-            "unit": None,
-            "invalid": None,
-            "queryable": register.queryable,
-            "settable": register.settable,
-        }
-
-        channel_property = self.__channels_properties_repository.get_by_identifier(
-            channel_id=channel.id,
-            property_identifier=RegisterAttribute.VALUE.value,
+            property_identifier=str(property_data["identifier"]),
         )
 
         if channel_property is None:
@@ -457,32 +355,66 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
                 },
             )
 
+        # Store value for dynamic registers
+        self.__write_channel_property_actual_value(register=event.record)
+
     # -----------------------------------------------------------------------------
 
-    def __create_or_update_device_properties(self, register: AttributeRegisterRecord) -> None:
-        """Transform special attribute register to device property"""
-        property_data = {
-            "id": register.id,
-            "identifier": register.name,
-            "data_type": register.data_type,
-            "format": register.format,
-            "unit": None,
-            "invalid": None,
-            "queryable": False,
-            "settable": False,
-            "value": register.actual_value,
-        }
+    def __handle_create_or_update_attribute_register(self, event: Event) -> None:
+        if not isinstance(event, AttributeRegisterRecordCreatedOrUpdatedEvent) or event.record.name is None:
+            return
 
-        device_property = self.__devices_properties_repository.get_by_id(property_id=register.id)
+        if event.record.name is not None and event.record.name in [
+            DeviceAttribute.ADDRESS.value,
+            DeviceAttribute.MAX_PACKET_LENGTH.value,
+        ]:
+            property_data = {
+                "id": event.record.id,
+                "identifier": f"{event.record.name}_{(event.record.address + 1):02}",
+                "name": event.record.name,
+                "data_type": event.record.data_type,
+                "format": event.record.format,
+                "unit": None,
+                "invalid": None,
+                "queryable": False,
+                "settable": False,
+                "value": event.record.actual_value,
+            }
+
+        else:
+            property_data = {
+                "id": event.record.id,
+                "identifier": f"{event.record.name}_{(event.record.address + 1):02}",
+                "name": event.record.name,
+                "data_type": event.record.data_type,
+                "format": event.record.format,
+                "unit": None,
+                "invalid": None,
+                "queryable": event.record.queryable,
+                "settable": event.record.settable,
+            }
+
+        device_property = self.__devices_properties_repository.get_by_id(property_id=event.record.id)
 
         if device_property is None:
             # Define relation between channel & property
-            property_data["device_id"] = register.device_id
+            property_data["device_id"] = event.record.device_id
 
-            device_property = self.__devices_properties_manager.create(
-                data=property_data,
-                property_type=DeviceStaticPropertyEntity,
-            )
+            # Special mapping for known attributes
+            if event.record.name is not None and event.record.name in [
+                DeviceAttribute.ADDRESS.value,
+                DeviceAttribute.MAX_PACKET_LENGTH.value,
+            ]:
+                device_property = self.__devices_properties_manager.create(
+                    data=property_data,
+                    property_type=DeviceStaticPropertyEntity,
+                )
+
+            else:
+                device_property = self.__devices_properties_manager.create(
+                    data=property_data,
+                    property_type=DeviceDynamicPropertyEntity,
+                )
 
             self.__logger.debug(
                 "Creating new device property",
@@ -514,6 +446,10 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
                 },
             )
 
+        if isinstance(device_property, DeviceDynamicPropertyEntity):
+            # Store value for dynamic registers
+            self.__write_device_property_value(register=event.record)
+
     # -----------------------------------------------------------------------------
 
     def __handle_write_register_actual_value(self, event: Event) -> None:
@@ -526,15 +462,13 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
             self.__write_channel_property_actual_value(register=register)
 
         if isinstance(register, AttributeRegisterRecord):
-            # Special mapping for known attributes
-            if register.name is not None and DeviceAttribute.has_value(register.name):
-                self.__write_device_property_value(register=register)
+            self.__write_device_property_value(register=register)
 
     # -----------------------------------------------------------------------------
 
     def __write_channel_property_actual_value(
         self,
-        register: Union[InputRegisterRecord, OutputRegisterRecord, AttributeRegisterRecord],
+        register: Union[InputRegisterRecord, OutputRegisterRecord],
     ) -> None:
         channel_property = self.__channels_properties_repository.get_by_id(property_id=register.id)
 
@@ -548,7 +482,7 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
             try:
                 property_state = self.__channels_properties_states_repository.get_by_id(property_id=channel_property.id)
 
-            except NotImplementedError:
+            except (NotImplementedError, AttributeError):
                 self.__logger.warning("States repository is not configured. State could not be fetched")
 
                 return
@@ -625,21 +559,112 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
     def __write_device_property_value(self, register: AttributeRegisterRecord) -> None:
         device_property = self.__devices_properties_repository.get_by_id(property_id=register.id)
 
-        if device_property is not None:
-            property_data = {
-                "value": register.actual_value,
-            }
-
-            self.__devices_properties_manager.update(device_property=device_property, data=property_data)
-
-            self.__logger.debug(
-                "Updating existing device property state",
+        if device_property is None:
+            self.__logger.warning(
+                "Device property couldn't be found in database",
                 extra={
-                    "device": {
-                        "id": device_property.device.id.__str__(),
-                    },
-                    "property": {
-                        "id": device_property.id.__str__(),
-                    },
+                    "device": {"id": register.device_id.__str__()},
+                    "property": {"id": register.id.__str__()},
                 },
             )
+            return
+
+        if isinstance(device_property, DeviceDynamicPropertyEntity):
+            try:
+                property_state = self.__devices_properties_states_repository.get_by_id(property_id=device_property.id)
+
+            except (NotImplementedError, AttributeError):
+                self.__logger.warning("States repository is not configured. State could not be fetched")
+
+                return
+
+            state_data: Dict[str, Union[str, int, float, bool, datetime, ButtonPayload, SwitchPayload, None]] = {
+                "actual_value": register.actual_value,
+                "expected_value": register.expected_value,
+                "pending": register.expected_pending is not None,
+            }
+
+            if property_state is None:
+                try:
+                    property_state = self.__devices_properties_states_manager.create(
+                        device_property=device_property,
+                        data=state_data,
+                    )
+
+                except NotImplementedError:
+                    self.__logger.warning("States manager is not configured. State could not be saved")
+
+                    return
+
+                self.__logger.debug(
+                    "Creating new device property state",
+                    extra={
+                        "device": {
+                            "id": device_property.device.device.id.__str__(),
+                        },
+                        "property": {
+                            "id": device_property.id.__str__(),
+                        },
+                        "state": {
+                            "id": property_state.id.__str__(),
+                            "actual_value": property_state.actual_value,
+                            "expected_value": property_state.expected_value,
+                            "pending": property_state.pending,
+                        },
+                    },
+                )
+
+            else:
+                try:
+                    property_state = self.__devices_properties_states_manager.update(
+                        device_property=device_property,
+                        state=property_state,
+                        data=state_data,
+                    )
+
+                except NotImplementedError:
+                    self.__logger.warning("States manager is not configured. State could not be saved")
+
+                    return
+
+                self.__logger.debug(
+                    "Updating existing device property state",
+                    extra={
+                        "device": {
+                            "id": device_property.device.device.id.__str__(),
+                        },
+                        "property": {
+                            "id": device_property.id.__str__(),
+                        },
+                        "state": {
+                            "id": property_state.id.__str__(),
+                            "actual_value": property_state.actual_value,
+                            "expected_value": property_state.expected_value,
+                            "pending": property_state.pending,
+                        },
+                    },
+                )
+
+        elif isinstance(device_property, DeviceStaticPropertyEntity):
+            actual_value_normalized = str(device_property.value) if device_property.value is not None else None
+            updated_value_normalized = str(register.actual_value) if register.actual_value is not None else None
+
+            if actual_value_normalized != updated_value_normalized:
+                self.__devices_properties_manager.update(
+                    data={
+                        "value": register.actual_value,
+                    },
+                    device_property=device_property,
+                )
+
+                self.__logger.debug(
+                    "Updating existing device property",
+                    extra={
+                        "device": {
+                            "id": device_property.device.id.__str__(),
+                        },
+                        "property": {
+                            "id": device_property.id.__str__(),
+                        },
+                    },
+                )
