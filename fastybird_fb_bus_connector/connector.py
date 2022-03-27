@@ -37,7 +37,8 @@ from fastybird_devices_module.entities.connector import ConnectorControlEntity
 from fastybird_devices_module.entities.device import (
     DeviceControlEntity,
     DeviceDynamicPropertyEntity,
-    DevicePropertyEntity, DeviceStaticPropertyEntity,
+    DevicePropertyEntity,
+    DeviceStaticPropertyEntity,
 )
 from fastybird_devices_module.exceptions import RestartConnectorException
 from fastybird_devices_module.repositories.device import DevicesRepository
