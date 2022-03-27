@@ -672,6 +672,7 @@ class RegistersRegistry:
         register_name: Optional[str] = None,
         register_settable: bool = False,
         register_queryable: bool = False,
+        register_value: Union[str, int, float, bool, datetime, ButtonPayload, SwitchPayload, None] = None,
     ) -> AttributeRegisterRecord:
         """Append new attribute register or replace existing register in registry"""
         existing_register = self.get_by_id(register_id=register_id)
@@ -699,9 +700,15 @@ class RegistersRegistry:
                 pass
 
         else:
-            register.actual_value = existing_register.actual_value
-            register.expected_value = existing_register.expected_value
-            register.expected_pending = existing_register.expected_pending
+            if register_value is None:
+                register.actual_value = existing_register.actual_value
+                register.expected_value = existing_register.expected_value
+                register.expected_pending = existing_register.expected_pending
+
+            else:
+                register.actual_value = register_value
+                register.expected_value = None
+                register.expected_pending = None
 
         self.__items[register.id.__str__()] = register
 

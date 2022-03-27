@@ -37,7 +37,7 @@ from fastybird_devices_module.entities.connector import ConnectorControlEntity
 from fastybird_devices_module.entities.device import (
     DeviceControlEntity,
     DeviceDynamicPropertyEntity,
-    DevicePropertyEntity,
+    DevicePropertyEntity, DeviceStaticPropertyEntity,
 )
 from fastybird_devices_module.exceptions import RestartConnectorException
 from fastybird_devices_module.repositories.device import DevicesRepository
@@ -192,20 +192,33 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
 
     def initialize_device_property(self, device: FbBusDeviceEntity, device_property: DevicePropertyEntity) -> None:
         """Initialize device property aka attribute register in connector registry"""
-        match = re.compile("(?P<name>[a-zA-Z_]+)_(?P<address>[0-9]+)")
+        match = re.compile("(?P<name>[a-zA-Z-]+)_(?P<address>[0-9]+)")
 
         parsed_property_identifier = match.fullmatch(device_property.identifier)
 
         if parsed_property_identifier is not None:
-            self.__registers_registry.append_attribute_register(
-                device_id=device.id,
-                register_id=device_property.id,
-                register_address=int(parsed_property_identifier.group("address")),
-                register_data_type=device_property.data_type,
-                register_name=str(parsed_property_identifier.group("name")),
-                register_settable=device_property.settable,
-                register_queryable=device_property.queryable,
-            )
+            if isinstance(device_property, DeviceDynamicPropertyEntity):
+                self.__registers_registry.append_attribute_register(
+                    device_id=device.id,
+                    register_id=device_property.id,
+                    register_address=int(parsed_property_identifier.group("address")),
+                    register_data_type=device_property.data_type,
+                    register_name=str(parsed_property_identifier.group("name")),
+                    register_settable=device_property.settable,
+                    register_queryable=device_property.queryable,
+                )
+
+            elif isinstance(device_property, DeviceStaticPropertyEntity):
+                self.__registers_registry.append_attribute_register(
+                    device_id=device.id,
+                    register_id=device_property.id,
+                    register_address=int(parsed_property_identifier.group("address")),
+                    register_data_type=device_property.data_type,
+                    register_name=str(parsed_property_identifier.group("name")),
+                    register_settable=device_property.settable,
+                    register_queryable=device_property.queryable,
+                    register_value=device_property.value,
+                )
 
     # -----------------------------------------------------------------------------
 
@@ -258,7 +271,7 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
         channel_property: ChannelPropertyEntity,
     ) -> None:
         """Initialize device channel property aka input or output register in connector registry"""
-        match = re.compile("(?P<name>[a-zA-Z_]+)_(?P<address>[0-9]+)")
+        match = re.compile("(?P<name>[a-zA-Z-]+)_(?P<address>[0-9]+)")
 
         parsed_property_identifier = match.fullmatch(channel_property.identifier)
 
