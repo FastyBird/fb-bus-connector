@@ -610,6 +610,11 @@ class RegistersRegistry:
             except (NotImplementedError, AttributeError):
                 pass
 
+        else:
+            register.actual_value = existing_register.actual_value
+            register.expected_value = existing_register.expected_value
+            register.expected_pending = existing_register.expected_pending
+
         self.__items[register.id.__str__()] = register
 
         return register
@@ -646,6 +651,11 @@ class RegistersRegistry:
 
             except (NotImplementedError, AttributeError):
                 pass
+
+        else:
+            register.actual_value = existing_register.actual_value
+            register.expected_value = existing_register.expected_value
+            register.expected_pending = existing_register.expected_pending
 
         self.__items[register.id.__str__()] = register
 
@@ -687,6 +697,11 @@ class RegistersRegistry:
 
             except (NotImplementedError, AttributeError):
                 pass
+
+        else:
+            register.actual_value = existing_register.actual_value
+            register.expected_value = existing_register.expected_value
+            register.expected_pending = existing_register.expected_pending
 
         self.__items[register.id.__str__()] = register
 

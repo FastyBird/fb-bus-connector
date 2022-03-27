@@ -74,7 +74,7 @@ from fastybird_fb_bus_connector.registry.records import (
     InputRegisterRecord,
     OutputRegisterRecord,
 )
-from fastybird_fb_bus_connector.types import DeviceAttribute, RegisterName
+from fastybird_fb_bus_connector.types import DeviceAttribute, RegisterName, RegisterType
 
 
 @inject
@@ -359,14 +359,23 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
             )
 
         # Add newly created channel identifier to register
-        self.__registers_registry.create_or_update(
-            device_id=event.record.device_id,
-            register_id=event.record.id,
-            register_type=event.record.type,
-            register_address=event.record.address,
-            register_data_type=event.record.data_type,
-            channel_id=channel.id,
-        )
+        if event.record.type.__eq__(RegisterType.OUTPUT):
+            self.__registers_registry.append_output_register(
+                device_id=event.record.device_id,
+                register_id=event.record.id,
+                register_address=event.record.address,
+                register_data_type=event.record.data_type,
+                channel_id=channel.id,
+            )
+
+        if event.record.type.__eq__(RegisterType.INPUT):
+            self.__registers_registry.append_input_register(
+                device_id=event.record.device_id,
+                register_id=event.record.id,
+                register_address=event.record.address,
+                register_data_type=event.record.data_type,
+                channel_id=channel.id,
+            )
 
         # Store value for dynamic registers
         self.__write_channel_property_actual_value(register=event.record)
