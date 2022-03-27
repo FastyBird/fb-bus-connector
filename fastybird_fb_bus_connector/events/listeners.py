@@ -68,6 +68,7 @@ from fastybird_fb_bus_connector.events.events import (
     RegisterActualValueEvent,
 )
 from fastybird_fb_bus_connector.logger import Logger
+from fastybird_fb_bus_connector.registry.model import RegistersRegistry
 from fastybird_fb_bus_connector.registry.records import (
     AttributeRegisterRecord,
     InputRegisterRecord,
@@ -88,6 +89,8 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
     """
 
     __connector_id: uuid.UUID
+
+    __registers_registry: RegistersRegistry
 
     __devices_repository: DevicesRepository
     __devices_manager: DevicesManager
@@ -114,6 +117,7 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
     def __init__(  # pylint: disable=too-many-arguments,too-many-locals
         self,
         connector_id: uuid.UUID,
+        registers_registry: RegistersRegistry,
         devices_repository: DevicesRepository,
         devices_manager: DevicesManager,
         devices_properties_repository: DevicePropertiesRepository,
@@ -130,6 +134,8 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
         logger: Union[Logger, logging.Logger] = logging.getLogger("dummy"),
     ) -> None:
         self.__connector_id = connector_id
+
+        self.__registers_registry = registers_registry
 
         self.__devices_repository = devices_repository
         self.__devices_manager = devices_manager
@@ -271,10 +277,7 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
             channel_identifier=channel_identifier,
         )
 
-        if channel is None or not channel.id.__eq__(event.record.id):
-            if channel is not None:
-                self.__channels_manager.delete(channel=channel)
-
+        if channel is None:
             channel_data = {
                 "device_id": event.record.device_id,
                 "identifier": channel_identifier,
@@ -354,6 +357,16 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
                     },
                 },
             )
+
+        # Add newly created channel identifier to register
+        self.__registers_registry.create_or_update(
+            device_id=event.record.device_id,
+            register_id=event.record.id,
+            register_type=event.record.type,
+            register_address=event.record.address,
+            register_data_type=event.record.data_type,
+            channel_id=channel.id,
+        )
 
         # Store value for dynamic registers
         self.__write_channel_property_actual_value(register=event.record)
