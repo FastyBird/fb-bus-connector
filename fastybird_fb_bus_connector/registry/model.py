@@ -688,16 +688,22 @@ class RegistersRegistry:
         )
 
         if existing_register is None:
-            try:
-                stored_state = self.__device_property_state_repository.get_by_id(property_id=register_id)
+            if register_value is None:
+                try:
+                    stored_state = self.__device_property_state_repository.get_by_id(property_id=register_id)
 
-                if stored_state is not None:
-                    register.actual_value = stored_state.actual_value
-                    register.expected_value = stored_state.expected_value
-                    register.expected_pending = stored_state.pending
+                    if stored_state is not None:
+                        register.actual_value = stored_state.actual_value
+                        register.expected_value = stored_state.expected_value
+                        register.expected_pending = stored_state.pending
 
-            except (NotImplementedError, AttributeError):
-                pass
+                except (NotImplementedError, AttributeError):
+                    pass
+
+            else:
+                register.actual_value = register_value
+                register.expected_value = None
+                register.expected_pending = None
 
         else:
             if register_value is None:
