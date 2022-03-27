@@ -600,7 +600,7 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
                     "Creating new device property state",
                     extra={
                         "device": {
-                            "id": device_property.device.device.id.__str__(),
+                            "id": device_property.device.id.__str__(),
                         },
                         "property": {
                             "id": device_property.id.__str__(),
@@ -631,7 +631,7 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
                     "Updating existing device property state",
                     extra={
                         "device": {
-                            "id": device_property.device.device.id.__str__(),
+                            "id": device_property.device.id.__str__(),
                         },
                         "property": {
                             "id": device_property.id.__str__(),
