@@ -103,6 +103,7 @@ class Receiver:  # pylint: disable=too-few-public-methods
                         },
                     },
                 )
+                self.__logger.exception(ex)
 
             except ParsePayloadException as ex:
                 self.__logger.error(
@@ -114,3 +115,4 @@ class Receiver:  # pylint: disable=too-few-public-methods
                         },
                     },
                 )
+                self.__logger.exception(ex)

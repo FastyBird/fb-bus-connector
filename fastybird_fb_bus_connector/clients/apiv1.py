@@ -707,6 +707,7 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
                     },
                 },
             )
+            self.__logger.exception(ex)
 
             # There is some problem with transforming expected value, write is skipped & cleared
             self.__registers_registry.set_expected_value(register=register, value=None)
@@ -815,6 +816,7 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
                     },
                 },
             )
+            self.__logger.exception(ex)
 
             return
 
@@ -903,6 +905,7 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
                     },
                 },
             )
+            self.__logger.exception(ex)
 
             return
 
