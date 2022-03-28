@@ -66,7 +66,7 @@ from fastybird_fb_bus_connector.logger import Logger
 from fastybird_fb_bus_connector.registry.model import DevicesRegistry, RegistersRegistry
 
 # Library libs
-from fastybird_fb_bus_connector.registry.records import OutputRegisterRecord
+from fastybird_fb_bus_connector.registry.records import OutputRegisterRecord, InputRegisterRecord
 from fastybird_fb_bus_connector.transporters.transporter import ITransporter
 from fastybird_fb_bus_connector.types import ConnectorAction, RegisterName, RegisterType
 
@@ -252,7 +252,7 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
 
         for register in io_registers:
             if (
-                isinstance(register, OutputRegisterRecord)
+                isinstance(register, (OutputRegisterRecord, InputRegisterRecord))
                 and register.channel_id is not None
                 and register.channel_id.__eq__(channel_id)
             ):

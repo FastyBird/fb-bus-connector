@@ -607,6 +607,11 @@ class RegistersRegistry:
                     register.expected_value = stored_state.expected_value
                     register.expected_pending = stored_state.pending
 
+                else:
+                    register.actual_value = None
+                    register.expected_value = None
+                    register.expected_pending = None
+
             except (NotImplementedError, AttributeError):
                 pass
 
@@ -648,6 +653,11 @@ class RegistersRegistry:
                     register.actual_value = stored_state.actual_value
                     register.expected_value = stored_state.expected_value
                     register.expected_pending = stored_state.pending
+
+                else:
+                    register.actual_value = None
+                    register.expected_value = None
+                    register.expected_pending = None
 
             except (NotImplementedError, AttributeError):
                 pass
@@ -696,6 +706,11 @@ class RegistersRegistry:
                         register.actual_value = stored_state.actual_value
                         register.expected_value = stored_state.expected_value
                         register.expected_pending = stored_state.pending
+
+                    else:
+                        register.actual_value = None
+                        register.expected_value = None
+                        register.expected_pending = None
 
                 except (NotImplementedError, AttributeError):
                     pass
