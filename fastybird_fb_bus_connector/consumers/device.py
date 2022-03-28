@@ -38,6 +38,7 @@ from fastybird_fb_bus_connector.consumers.entities import (
 )
 
 # Library libs
+from fastybird_fb_bus_connector.exceptions import InvalidStateException
 from fastybird_fb_bus_connector.logger import Logger
 from fastybird_fb_bus_connector.registry.model import (
     DevicesRegistry,
@@ -97,7 +98,21 @@ class DeviceItemConsumer(IConsumer):  # pylint: disable=too-few-public-methods
 
             return
 
-        self.__devices_registry.set_state(device=device_record, state=ConnectionState.UNKNOWN)
+        try:
+            self.__devices_registry.set_state(device=device_record, state=ConnectionState.UNKNOWN)
+
+        except InvalidStateException:
+            self.__logger.error(
+                "Device state could not be updated. Device is disabled and have to be re-discovered",
+                extra={
+                    "device": {
+                        "id": device_record.id.__str__(),
+                        "serial_number": device_record.serial_number,
+                    },
+                },
+            )
+
+            self.__devices_registry.disable(device=device_record)
 
 
 @inject(alias=IConsumer)

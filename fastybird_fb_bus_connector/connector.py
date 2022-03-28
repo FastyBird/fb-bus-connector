@@ -61,6 +61,7 @@ from fastybird_fb_bus_connector.clients.client import Client
 from fastybird_fb_bus_connector.consumers.consumer import Consumer
 from fastybird_fb_bus_connector.entities import FbBusDeviceEntity
 from fastybird_fb_bus_connector.events.listeners import EventsListener
+from fastybird_fb_bus_connector.exceptions import InvalidStateException
 from fastybird_fb_bus_connector.logger import Logger
 from fastybird_fb_bus_connector.registry.model import DevicesRegistry, RegistersRegistry
 
@@ -332,8 +333,24 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
         self.__events_listener.open()
 
         for device in self.__devices_registry:
-            # ...set device state to unknown
-            self.__devices_registry.set_state(device=device, state=ConnectionState.UNKNOWN)
+            try:
+                # ...set device state to unknown
+                self.__devices_registry.set_state(device=device, state=ConnectionState.UNKNOWN)
+
+            except InvalidStateException:
+                self.__logger.error(
+                    "Device state could not be updated. Device is disabled and have to be re-discovered",
+                    extra={
+                        "device": {
+                            "id": device.id.__str__(),
+                            "serial_number": device.serial_number,
+                        },
+                    },
+                )
+
+                self.__devices_registry.disable(device=device)
+
+                continue
 
         self.__logger.info("Connector has been started")
 
@@ -345,8 +362,24 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
         """Close all opened connections & stop connector"""
         # When connector is closing...
         for device in self.__devices_registry:
-            # ...set device state to disconnected
-            self.__devices_registry.set_state(device=device, state=ConnectionState.DISCONNECTED)
+            try:
+                # ...set device state to disconnected
+                self.__devices_registry.set_state(device=device, state=ConnectionState.DISCONNECTED)
+
+            except InvalidStateException:
+                self.__logger.error(
+                    "Device state could not be updated. Device is disabled and have to be re-discovered",
+                    extra={
+                        "device": {
+                            "id": device.id.__str__(),
+                            "serial_number": device.serial_number,
+                        },
+                    },
+                )
+
+                self.__devices_registry.disable(device=device)
+
+                continue
 
         self.__events_listener.close()
 

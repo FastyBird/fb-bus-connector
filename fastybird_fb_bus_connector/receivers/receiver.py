@@ -93,6 +93,17 @@ class Receiver:  # pylint: disable=too-few-public-methods
 
                     return
 
+            except ValueError as ex:
+                self.__logger.error(
+                    "Value error occurred during message parsing",
+                    extra={
+                        "exception": {
+                            "message": str(ex),
+                            "code": type(ex).__name__,
+                        },
+                    },
+                )
+
             except ParsePayloadException as ex:
                 self.__logger.error(
                     "Received message could not be successfully parsed to entity",

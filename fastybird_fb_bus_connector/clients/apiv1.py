@@ -35,7 +35,10 @@ from kink import inject
 # Library libs
 from fastybird_fb_bus_connector.api.v1builder import V1Builder
 from fastybird_fb_bus_connector.clients.client import IClient
-from fastybird_fb_bus_connector.exceptions import BuildPayloadException
+from fastybird_fb_bus_connector.exceptions import (
+    BuildPayloadException,
+    InvalidStateException,
+)
 from fastybird_fb_bus_connector.logger import Logger
 from fastybird_fb_bus_connector.registry.model import (
     DevicesRegistry,
@@ -96,6 +99,8 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
 
     __PING_DELAY: float = 15.0  # Delay between pings packets
     __READ_STATE_DELAY: float = 5.0  # Delay between read state packets
+    __READ_WAITING: float = 0.5  # Waiting delay after packet is sent
+    __WRITE_WAITING: float = 0.5  # Waiting delay after packet is sent
 
     __DISCOVERY_MAX_ATTEMPTS: int = 5  # Maxim count of sending search device packets
     __DISCOVERY_MAX_TOTAL_ATTEMPTS: int = (
@@ -180,7 +185,10 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
 
     # -----------------------------------------------------------------------------
 
-    def __process_device(self, device: DeviceRecord) -> None:  # pylint: disable=too-many-return-statements
+    def __process_device(  # pylint: disable=too-many-return-statements,too-many-branches
+        self,
+        device: DeviceRecord,
+    ) -> None:
         """Handle client read or write message to device"""
         device_address = self.__devices_registry.get_address(device=device)
 
@@ -214,7 +222,23 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
                     },
                 )
 
-                self.__devices_registry.set_state(device=device, state=ConnectionState.LOST)
+                try:
+                    self.__devices_registry.set_state(device=device, state=ConnectionState.LOST)
+
+                except InvalidStateException:
+                    self.__logger.error(
+                        "Device state could not be updated. Device is disabled and have to be re-discovered",
+                        extra={
+                            "device": {
+                                "id": device.id.__str__(),
+                                "serial_number": device.serial_number,
+                            },
+                        },
+                    )
+
+                    self.__devices_registry.disable(device=device)
+
+                    return
 
             else:
                 self.__logger.info(
@@ -229,7 +253,21 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
                     },
                 )
 
-                self.__devices_registry.set_state(device=device, state=ConnectionState.LOST)
+                try:
+                    self.__devices_registry.set_state(device=device, state=ConnectionState.LOST)
+
+                except InvalidStateException:
+                    self.__logger.error(
+                        "Device state could not be updated. Device is disabled and have to be re-discovered",
+                        extra={
+                            "device": {
+                                "id": device.id.__str__(),
+                                "serial_number": device.serial_number,
+                            },
+                        },
+                    )
+
+                    self.__devices_registry.disable(device=device)
 
             return
 
@@ -356,6 +394,7 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
         result = self.__transporter.send_packet(
             address=device_address,
             payload=V1Builder.build_ping(),
+            waiting_time=self.__READ_WAITING,
         )
 
         self.__devices_registry.set_misc_packet_timestamp(device=device, success=result)
@@ -386,6 +425,7 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
         result = self.__transporter.send_packet(
             address=device_address,
             payload=output_content,
+            waiting_time=self.__READ_WAITING,
         )
 
         self.__devices_registry.set_misc_packet_timestamp(device=device, success=result)
@@ -597,6 +637,7 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
         result = self.__transporter.send_packet(
             address=device_address,
             payload=output_content,
+            waiting_time=self.__READ_WAITING,
         )
 
         self.__devices_registry.set_read_packet_timestamp(device=device, success=result)
@@ -623,6 +664,7 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
         result = self.__transporter.send_packet(
             address=device_address,
             payload=output_content,
+            waiting_time=self.__READ_WAITING,
         )
 
         self.__devices_registry.set_read_packet_timestamp(device=device, success=result)
@@ -674,6 +716,7 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
         result = self.__transporter.send_packet(
             address=device_address,
             payload=output_content,
+            waiting_time=self.__WRITE_WAITING,
         )
 
         if result:
@@ -952,8 +995,22 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
         # Device initialization is finished, enable it for communication
         device_record = self.__devices_registry.enable(device=device_record)
 
-        # Update device state
-        device_record = self.__devices_registry.set_state(device=device_record, state=ConnectionState.UNKNOWN)
+        try:
+            # Update device state
+            device_record = self.__devices_registry.set_state(device=device_record, state=ConnectionState.UNKNOWN)
+
+        except InvalidStateException:
+            self.__logger.error(
+                "Device state could not be updated. Device is disabled and have to be re-discovered",
+                extra={
+                    "device": {
+                        "id": device_record.id.__str__(),
+                        "serial_number": device_record.serial_number,
+                    },
+                },
+            )
+
+            self.__devices_registry.disable(device=device_record)
 
         # Update last packet sent status
         self.__devices_registry.set_misc_packet_timestamp(device=device_record)
