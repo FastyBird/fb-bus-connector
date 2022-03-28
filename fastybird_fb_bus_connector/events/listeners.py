@@ -113,6 +113,8 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
 
     __logger: Union[Logger, logging.Logger]
 
+    __UPDATE_ALL_EVENTS: bool = True
+
     # -----------------------------------------------------------------------------
 
     def __init__(  # pylint: disable=too-many-arguments,too-many-locals
@@ -550,7 +552,7 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
                     value_format=channel_property.format,
                 )
 
-                if stored_value != register.actual_value:
+                if self.__UPDATE_ALL_EVENTS or stored_value != register.actual_value:
                     try:
                         property_state = self.__channels_properties_states_manager.update(
                             channel_property=channel_property,
@@ -651,7 +653,7 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
                     value_format=device_property.format,
                 )
 
-                if stored_value != register.actual_value:
+                if self.__UPDATE_ALL_EVENTS or stored_value != register.actual_value:
                     try:
                         property_state = self.__devices_properties_states_manager.update(
                             device_property=device_property,
