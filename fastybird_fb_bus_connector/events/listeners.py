@@ -302,7 +302,7 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
 
         property_data = {
             "id": event.record.id,
-            "identifier": f"register_{(event.record.address + 1):02}",
+            "identifier": f"register_{event.record.address:02}",
             "data_type": event.record.data_type,
             "format": event.record.format,
             "unit": None,
@@ -395,7 +395,7 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
         ]:
             property_data = {
                 "id": event.record.id,
-                "identifier": f"{event.record.name}_{(event.record.address + 1):02}",
+                "identifier": f"{event.record.name}_{event.record.address:02}",
                 "name": event.record.name,
                 "data_type": event.record.data_type,
                 "format": event.record.format,
@@ -409,7 +409,7 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
         else:
             property_data = {
                 "id": event.record.id,
-                "identifier": f"{event.record.name}_{(event.record.address + 1):02}",
+                "identifier": f"{event.record.name}_{event.record.address:02}",
                 "name": event.record.name,
                 "data_type": event.record.data_type,
                 "format": event.record.format,

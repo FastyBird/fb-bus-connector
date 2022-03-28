@@ -203,7 +203,7 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
                 self.__registers_registry.append_attribute_register(
                     device_id=device.id,
                     register_id=device_property.id,
-                    register_address=(int(parsed_property_identifier.group("address")) - 1),
+                    register_address=int(parsed_property_identifier.group("address")),
                     register_data_type=device_property.data_type,
                     register_name=str(parsed_property_identifier.group("name")),
                     register_settable=device_property.settable,
@@ -214,7 +214,7 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
                 self.__registers_registry.append_attribute_register(
                     device_id=device.id,
                     register_id=device_property.id,
-                    register_address=(int(parsed_property_identifier.group("address")) - 1),
+                    register_address=int(parsed_property_identifier.group("address")),
                     register_data_type=device_property.data_type,
                     register_name=str(parsed_property_identifier.group("name")),
                     register_settable=device_property.settable,
@@ -282,7 +282,7 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
                 self.__registers_registry.append_output_register(
                     device_id=channel.device.id,
                     register_id=channel_property.id,
-                    register_address=(int(parsed_property_identifier.group("address")) - 1),
+                    register_address=int(parsed_property_identifier.group("address")),
                     register_data_type=channel_property.data_type,
                     channel_id=channel.id,
                 )
@@ -291,7 +291,7 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
                 self.__registers_registry.append_input_register(
                     device_id=channel.device.id,
                     register_id=channel_property.id,
-                    register_address=(int(parsed_property_identifier.group("address")) - 1),
+                    register_address=int(parsed_property_identifier.group("address")),
                     register_data_type=channel_property.data_type,
                     channel_id=channel.id,
                 )
