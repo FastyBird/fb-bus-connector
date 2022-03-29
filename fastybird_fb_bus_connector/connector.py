@@ -66,7 +66,10 @@ from fastybird_fb_bus_connector.logger import Logger
 from fastybird_fb_bus_connector.registry.model import DevicesRegistry, RegistersRegistry
 
 # Library libs
-from fastybird_fb_bus_connector.registry.records import OutputRegisterRecord, InputRegisterRecord
+from fastybird_fb_bus_connector.registry.records import (
+    InputRegisterRecord,
+    OutputRegisterRecord,
+)
 from fastybird_fb_bus_connector.transporters.transporter import ITransporter
 from fastybird_fb_bus_connector.types import ConnectorAction, RegisterName, RegisterType
 
