@@ -75,7 +75,7 @@ from fastybird_fb_bus_connector.types import ConnectorAction, RegisterName, Regi
 
 
 @inject(alias=IConnector)
-class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attributes
+class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attributes,too-many-public-methods
     """
     FastyBird BUS connector
 
