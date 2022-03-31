@@ -227,6 +227,11 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
 
     # -----------------------------------------------------------------------------
 
+    def notify_device_property(self, device: FbBusDeviceEntity, device_property: DevicePropertyEntity) -> None:
+        """Notify device property was reported to connector"""
+
+    # -----------------------------------------------------------------------------
+
     def remove_device_property(self, device: FbBusDeviceEntity, property_id: uuid.UUID) -> None:
         """Remove device property from connector registry"""
         self.__registers_registry.remove(register_id=property_id)
@@ -311,6 +316,15 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
                         },
                     },
                 )
+
+    # -----------------------------------------------------------------------------
+
+    def notify_device_channel_property(
+        self,
+        channel: ChannelEntity,
+        channel_property: ChannelPropertyEntity,
+    ) -> None:
+        """Notify device channel property was reported to connector"""
 
     # -----------------------------------------------------------------------------
 
