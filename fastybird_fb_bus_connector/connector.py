@@ -277,12 +277,41 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
         channel_property: ChannelPropertyEntity,
     ) -> None:
         """Initialize device channel property aka input or output register in connector registry"""
-        match = re.compile("(?P<name>[a-zA-Z-]+)_(?P<address>[0-9]+)")
+        match_channel = re.compile("(?P<type>[a-zA-Z-]+)_(?P<counter>[0-9]+)")
 
-        parsed_property_identifier = match.fullmatch(channel_property.identifier)
+        parsed_channel_identifier = match_channel.fullmatch(channel.identifier)
+
+        channel_type: Optional[RegisterName] = None
+
+        if parsed_channel_identifier is not None and RegisterName.has_value(
+            str(parsed_channel_identifier.group("type"))
+        ):
+            channel_type = RegisterName(str(parsed_channel_identifier.group("type")))
+
+        elif RegisterName.has_value(channel.identifier):
+            channel_type = RegisterName(channel.identifier)
+
+        if channel_type is None:
+            self.__logger.warning(
+                "Channel identifier is not as expected. Register couldn't be mapped",
+                extra={
+                    "device": {
+                        "id": channel.device.id.__str__(),
+                    },
+                    "channel": {
+                        "id": channel.device.id.__str__(),
+                    },
+                },
+            )
+
+            return
+
+        match_property = re.compile("(?P<name>[a-zA-Z-]+)_(?P<address>[0-9]+)")
+
+        parsed_property_identifier = match_property.fullmatch(channel_property.identifier)
 
         if parsed_property_identifier is not None:
-            if channel.identifier == RegisterName.OUTPUT.value:
+            if channel_type == RegisterName.OUTPUT:
                 self.__registers_registry.append_output_register(
                     device_id=channel.device.id,
                     register_id=channel_property.id,
@@ -292,7 +321,7 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
                     channel_id=channel.id,
                 )
 
-            elif channel.identifier == RegisterName.INPUT.value:
+            elif channel_type == RegisterName.INPUT:
                 self.__registers_registry.append_input_register(
                     device_id=channel.device.id,
                     register_id=channel_property.id,

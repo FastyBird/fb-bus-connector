@@ -267,10 +267,10 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
             return
 
         if isinstance(event.record, InputRegisterRecord):
-            channel_identifier = RegisterName.INPUT.value
+            channel_identifier = f"{RegisterName.INPUT.value}_{(event.record.address + 1):02}"
 
         elif isinstance(event.record, OutputRegisterRecord):
-            channel_identifier = RegisterName.OUTPUT.value
+            channel_identifier = f"{RegisterName.OUTPUT.value}_{(event.record.address + 1):02}"
 
         else:
             return
