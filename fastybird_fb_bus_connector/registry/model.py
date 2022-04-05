@@ -855,6 +855,7 @@ class RegistersRegistry:
         existing_record = self.get_by_id(register_id=register.id)
 
         register.actual_value = value
+        register.actual_value_valid = True
 
         self.__update(register=register)
 
@@ -909,6 +910,31 @@ class RegistersRegistry:
         existing_record = self.get_by_id(register_id=register.id)
 
         register.expected_pending = timestamp
+
+        self.__update(register=register)
+
+        updated_register = self.get_by_id(register.id)
+
+        if updated_register is None:
+            raise InvalidStateException("Register record could not be re-fetched from registry after update")
+
+        self.__event_dispatcher.dispatch(
+            event_id=RegisterActualValueEvent.EVENT_NAME,
+            event=RegisterActualValueEvent(
+                original_record=existing_record,
+                updated_record=updated_register,
+            ),
+        )
+
+        return updated_register
+
+    # -----------------------------------------------------------------------------
+
+    def set_valid_state(self, register: RegisterRecord, state: bool) -> RegisterRecord:
+        """Set register actual value reading state"""
+        existing_record = self.get_by_id(register_id=register.id)
+
+        register.actual_value_valid = state
 
         self.__update(register=register)
 

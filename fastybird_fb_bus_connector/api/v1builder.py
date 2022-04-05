@@ -193,7 +193,7 @@ class V1Builder:
         ):
             transformed_value = ValueTransformHelpers.transform_to_bytes(
                 data_type=DataType.UCHAR,
-                value=StateTransformHelpers.transform_for_device(device_state=ConnectionState(write_value)).value,
+                value=StateTransformHelpers.transform_to_device(device_state=ConnectionState(write_value)).value,
             )
 
             # Value could not be transformed

@@ -111,7 +111,7 @@ class StateTransformHelpers:
     # -----------------------------------------------------------------------------
 
     @staticmethod
-    def transform_for_device(device_state: ConnectionState) -> DeviceConnectionState:
+    def transform_to_device(device_state: ConnectionState) -> DeviceConnectionState:
         """Transform application device state representation to connector device state"""
         if device_state == ConnectionState.RUNNING:
             return DeviceConnectionState.RUNNING

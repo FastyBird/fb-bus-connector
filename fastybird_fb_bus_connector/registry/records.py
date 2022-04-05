@@ -268,6 +268,7 @@ class RegisterRecord(ABC):  # pylint: disable=too-many-instance-attributes
     _actual_value: Union[str, int, float, bool, datetime, ButtonPayload, SwitchPayload, None] = None
     _expected_value: Union[str, int, float, bool, datetime, ButtonPayload, SwitchPayload, None] = None
     _expected_pending: Optional[float] = None
+    _actual_value_valid: bool = False
 
     # -----------------------------------------------------------------------------
 
@@ -477,6 +478,20 @@ class RegisterRecord(ABC):  # pylint: disable=too-many-instance-attributes
     def expected_pending(self, timestamp: Optional[float]) -> None:
         """Register expected value transmit timestamp setter"""
         self._expected_pending = timestamp
+
+    # -----------------------------------------------------------------------------
+
+    @property
+    def actual_value_valid(self) -> bool:
+        """Register actual value reading status"""
+        return self._actual_value_valid
+
+    # -----------------------------------------------------------------------------
+
+    @actual_value_valid.setter
+    def actual_value_valid(self, state: bool) -> None:
+        """Register actual value reading status setter"""
+        self._actual_value_valid = state
 
     # -----------------------------------------------------------------------------
 

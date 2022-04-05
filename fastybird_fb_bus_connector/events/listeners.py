@@ -502,6 +502,7 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
                 "actual_value": register.actual_value,
                 "expected_value": register.expected_value,
                 "pending": register.expected_pending is not None,
+                "valid": register.actual_value_valid,
             }
 
             try:
@@ -541,6 +542,7 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
                             "actual_value": property_state.actual_value,
                             "expected_value": property_state.expected_value,
                             "pending": property_state.pending,
+                            "valid": property_state.valid,
                         },
                     },
                 )
@@ -583,6 +585,7 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
                                 "actual_value": property_state.actual_value,
                                 "expected_value": property_state.expected_value,
                                 "pending": property_state.pending,
+                                "valid": property_state.valid,
                             },
                         },
                     )
@@ -615,6 +618,7 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
                 "actual_value": register.actual_value,
                 "expected_value": register.expected_value,
                 "pending": register.expected_pending is not None,
+                "valid": register.actual_value_valid,
             }
 
             if property_state is None:
@@ -643,6 +647,7 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
                             "actual_value": property_state.actual_value,
                             "expected_value": property_state.expected_value,
                             "pending": property_state.pending,
+                            "valid": property_state.valid,
                         },
                     },
                 )
@@ -682,6 +687,7 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
                                 "actual_value": property_state.actual_value,
                                 "expected_value": property_state.expected_value,
                                 "pending": property_state.pending,
+                                "valid": property_state.valid,
                             },
                         },
                     )

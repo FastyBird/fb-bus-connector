@@ -394,7 +394,13 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
 
                 self.__devices_registry.disable(device=device)
 
-                continue
+            registers = self.__registers_registry.get_all_for_device(
+                device_id=device.id,
+                register_type=[RegisterType.OUTPUT, RegisterType.INPUT, RegisterType.ATTRIBUTE],
+            )
+
+            for register in registers:
+                self.__registers_registry.set_valid_state(register=register, state=False)
 
         self.__logger.info("Connector has been started")
 
@@ -423,7 +429,13 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
 
                 self.__devices_registry.disable(device=device)
 
-                continue
+            registers = self.__registers_registry.get_all_for_device(
+                device_id=device.id,
+                register_type=[RegisterType.OUTPUT, RegisterType.INPUT, RegisterType.ATTRIBUTE],
+            )
+
+            for register in registers:
+                self.__registers_registry.set_valid_state(register=register, state=False)
 
         self.__events_listener.close()
 

@@ -296,8 +296,7 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
         if self.__write_register_handler(device=device, device_address=device_address):
             return
 
-        if self.__read_registers_handler(device=device, device_address=device_address):
-            return
+        self.__read_registers_handler(device=device, device_address=device_address)
 
     # -----------------------------------------------------------------------------
 
@@ -457,7 +456,7 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
         self,
         device: DeviceRecord,
         device_address: int,
-    ) -> bool:
+    ) -> None:
         """Process devices registers reading"""
         for registers_type in [  # pylint: disable=too-many-nested-blocks
             RegisterType.INPUT,
@@ -485,20 +484,19 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
                 if registers_type != RegisterType.ATTRIBUTE and self.__is_all_registers_readable(
                     device=device, registers_count=len(registers)
                 ):
-                    reading_result = self.__read_multiple_registers(
+                    self.__read_multiple_registers(
                         device=device,
                         device_address=device_address,
                         registers_type=registers_type,
                         registers_count=len(registers),
                     )
 
-                    if reading_result:
-                        for register in registers:
-                            self.__processed_devices_registers[device.id.__str__()][registers_type.value].add(
-                                register.id.__str__(),
-                            )
+                    for register in registers:
+                        self.__processed_devices_registers[device.id.__str__()][registers_type.value].add(
+                            register.id.__str__(),
+                        )
 
-                    return reading_result
+                    return
 
                 # Registers have to be read one by one
                 for register in registers:
@@ -508,22 +506,21 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
                     ):
                         continue
 
-                    reading_result = self.__read_single_register(
+                    self.__read_single_register(
                         device=device,
                         device_address=device_address,
                         register_type=registers_type,
                         register_address=register.address,
                     )
 
-                    if reading_result:
-                        self.__processed_devices_registers[device.id.__str__()][registers_type.value].add(
-                            register.id.__str__(),
-                        )
+                    self.__processed_devices_registers[device.id.__str__()][registers_type.value].add(
+                        register.id.__str__(),
+                    )
 
-                    return reading_result
+                    return
 
         if time.time() - device.last_reading_packet_timestamp < device.sampling_time:
-            return True
+            return
 
         for registers_type in [  # pylint: disable=too-many-nested-blocks
             RegisterType.INPUT,
@@ -531,8 +528,6 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
             RegisterType.ATTRIBUTE,
         ]:
             self.__processed_devices_registers[device.id.__str__()][registers_type.value] = set()
-
-        return True
 
     # -----------------------------------------------------------------------------
 
@@ -628,7 +623,7 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
         device_address: int,
         register_type: RegisterType,
         register_address: int,
-    ) -> bool:
+    ) -> None:
         output_content = V1Builder.build_read_single_register_value(
             register_type=register_type,
             register_address=register_address,
@@ -642,8 +637,6 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
 
         self.__devices_registry.set_read_packet_timestamp(device=device, success=result)
 
-        return True
-
     # -----------------------------------------------------------------------------
 
     def __read_multiple_registers(  # pylint: disable=too-many-branches
@@ -652,7 +645,7 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
         device_address: int,
         registers_type: RegisterType,
         registers_count: int,
-    ) -> bool:
+    ) -> None:
         start_address = 0
 
         output_content = V1Builder.build_read_multiple_registers_values(
@@ -668,8 +661,6 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
         )
 
         self.__devices_registry.set_read_packet_timestamp(device=device, success=result)
-
-        return result
 
     # -----------------------------------------------------------------------------
 
