@@ -585,6 +585,7 @@ class RegistersRegistry:
         register_id: uuid.UUID,
         register_address: int,
         register_data_type: DataType,
+        register_invalid: Union[int, float, str, None] = None,
         channel_id: Optional[uuid.UUID] = None,
     ) -> InputRegisterRecord:
         """Append new register or replace existing register in registry"""
@@ -595,6 +596,7 @@ class RegistersRegistry:
             register_id=register_id,
             register_address=register_address,
             register_data_type=register_data_type,
+            register_invalid=register_invalid,
             channel_id=channel_id,
         )
 
@@ -632,6 +634,7 @@ class RegistersRegistry:
         register_id: uuid.UUID,
         register_address: int,
         register_data_type: DataType,
+        register_invalid: Union[int, float, str, None] = None,
         channel_id: Optional[uuid.UUID] = None,
     ) -> OutputRegisterRecord:
         """Append new register or replace existing register in registry"""
@@ -642,6 +645,7 @@ class RegistersRegistry:
             register_id=register_id,
             register_address=register_address,
             register_data_type=register_data_type,
+            register_invalid=register_invalid,
             channel_id=channel_id,
         )
 
@@ -680,6 +684,7 @@ class RegistersRegistry:
         register_address: int,
         register_data_type: DataType,
         register_name: Optional[str] = None,
+        register_invalid: Union[int, float, str, None] = None,
         register_settable: bool = False,
         register_queryable: bool = False,
         register_value: Union[str, int, float, bool, datetime, ButtonPayload, SwitchPayload, None] = None,
@@ -692,6 +697,7 @@ class RegistersRegistry:
             register_id=register_id,
             register_address=register_address,
             register_data_type=register_data_type,
+            register_invalid=register_invalid,
             register_name=register_name,
             register_settable=register_settable,
             register_queryable=register_queryable,
@@ -744,6 +750,7 @@ class RegistersRegistry:
         register_address: int,
         register_type: RegisterType,
         register_data_type: DataType,
+        register_invalid: Union[int, float, str, None] = None,
         register_name: Optional[str] = None,
         register_settable: bool = False,
         register_queryable: bool = False,
@@ -756,6 +763,7 @@ class RegistersRegistry:
                 register_id=register_id,
                 register_address=register_address,
                 register_data_type=register_data_type,
+                register_invalid=register_invalid,
                 channel_id=channel_id,
             )
 
@@ -772,6 +780,7 @@ class RegistersRegistry:
                 register_id=register_id,
                 register_address=register_address,
                 register_data_type=register_data_type,
+                register_invalid=register_invalid,
                 channel_id=channel_id,
             )
 
@@ -788,6 +797,7 @@ class RegistersRegistry:
                 register_id=register_id,
                 register_address=register_address,
                 register_data_type=register_data_type,
+                register_invalid=register_invalid,
                 register_name=register_name,
                 register_settable=register_settable,
                 register_queryable=register_queryable,

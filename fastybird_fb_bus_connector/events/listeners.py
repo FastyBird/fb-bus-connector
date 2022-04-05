@@ -55,7 +55,7 @@ from fastybird_devices_module.repositories.state import (
     ChannelPropertiesStatesRepository,
     DevicePropertiesStatesRepository,
 )
-from fastybird_metadata.helpers import normalize_value
+from fastybird_devices_module.utils import normalize_value
 from fastybird_metadata.types import ButtonPayload, SwitchPayload
 from kink import inject
 from whistle import Event, EventDispatcher
@@ -550,6 +550,7 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
                     data_type=channel_property.data_type,
                     value=property_state.actual_value,
                     value_format=channel_property.format,
+                    value_invalid=channel_property.invalid,
                 )
 
                 if self.__UPDATE_ALL_EVENTS or stored_value != register.actual_value:
@@ -651,6 +652,7 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
                     data_type=device_property.data_type,
                     value=property_state.actual_value,
                     value_format=device_property.format,
+                    value_invalid=device_property.invalid,
                 )
 
                 if self.__UPDATE_ALL_EVENTS or stored_value != register.actual_value:

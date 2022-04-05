@@ -28,8 +28,8 @@ from datetime import datetime
 from typing import List, Optional, Tuple, Union
 
 # Library dependencies
+from fastybird_devices_module.utils import normalize_value
 from fastybird_metadata.devices_module import ConnectionState
-from fastybird_metadata.helpers import normalize_value
 from fastybird_metadata.types import ButtonPayload, DataType, SwitchPayload
 
 # Library libs
@@ -261,6 +261,7 @@ class RegisterRecord(ABC):  # pylint: disable=too-many-instance-attributes
     __address: int
     __type: RegisterType
     __data_type: DataType
+    __invalid: Union[int, float, str, None] = None
     __settable: bool = False
     __queryable: bool = False
 
@@ -277,6 +278,7 @@ class RegisterRecord(ABC):  # pylint: disable=too-many-instance-attributes
         register_address: int,
         register_type: RegisterType,
         register_data_type: DataType,
+        register_invalid: Union[int, float, str, None] = None,
         register_settable: bool = False,
         register_queryable: bool = False,
     ) -> None:
@@ -286,6 +288,7 @@ class RegisterRecord(ABC):  # pylint: disable=too-many-instance-attributes
         self.__address = register_address
         self.__type = register_type
         self.__data_type = register_data_type
+        self.__invalid = register_invalid
         self.__settable = register_settable
         self.__queryable = register_queryable
 
@@ -363,6 +366,13 @@ class RegisterRecord(ABC):  # pylint: disable=too-many-instance-attributes
     # -----------------------------------------------------------------------------
 
     @property
+    def invalid(self) -> Union[int, float, str, None]:
+        """Invalid value representation"""
+        return self.__invalid
+
+    # -----------------------------------------------------------------------------
+
+    @property
     def data_type_size(self) -> int:
         """Register data type bytes size"""
         if self.data_type in (
@@ -410,7 +420,12 @@ class RegisterRecord(ABC):  # pylint: disable=too-many-instance-attributes
     @property
     def actual_value(self) -> Union[str, int, float, bool, datetime, ButtonPayload, SwitchPayload, None]:
         """Register actual value"""
-        return normalize_value(data_type=self.data_type, value=self._actual_value, value_format=self.format)
+        return normalize_value(
+            data_type=self.data_type,
+            value=self._actual_value,
+            value_format=self.format,
+            value_invalid=self.invalid,
+        )
 
     # -----------------------------------------------------------------------------
 
@@ -431,7 +446,12 @@ class RegisterRecord(ABC):  # pylint: disable=too-many-instance-attributes
     @property
     def expected_value(self) -> Union[str, int, float, bool, datetime, ButtonPayload, SwitchPayload, None]:
         """Register expected value"""
-        return normalize_value(data_type=self.data_type, value=self._expected_value, value_format=self.format)
+        return normalize_value(
+            data_type=self.data_type,
+            value=self._expected_value,
+            value_format=self.format,
+            value_invalid=self.invalid,
+        )
 
     # -----------------------------------------------------------------------------
 
@@ -484,6 +504,7 @@ class InputRegisterRecord(RegisterRecord):
         register_id: uuid.UUID,
         register_address: int,
         register_data_type: DataType,
+        register_invalid: Union[int, float, str, None] = None,
         channel_id: Optional[uuid.UUID] = None,
     ) -> None:
         super().__init__(
@@ -492,6 +513,7 @@ class InputRegisterRecord(RegisterRecord):
             register_address=register_address,
             register_type=RegisterType.INPUT,
             register_data_type=register_data_type,
+            register_invalid=register_invalid,
             register_settable=False,
             register_queryable=True,
         )
@@ -526,6 +548,7 @@ class OutputRegisterRecord(RegisterRecord):
         register_id: uuid.UUID,
         register_address: int,
         register_data_type: DataType,
+        register_invalid: Union[int, float, str, None] = None,
         channel_id: Optional[uuid.UUID] = None,
     ) -> None:
         super().__init__(
@@ -534,6 +557,7 @@ class OutputRegisterRecord(RegisterRecord):
             register_address=register_address,
             register_type=RegisterType.OUTPUT,
             register_data_type=register_data_type,
+            register_invalid=register_invalid,
             register_settable=True,
             register_queryable=True,
         )
@@ -569,6 +593,7 @@ class AttributeRegisterRecord(RegisterRecord):
         register_address: int,
         register_data_type: DataType,
         register_name: Optional[str],
+        register_invalid: Union[int, float, str, None] = None,
         register_settable: bool = False,
         register_queryable: bool = False,
     ) -> None:
@@ -578,6 +603,7 @@ class AttributeRegisterRecord(RegisterRecord):
             register_address=register_address,
             register_type=RegisterType.ATTRIBUTE,
             register_data_type=register_data_type,
+            register_invalid=register_invalid,
             register_settable=register_settable,
             register_queryable=register_queryable,
         )

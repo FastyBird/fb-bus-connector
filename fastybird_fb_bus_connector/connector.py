@@ -41,14 +41,13 @@ from fastybird_devices_module.entities.device import (
     DeviceStaticPropertyEntity,
 )
 from fastybird_devices_module.exceptions import RestartConnectorException
-from fastybird_devices_module.repositories.device import DevicesRepository
+from fastybird_devices_module.utils import normalize_value
 from fastybird_metadata.devices_module import (
     ConnectionState,
     DeviceModel,
     FirmwareManufacturer,
     HardwareManufacturer,
 )
-from fastybird_metadata.helpers import normalize_value
 from fastybird_metadata.types import (
     ButtonPayload,
     ControlAction,
@@ -59,7 +58,7 @@ from kink import inject
 
 from fastybird_fb_bus_connector.clients.client import Client
 from fastybird_fb_bus_connector.consumers.consumer import Consumer
-from fastybird_fb_bus_connector.entities import FbBusDeviceEntity
+from fastybird_fb_bus_connector.entities import FbBusConnectorEntity, FbBusDeviceEntity
 from fastybird_fb_bus_connector.events.listeners import EventsListener
 from fastybird_fb_bus_connector.exceptions import InvalidStateException
 from fastybird_fb_bus_connector.logger import Logger
@@ -89,8 +88,6 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
 
     __connector_id: uuid.UUID
 
-    __devices_repository: DevicesRepository
-
     __packets_to_be_sent: int = 0
 
     __consumer: Consumer
@@ -110,7 +107,6 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
     def __init__(  # pylint: disable=too-many-arguments
         self,
         connector_id: uuid.UUID,
-        devices_repository: DevicesRepository,
         consumer: Consumer,
         client: Client,
         devices_registry: DevicesRegistry,
@@ -120,8 +116,6 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
         logger: Union[Logger, logging.Logger] = logging.getLogger("dummy"),
     ) -> None:
         self.__connector_id = connector_id
-
-        self.__devices_repository = devices_repository
 
         self.__client = client
         self.__consumer = consumer
@@ -144,11 +138,11 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
 
     # -----------------------------------------------------------------------------
 
-    def initialize(self, settings: Optional[Dict] = None) -> None:
+    def initialize(self, connector: FbBusConnectorEntity) -> None:
         """Set connector to initial state"""
         self.__devices_registry.reset()
 
-        for device in self.__devices_repository.get_all_by_connector(connector_id=self.__connector_id):
+        for device in connector.devices:
             self.initialize_device(device=device)
 
     # -----------------------------------------------------------------------------
@@ -208,6 +202,7 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
                     register_id=device_property.id,
                     register_address=int(parsed_property_identifier.group("address")),
                     register_data_type=device_property.data_type,
+                    register_invalid=device_property.invalid,
                     register_name=str(parsed_property_identifier.group("name")),
                     register_settable=device_property.settable,
                     register_queryable=device_property.queryable,
@@ -219,6 +214,7 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
                     register_id=device_property.id,
                     register_address=int(parsed_property_identifier.group("address")),
                     register_data_type=device_property.data_type,
+                    register_invalid=device_property.invalid,
                     register_name=str(parsed_property_identifier.group("name")),
                     register_settable=device_property.settable,
                     register_queryable=device_property.queryable,
@@ -292,6 +288,7 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
                     register_id=channel_property.id,
                     register_address=int(parsed_property_identifier.group("address")),
                     register_data_type=channel_property.data_type,
+                    register_invalid=channel_property.invalid,
                     channel_id=channel.id,
                 )
 
@@ -301,6 +298,7 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
                     register_id=channel_property.id,
                     register_address=int(parsed_property_identifier.group("address")),
                     register_data_type=channel_property.data_type,
+                    register_invalid=channel_property.invalid,
                     channel_id=channel.id,
                 )
 
@@ -449,6 +447,7 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
                     data_type=property_item.data_type,
                     value=data.get("expected_value", None),
                     value_format=property_item.format,
+                    value_invalid=property_item.invalid,
                 )
 
             else:

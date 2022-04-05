@@ -181,13 +181,14 @@ def create_connector(
     di["fb-bus-connector_events-listener"] = di[EventsListener]
 
     # Main connector service
-    connector_service = FbBusConnector(  # type: ignore[call-arg]
+    connector_service = FbBusConnector(
         connector_id=connector.id,
         consumer=di[Consumer],
         client=di[Client],
         devices_registry=di[DevicesRegistry],
         registers_registry=di[RegistersRegistry],
         transporter=di[PjonTransporter],
+        events_listener=di[EventsListener],
         logger=connector_logger,
     )
     di[FbBusConnector] = connector_service
