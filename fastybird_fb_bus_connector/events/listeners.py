@@ -501,7 +501,7 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
             state_data = {
                 "actual_value": register.actual_value,
                 "expected_value": register.expected_value,
-                "pending": register.expected_pending is not None,
+                "pending": register.actual_value != register.expected_value,
                 "valid": register.actual_value_valid,
             }
 
@@ -617,7 +617,7 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
             state_data: Dict[str, Union[str, int, float, bool, datetime, ButtonPayload, SwitchPayload, None]] = {
                 "actual_value": register.actual_value,
                 "expected_value": register.expected_value,
-                "pending": register.expected_pending is not None,
+                "pending": register.actual_value != register.expected_value,
                 "valid": register.actual_value_valid,
             }
 
