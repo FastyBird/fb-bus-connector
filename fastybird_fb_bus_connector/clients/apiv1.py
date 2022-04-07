@@ -993,6 +993,8 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
             # Update device state
             device_record = self.__devices_registry.set_state(device=device_record, state=ConnectionState.UNKNOWN)
 
+            self.__devices_registry.enable(device=device_record)
+
         except InvalidStateException:
             self.__logger.error(
                 "Device state could not be updated. Device is disabled and have to be re-discovered",
