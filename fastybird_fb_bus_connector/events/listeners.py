@@ -498,10 +498,23 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
         channel_property = self.__channels_properties_repository.get_by_id(property_id=register.id)
 
         if channel_property is not None:
+            actual_value = (
+                register.actual_value
+                if isinstance(register.actual_value, (str, int, float, bool))
+                or register.actual_value is None
+                else str(register.actual_value)
+            )
+            expected_value = (
+                register.expected_value
+                if isinstance(register.expected_value, (str, int, float, bool))
+                or register.expected_value is None
+                else str(register.expected_value)
+            )
+
             state_data = {
                 "actual_value": register.actual_value,
                 "expected_value": register.expected_value,
-                "pending": register.actual_value != register.expected_value,
+                "pending": actual_value != expected_value and expected_value is not None,
                 "valid": register.actual_value_valid,
             }
 
@@ -614,10 +627,23 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
 
                 return
 
+            actual_value = (
+                register.actual_value
+                if isinstance(register.actual_value, (str, int, float, bool))
+                or register.actual_value is None
+                else str(register.actual_value)
+            )
+            expected_value = (
+                register.expected_value
+                if isinstance(register.expected_value, (str, int, float, bool))
+                or register.expected_value is None
+                else str(register.expected_value)
+            )
+
             state_data: Dict[str, Union[str, int, float, bool, datetime, ButtonPayload, SwitchPayload, None]] = {
                 "actual_value": register.actual_value,
                 "expected_value": register.expected_value,
-                "pending": register.actual_value != register.expected_value,
+                "pending": actual_value != expected_value and expected_value is not None,
                 "valid": register.actual_value_valid,
             }
 
