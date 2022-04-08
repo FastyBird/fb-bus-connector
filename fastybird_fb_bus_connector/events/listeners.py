@@ -500,14 +500,12 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
         if channel_property is not None:
             actual_value = (
                 register.actual_value
-                if isinstance(register.actual_value, (str, int, float, bool))
-                or register.actual_value is None
+                if isinstance(register.actual_value, (str, int, float, bool)) or register.actual_value is None
                 else str(register.actual_value)
             )
             expected_value = (
                 register.expected_value
-                if isinstance(register.expected_value, (str, int, float, bool))
-                or register.expected_value is None
+                if isinstance(register.expected_value, (str, int, float, bool)) or register.expected_value is None
                 else str(register.expected_value)
             )
 
@@ -629,14 +627,12 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
 
             actual_value = (
                 register.actual_value
-                if isinstance(register.actual_value, (str, int, float, bool))
-                or register.actual_value is None
+                if isinstance(register.actual_value, (str, int, float, bool)) or register.actual_value is None
                 else str(register.actual_value)
             )
             expected_value = (
                 register.expected_value
-                if isinstance(register.expected_value, (str, int, float, bool))
-                or register.expected_value is None
+                if isinstance(register.expected_value, (str, int, float, bool)) or register.expected_value is None
                 else str(register.expected_value)
             )
 
