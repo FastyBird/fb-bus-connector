@@ -19,6 +19,7 @@ FastyBird BUS connector module
 """
 
 # Python base dependencies
+import asyncio
 import logging
 import re
 import uuid
@@ -467,6 +468,9 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
         self.__client.handle()
 
         self.__transporter.handle()
+
+        # Be gentle to server
+        await asyncio.sleep(0.01)
 
     # -----------------------------------------------------------------------------
 
