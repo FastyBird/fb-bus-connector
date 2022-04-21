@@ -220,7 +220,7 @@ class DevicesRegistry:  # pylint: disable=too-many-public-methods
         """Enable device for communication"""
         device.enabled = True
 
-        self.__update(updated_device=device, dispatch=True)
+        self.__update(updated_device=device)
 
         updated_device = self.get_by_id(device.id)
 
@@ -235,7 +235,7 @@ class DevicesRegistry:  # pylint: disable=too-many-public-methods
         """Disable device for communication"""
         device.enabled = False
 
-        self.__update(updated_device=device, dispatch=True)
+        self.__update(updated_device=device)
 
         updated_device = self.get_by_id(device.id)
 
@@ -411,15 +411,9 @@ class DevicesRegistry:  # pylint: disable=too-many-public-methods
 
     # -----------------------------------------------------------------------------
 
-    def __update(self, updated_device: DeviceRecord, dispatch: bool = False) -> bool:
+    def __update(self, updated_device: DeviceRecord) -> bool:
         """Update device record"""
         self.__items[updated_device.id.__str__()] = updated_device
-
-        if dispatch:
-            self.__event_dispatcher.dispatch(
-                event_id=DeviceRecordCreatedOrUpdatedEvent.EVENT_NAME,
-                event=DeviceRecordCreatedOrUpdatedEvent(record=updated_device),
-            )
 
         return True
 
