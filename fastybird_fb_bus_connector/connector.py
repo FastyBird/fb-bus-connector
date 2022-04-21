@@ -173,8 +173,7 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
         for channel in device.channels:
             self.initialize_device_channel(device=device, channel=channel)
 
-        if device.enabled:
-            self.__devices_registry.enable(device=device_record)
+        self.__devices_registry.enable(device=device_record)
 
     # -----------------------------------------------------------------------------
 

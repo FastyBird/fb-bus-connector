@@ -217,7 +217,6 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
         device_data = {
             "id": event.record.id,
             "identifier": event.record.serial_number,
-            "enabled": event.record.enabled,
             "hardware_manufacturer": event.record.hardware_manufacturer,
             "hardware_model": event.record.hardware_model,
             "hardware_version": event.record.hardware_version,
