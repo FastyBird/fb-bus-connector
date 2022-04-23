@@ -27,6 +27,7 @@ from whistle import Event
 # Library libs
 from fastybird_fb_bus_connector.registry.records import (
     AttributeRegisterRecord,
+    DeviceAttributeRecord,
     DeviceRecord,
     InputRegisterRecord,
     OutputRegisterRecord,
@@ -112,6 +113,60 @@ class AttributeRegisterRecordCreatedOrUpdatedEvent(Event):  # pylint: disable=to
     @property
     def record(self) -> AttributeRegisterRecord:
         """Created or updated register record"""
+        return self.__record
+
+
+class DeviceAttributeRecordCreatedOrUpdatedEvent(Event):  # pylint: disable=too-few-public-methods
+    """
+    Device attribute record was created or updated in registry
+
+    @package        FastyBird:FbBusConnector!
+    @module         events/events
+
+    @author         Adam Kadlec <adam.kadlec@fastybird.com>
+    """
+
+    __record: DeviceAttributeRecord
+
+    EVENT_NAME: str = "registry.deviceAttributeRecordCreatedOrUpdated"
+
+    # -----------------------------------------------------------------------------
+
+    def __init__(self, record: DeviceAttributeRecord) -> None:
+        self.__record = record
+
+    # -----------------------------------------------------------------------------
+
+    @property
+    def record(self) -> DeviceAttributeRecord:
+        """Created or updated attribute record"""
+        return self.__record
+
+
+class DeviceAttributeRecordDeletedEvent(Event):  # pylint: disable=too-few-public-methods
+    """
+    Device attribute record was deleted from registry
+
+    @package        FastyBird:FbBusConnector!
+    @module         events/events
+
+    @author         Adam Kadlec <adam.kadlec@fastybird.com>
+    """
+
+    __record: DeviceAttributeRecord
+
+    EVENT_NAME: str = "registry.deviceAttributeRecordDeleted"
+
+    # -----------------------------------------------------------------------------
+
+    def __init__(self, record: DeviceAttributeRecord) -> None:
+        self.__record = record
+
+    # -----------------------------------------------------------------------------
+
+    @property
+    def record(self) -> DeviceAttributeRecord:
+        """Deleted attribute record"""
         return self.__record
 
 

@@ -49,13 +49,6 @@ class DeviceRecord:  # pylint: disable=too-many-public-methods,too-many-instance
     __id: uuid.UUID
     __serial_number: str
 
-    __hardware_manufacturer: Optional[str] = None
-    __hardware_model: Optional[str] = None
-    __hardware_version: Optional[str] = None
-
-    __firmware_manufacturer: Optional[str] = None
-    __firmware_version: Optional[str] = None
-
     __enabled: bool = False
 
     __last_writing_packet_timestamp: float = 0.0  # Timestamp writing when request was sent to the device
@@ -75,22 +68,10 @@ class DeviceRecord:  # pylint: disable=too-many-public-methods,too-many-instance
         device_id: uuid.UUID,
         serial_number: str,
         enabled: bool = False,
-        hardware_manufacturer: Optional[str] = None,
-        hardware_model: Optional[str] = None,
-        hardware_version: Optional[str] = None,
-        firmware_manufacturer: Optional[str] = None,
-        firmware_version: Optional[str] = None,
     ) -> None:
         self.__id = device_id
         self.__serial_number = serial_number
         self.__enabled = enabled
-
-        self.__hardware_manufacturer = hardware_manufacturer
-        self.__hardware_model = hardware_model
-        self.__hardware_version = hardware_version
-
-        self.__firmware_manufacturer = firmware_manufacturer
-        self.__firmware_version = firmware_version
 
     # -----------------------------------------------------------------------------
 
@@ -119,41 +100,6 @@ class DeviceRecord:  # pylint: disable=too-many-public-methods,too-many-instance
     def enabled(self, enabled: bool) -> None:
         """Enable or disable device"""
         self.__enabled = enabled
-
-    # -----------------------------------------------------------------------------
-
-    @property
-    def hardware_manufacturer(self) -> Optional[str]:
-        """Hardware manufacturer"""
-        return self.__hardware_manufacturer
-
-    # -----------------------------------------------------------------------------
-
-    @property
-    def hardware_model(self) -> Optional[str]:
-        """Hardware model"""
-        return self.__hardware_model
-
-    # -----------------------------------------------------------------------------
-
-    @property
-    def hardware_version(self) -> Optional[str]:
-        """Hardware revision"""
-        return self.__hardware_version
-
-    # -----------------------------------------------------------------------------
-
-    @property
-    def firmware_manufacturer(self) -> Optional[str]:
-        """Firmware manufacturer"""
-        return self.__firmware_manufacturer
-
-    # -----------------------------------------------------------------------------
-
-    @property
-    def firmware_version(self) -> Optional[str]:
-        """Firmware version"""
-        return self.__firmware_version
 
     # -----------------------------------------------------------------------------
 
@@ -655,6 +601,90 @@ class AttributeRegisterRecord(RegisterRecord):
             ]
 
         return super().format
+
+
+class DeviceAttributeRecord:
+    """
+    Device attribute record
+
+    @package        FastyBird:FbBusConnector!
+    @module         registry/records
+
+    @author         Adam Kadlec <adam.kadlec@fastybird.com>
+    """
+
+    __device_id: uuid.UUID
+
+    __id: uuid.UUID
+
+    __identifier: str
+    __name: Optional[str]
+    __value: Optional[str]
+
+    # -----------------------------------------------------------------------------
+
+    def __init__(  # pylint: disable=too-many-arguments
+        self,
+        device_id: uuid.UUID,
+        attribute_id: uuid.UUID,
+        attribute_identifier: str,
+        attribute_name: Optional[str],
+        attribute_value: Optional[str],
+    ) -> None:
+        self.__device_id = device_id
+
+        self.__id = attribute_id
+        self.__identifier = attribute_identifier
+        self.__name = attribute_name
+        self.__value = attribute_value
+
+    # -----------------------------------------------------------------------------
+
+    @property
+    def device_id(self) -> uuid.UUID:
+        """Attribute device unique identifier"""
+        return self.__device_id
+
+    # -----------------------------------------------------------------------------
+
+    @property
+    def id(self) -> uuid.UUID:  # pylint: disable=invalid-name
+        """Attribute unique database identifier"""
+        return self.__id
+
+    # -----------------------------------------------------------------------------
+
+    @property
+    def identifier(self) -> str:
+        """Attribute unique identifier"""
+        return self.__identifier
+
+    # -----------------------------------------------------------------------------
+
+    @property
+    def name(self) -> Optional[str]:
+        """Attribute name"""
+        return self.__name
+
+    # -----------------------------------------------------------------------------
+
+    @property
+    def value(self) -> Optional[str]:
+        """Attribute value"""
+        return self.__value
+
+    # -----------------------------------------------------------------------------
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, DeviceAttributeRecord):
+            return False
+
+        return self.device_id == other.device_id and self.id == other.id and self.identifier == other.identifier
+
+    # -----------------------------------------------------------------------------
+
+    def __hash__(self) -> int:
+        return self.__id.__hash__()
 
 
 class DiscoveredDeviceRecord:  # pylint: disable=too-many-instance-attributes

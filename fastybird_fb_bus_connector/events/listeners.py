@@ -36,6 +36,7 @@ from fastybird_devices_module.managers.channel import (
     ChannelsManager,
 )
 from fastybird_devices_module.managers.device import (
+    DeviceAttributesManager,
     DevicePropertiesManager,
     DevicesManager,
 )
@@ -48,6 +49,7 @@ from fastybird_devices_module.repositories.channel import (
     ChannelsRepository,
 )
 from fastybird_devices_module.repositories.device import (
+    DeviceAttributesRepository,
     DevicePropertiesRepository,
     DevicesRepository,
 )
@@ -64,6 +66,8 @@ from whistle import Event, EventDispatcher
 from fastybird_fb_bus_connector.entities import FbBusDeviceEntity
 from fastybird_fb_bus_connector.events.events import (
     AttributeRegisterRecordCreatedOrUpdatedEvent,
+    DeviceAttributeRecordCreatedOrUpdatedEvent,
+    DeviceAttributeRecordDeletedEvent,
     DeviceRecordCreatedOrUpdatedEvent,
     InputOutputRegisterRecordCreatedOrUpdatedEvent,
     RegisterActualValueEvent,
@@ -101,6 +105,9 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
     __devices_properties_states_repository: DevicePropertiesStatesRepository
     __devices_properties_states_manager: DevicePropertiesStatesManager
 
+    __devices_attributes_repository: DeviceAttributesRepository
+    __devices_attributes_manager: DeviceAttributesManager
+
     __channels_repository: ChannelsRepository
     __channels_manager: ChannelsManager
 
@@ -127,6 +134,8 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
         devices_properties_manager: DevicePropertiesManager,
         devices_properties_states_repository: DevicePropertiesStatesRepository,
         devices_properties_states_manager: DevicePropertiesStatesManager,
+        devices_attributes_repository: DeviceAttributesRepository,
+        devices_attributes_manager: DeviceAttributesManager,
         channels_repository: ChannelsRepository,
         channels_manager: ChannelsManager,
         channels_properties_repository: ChannelPropertiesRepository,
@@ -147,6 +156,9 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
         self.__devices_properties_manager = devices_properties_manager
         self.__devices_properties_states_repository = devices_properties_states_repository
         self.__devices_properties_states_manager = devices_properties_states_manager
+
+        self.__devices_attributes_repository = devices_attributes_repository
+        self.__devices_attributes_manager = devices_attributes_manager
 
         self.__channels_repository = channels_repository
         self.__channels_manager = channels_manager
@@ -180,6 +192,16 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
         )
 
         self.__event_dispatcher.add_listener(
+            event_id=DeviceAttributeRecordCreatedOrUpdatedEvent.EVENT_NAME,
+            listener=self.__handle_create_or_update_device_attribute,
+        )
+
+        self.__event_dispatcher.add_listener(
+            event_id=DeviceAttributeRecordDeletedEvent.EVENT_NAME,
+            listener=self.__handle_delete_device_attribute,
+        )
+
+        self.__event_dispatcher.add_listener(
             event_id=RegisterActualValueEvent.EVENT_NAME,
             listener=self.__handle_write_register_actual_value,
         )
@@ -204,6 +226,16 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
         )
 
         self.__event_dispatcher.remove_listener(
+            event_id=DeviceAttributeRecordCreatedOrUpdatedEvent.EVENT_NAME,
+            listener=self.__handle_create_or_update_device_attribute,
+        )
+
+        self.__event_dispatcher.remove_listener(
+            event_id=DeviceAttributeRecordDeletedEvent.EVENT_NAME,
+            listener=self.__handle_delete_device_attribute,
+        )
+
+        self.__event_dispatcher.remove_listener(
             event_id=RegisterActualValueEvent.EVENT_NAME,
             listener=self.__handle_write_register_actual_value,
         )
@@ -217,11 +249,6 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
         device_data = {
             "id": event.record.id,
             "identifier": event.record.serial_number,
-            "hardware_manufacturer": event.record.hardware_manufacturer,
-            "hardware_model": event.record.hardware_model,
-            "hardware_version": event.record.hardware_version,
-            "firmware_manufacturer": event.record.firmware_manufacturer,
-            "firmware_version": event.record.firmware_version,
         }
 
         device = self.__devices_repository.get_by_id(device_id=event.record.id)
@@ -229,9 +256,6 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
         if device is None:
             # Define relation between device and it's connector
             device_data["connector_id"] = self.__connector_id
-            device_data["name"] = inflection.titleize(
-                f"{event.record.hardware_manufacturer} {event.record.hardware_model}",
-            )
 
             device = self.__devices_manager.create(
                 data=device_data,
@@ -473,6 +497,80 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
         if isinstance(device_property, DeviceDynamicPropertyEntity):
             # Store value for dynamic registers
             self.__write_device_property_value(register=event.record)
+
+    # -----------------------------------------------------------------------------
+
+    def __handle_create_or_update_device_attribute(self, event: Event) -> None:
+        if not isinstance(event, DeviceAttributeRecordCreatedOrUpdatedEvent):
+            return
+
+        attribute_data = {
+            "id": event.record.id,
+            "identifier": event.record.identifier,
+            "name": event.record.name,
+            "content": event.record.value,
+        }
+
+        device_attribute = self.__devices_attributes_repository.get_by_id(attribute_id=event.record.id)
+
+        if device_attribute is None:
+            # Define relation between channel and it's device
+            attribute_data["device_id"] = event.record.device_id
+
+            device_attribute = self.__devices_attributes_manager.create(data=attribute_data)
+
+            self.__logger.debug(
+                "Creating new device attribute",
+                extra={
+                    "device": {
+                        "id": device_attribute.device.id.__str__(),
+                    },
+                    "attribute": {
+                        "id": device_attribute.id.__str__(),
+                    },
+                },
+            )
+
+        else:
+            device_attribute = self.__devices_attributes_manager.update(
+                data=attribute_data,
+                device_attribute=device_attribute,
+            )
+
+            self.__logger.debug(
+                "Updating existing device attribute",
+                extra={
+                    "device": {
+                        "id": device_attribute.device.id.__str__(),
+                    },
+                    "attribute": {
+                        "id": device_attribute.id.__str__(),
+                    },
+                },
+            )
+
+    # -----------------------------------------------------------------------------
+
+    def __handle_delete_device_attribute(self, event: Event) -> None:
+        if not isinstance(event, DeviceAttributeRecordDeletedEvent):
+            return
+
+        device_attribute = self.__devices_attributes_repository.get_by_id(attribute_id=event.record.id)
+
+        if device_attribute is not None:
+            self.__devices_attributes_manager.delete(device_attribute=device_attribute)
+
+            self.__logger.debug(
+                "Removing existing device attribute",
+                extra={
+                    "device": {
+                        "id": device_attribute.device.id.__str__(),
+                    },
+                    "attribute": {
+                        "id": device_attribute.id.__str__(),
+                    },
+                },
+            )
 
     # -----------------------------------------------------------------------------
 

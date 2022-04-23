@@ -44,6 +44,7 @@ from fastybird_fb_bus_connector.logger import Logger
 from fastybird_fb_bus_connector.receivers.apiv1 import ApiV1Receiver
 from fastybird_fb_bus_connector.receivers.receiver import Receiver
 from fastybird_fb_bus_connector.registry.model import (
+    DevicesAttributesRegistry,
     DevicesRegistry,
     DiscoveredDevicesRegistry,
     DiscoveredRegistersRegistry,
@@ -53,7 +54,7 @@ from fastybird_fb_bus_connector.transporters.pjon import PjonTransporter
 from fastybird_fb_bus_connector.types import ProtocolVersion
 
 
-def create_connector(
+def create_connector(  # pylint: disable=too-many-statements
     connector: FbBusConnectorEntity,
     logger: logging.Logger = logging.getLogger("dummy"),
 ) -> FbBusConnector:
@@ -74,8 +75,12 @@ def create_connector(
     di[RegistersRegistry] = RegistersRegistry(event_dispatcher=di[EventDispatcher])  # type: ignore[call-arg]
     di["fb-bus-connector_registers-registry"] = di[RegistersRegistry]
 
+    di[DevicesAttributesRegistry] = DevicesAttributesRegistry(event_dispatcher=di[EventDispatcher])
+    di["fb-bus-connector_attributes-registry"] = di[DevicesAttributesRegistry]
+
     di[DevicesRegistry] = DevicesRegistry(
         registers_registry=di[RegistersRegistry],
+        attributes_registry=di[DevicesAttributesRegistry],
         event_dispatcher=di[EventDispatcher],
     )
     di["fb-bus-connector_devices-registry"] = di[DevicesRegistry]
@@ -157,6 +162,7 @@ def create_connector(
     if connector.protocol == ProtocolVersion.V1:
         di[ApiV1Client] = ApiV1Client(
             devices_registry=di[DevicesRegistry],
+            devices_attributes_registry=di[DevicesAttributesRegistry],
             registers_registry=di[RegistersRegistry],
             discovered_devices_registry=di[DiscoveredDevicesRegistry],
             discovered_registers_registry=di[DiscoveredRegistersRegistry],
@@ -187,6 +193,7 @@ def create_connector(
         client=di[Client],
         devices_registry=di[DevicesRegistry],
         registers_registry=di[RegistersRegistry],
+        devices_attributes_registry=di[DevicesAttributesRegistry],
         transporter=di[PjonTransporter],
         events_listener=di[EventsListener],
         logger=connector_logger,

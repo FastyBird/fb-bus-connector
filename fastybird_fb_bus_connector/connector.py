@@ -36,6 +36,7 @@ from fastybird_devices_module.entities.channel import (
 )
 from fastybird_devices_module.entities.connector import ConnectorControlEntity
 from fastybird_devices_module.entities.device import (
+    DeviceAttributeEntity,
     DeviceControlEntity,
     DeviceDynamicPropertyEntity,
     DevicePropertyEntity,
@@ -43,12 +44,7 @@ from fastybird_devices_module.entities.device import (
 )
 from fastybird_devices_module.exceptions import RestartConnectorException
 from fastybird_devices_module.utils import normalize_value
-from fastybird_metadata.devices_module import (
-    ConnectionState,
-    DeviceModel,
-    FirmwareManufacturer,
-    HardwareManufacturer,
-)
+from fastybird_metadata.devices_module import ConnectionState
 from fastybird_metadata.types import (
     ButtonPayload,
     ControlAction,
@@ -63,7 +59,11 @@ from fastybird_fb_bus_connector.entities import FbBusConnectorEntity, FbBusDevic
 from fastybird_fb_bus_connector.events.listeners import EventsListener
 from fastybird_fb_bus_connector.exceptions import InvalidStateException
 from fastybird_fb_bus_connector.logger import Logger
-from fastybird_fb_bus_connector.registry.model import DevicesRegistry, RegistersRegistry
+from fastybird_fb_bus_connector.registry.model import (
+    DevicesAttributesRegistry,
+    DevicesRegistry,
+    RegistersRegistry,
+)
 
 # Library libs
 from fastybird_fb_bus_connector.registry.records import (
@@ -96,6 +96,7 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
 
     __devices_registry: DevicesRegistry
     __registers_registry: RegistersRegistry
+    __devices_attributes_registry: DevicesAttributesRegistry
 
     __transporter: ITransporter
 
@@ -112,6 +113,7 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
         client: Client,
         devices_registry: DevicesRegistry,
         registers_registry: RegistersRegistry,
+        devices_attributes_registry: DevicesAttributesRegistry,
         transporter: ITransporter,
         events_listener: EventsListener,
         logger: Union[Logger, logging.Logger] = logging.getLogger("dummy"),
@@ -123,6 +125,7 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
 
         self.__devices_registry = devices_registry
         self.__registers_registry = registers_registry
+        self.__devices_attributes_registry = devices_attributes_registry
 
         self.__transporter = transporter
 
@@ -154,21 +157,13 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
             device_id=device.id,
             device_enabled=False,
             device_serial_number=device.identifier,
-            hardware_manufacturer=device.hardware_manufacturer.value
-            if isinstance(device.hardware_manufacturer, HardwareManufacturer)
-            else device.hardware_manufacturer,
-            hardware_model=device.hardware_model.value
-            if isinstance(device.hardware_model, DeviceModel)
-            else device.hardware_model,
-            hardware_version=device.hardware_version,
-            firmware_manufacturer=device.firmware_manufacturer.value
-            if isinstance(device.firmware_manufacturer, FirmwareManufacturer)
-            else device.firmware_manufacturer,
-            firmware_version=device.firmware_version,
         )
 
         for device_property in device.properties:
             self.initialize_device_property(device=device, device_property=device_property)
+
+        for device_attribute in device.attributes:
+            self.initialize_device_attribute(device=device, device_attribute=device_attribute)
 
         for channel in device.channels:
             self.initialize_device_channel(device=device, channel=channel)
@@ -237,6 +232,38 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
     def reset_devices_properties(self, device: FbBusDeviceEntity) -> None:
         """Reset devices properties registry to initial state"""
         self.__registers_registry.reset(device_id=device.id, registers_type=RegisterType.ATTRIBUTE)
+
+    # -----------------------------------------------------------------------------
+
+    def initialize_device_attribute(self, device: FbBusDeviceEntity, device_attribute: DeviceAttributeEntity) -> None:
+        """Initialize device attribute"""
+        if isinstance(device_attribute, DeviceAttributeEntity):
+            self.__devices_attributes_registry.append(
+                device_id=device_attribute.device.id,
+                attribute_id=device_attribute.id,
+                attribute_identifier=device_attribute.identifier,
+                attribute_name=device_attribute.name,
+                attribute_value=device_attribute.content
+                if isinstance(device_attribute.content, str) or device_attribute.content is None
+                else str(device_attribute.content),
+            )
+
+    # -----------------------------------------------------------------------------
+
+    def notify_device_attribute(self, device: FbBusDeviceEntity, device_attribute: DeviceAttributeEntity) -> None:
+        """Notify device attribute was reported to connector"""
+
+    # -----------------------------------------------------------------------------
+
+    def remove_device_attribute(self, device: FbBusDeviceEntity, attribute_id: uuid.UUID) -> None:
+        """Remove device attribute from connector registry"""
+        self.__devices_attributes_registry.remove(attribute_id=attribute_id, propagate=False)
+
+    # -----------------------------------------------------------------------------
+
+    def reset_devices_attributes(self, device: FbBusDeviceEntity) -> None:
+        """Reset devices attributes registry to initial state"""
+        self.__devices_attributes_registry.reset(device_id=device.id)
 
     # -----------------------------------------------------------------------------
 

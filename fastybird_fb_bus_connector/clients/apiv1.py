@@ -28,7 +28,7 @@ from datetime import datetime
 from typing import Dict, List, Set, Union
 
 # Library dependencies
-from fastybird_metadata.devices_module import ConnectionState
+from fastybird_metadata.devices_module import ConnectionState, DeviceAttributeName
 from fastybird_metadata.types import ButtonPayload, DataType, SwitchPayload
 from kink import inject
 
@@ -44,7 +44,7 @@ from fastybird_fb_bus_connector.registry.model import (
     DevicesRegistry,
     DiscoveredDevicesRegistry,
     DiscoveredRegistersRegistry,
-    RegistersRegistry,
+    RegistersRegistry, DevicesAttributesRegistry,
 )
 from fastybird_fb_bus_connector.registry.records import (
     DeviceRecord,
@@ -78,6 +78,7 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
     __discovery_enabled: bool = False
 
     __devices_registry: DevicesRegistry
+    __devices_attributes_registry: DevicesAttributesRegistry
     __registers_registry: RegistersRegistry
 
     __discovered_devices_registry: DiscoveredDevicesRegistry
@@ -115,6 +116,7 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
     def __init__(  # pylint: disable=too-many-arguments
         self,
         devices_registry: DevicesRegistry,
+        devices_attributes_registry: DevicesAttributesRegistry,
         registers_registry: RegistersRegistry,
         discovered_devices_registry: DiscoveredDevicesRegistry,
         discovered_registers_registry: DiscoveredRegistersRegistry,
@@ -122,6 +124,7 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
         logger: Union[Logger, logging.Logger] = logging.getLogger("dummy"),
     ) -> None:
         self.__devices_registry = devices_registry
+        self.__devices_attributes_registry = devices_attributes_registry
         self.__registers_registry = registers_registry
 
         self.__discovered_devices_registry = discovered_devices_registry
@@ -933,11 +936,41 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
             device_id=uuid.uuid4() if existing_device is None else existing_device.id,
             device_serial_number=discovered_device.serial_number,
             device_enabled=False,
-            hardware_manufacturer=discovered_device.hardware_manufacturer,
-            hardware_model=discovered_device.hardware_model,
-            hardware_version=discovered_device.hardware_version,
-            firmware_manufacturer=discovered_device.firmware_manufacturer,
-            firmware_version=discovered_device.firmware_version,
+        )
+
+        self.__devices_attributes_registry.create_or_update(
+            device_id=device_record.id,
+            attribute_id=uuid.uuid4(),
+            attribute_identifier=DeviceAttributeName.HARDWARE_MANUFACTURER.value,
+            attribute_value=discovered_device.hardware_manufacturer,
+        )
+
+        self.__devices_attributes_registry.create_or_update(
+            device_id=device_record.id,
+            attribute_id=uuid.uuid4(),
+            attribute_identifier=DeviceAttributeName.HARDWARE_MODEL.value,
+            attribute_value=discovered_device.hardware_model,
+        )
+
+        self.__devices_attributes_registry.create_or_update(
+            device_id=device_record.id,
+            attribute_id=uuid.uuid4(),
+            attribute_identifier=DeviceAttributeName.HARDWARE_VERSION.value,
+            attribute_value=discovered_device.hardware_version,
+        )
+
+        self.__devices_attributes_registry.create_or_update(
+            device_id=device_record.id,
+            attribute_id=uuid.uuid4(),
+            attribute_identifier=DeviceAttributeName.FIRMWARE_MANUFACTURER.value,
+            attribute_value=discovered_device.firmware_manufacturer,
+        )
+
+        self.__devices_attributes_registry.create_or_update(
+            device_id=device_record.id,
+            attribute_id=uuid.uuid4(),
+            attribute_identifier=DeviceAttributeName.FIRMWARE_VERSION.value,
+            attribute_value=discovered_device.firmware_version,
         )
 
         for register in self.__discovered_registers_registry.get_all_by_device(
