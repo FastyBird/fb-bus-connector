@@ -481,7 +481,11 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
 
     # -----------------------------------------------------------------------------
 
-    async def write_property(self, property_item: Union[DevicePropertyEntity, ChannelPropertyEntity], data: Dict) -> None:
+    async def write_property(
+        self,
+        property_item: Union[DevicePropertyEntity, ChannelPropertyEntity],
+        data: Dict,
+    ) -> None:
         """Write device or channel property value to device"""
         if self.__stopped:
             self.__logger.warning("Connector is stopped, value can't be written")
