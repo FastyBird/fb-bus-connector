@@ -50,7 +50,7 @@ from fastybird_fb_bus_connector.exceptions import ParsePayloadException
 from fastybird_fb_bus_connector.registry.model import DevicesRegistry, RegistersRegistry
 from fastybird_fb_bus_connector.registry.records import AttributeRegisterRecord
 from fastybird_fb_bus_connector.types import (
-    DeviceAttribute,
+    DeviceProperty,
     DeviceConnectionState,
     DeviceDataType,
     ProtocolVersion,
@@ -434,7 +434,7 @@ class V1Parser:
             )
 
             # SPECIAL TRANSFORMING FOR STATE ATTRIBUTE
-            if register_name == DeviceAttribute.STATE.value:
+            if register_name == DeviceProperty.STATE.value:
                 register_data_type = DataType.ENUM
 
         return RegisterStructureEntity(
@@ -689,7 +689,7 @@ class V1Parser:
         if (
             register_record.data_type == DataType.ENUM
             and isinstance(register_record, AttributeRegisterRecord)
-            and register_record.name == DeviceAttribute.STATE.value
+            and register_record.name == DeviceProperty.STATE.value
         ):
             transformed_value = ValueTransformHelpers.transform_from_bytes(
                 data_type=DataType.SHORT,
@@ -792,9 +792,9 @@ class V1Parser:
 
             # SPECIAL TRANSFORMING FOR STATE ATTRIBUTE
             elif (
-                register_record.data_type == DataType.ENUM
-                and isinstance(register_record, AttributeRegisterRecord)
-                and register_record.name == DeviceAttribute.STATE.value
+                    register_record.data_type == DataType.ENUM
+                    and isinstance(register_record, AttributeRegisterRecord)
+                    and register_record.name == DeviceProperty.STATE.value
             ):
                 parsed_value = list(map(int, payload[position_byte:]))
 

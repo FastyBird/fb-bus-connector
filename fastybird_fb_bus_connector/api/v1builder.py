@@ -34,7 +34,7 @@ from fastybird_fb_bus_connector.api.transformers import (
 # Library libs
 from fastybird_fb_bus_connector.exceptions import BuildPayloadException
 from fastybird_fb_bus_connector.types import (
-    DeviceAttribute,
+    DeviceProperty,
     Packet,
     ProtocolVersion,
     RegisterType,
@@ -187,9 +187,9 @@ class V1Builder:
 
         # SPECIAL TRANSFORMING FOR STATE ATTRIBUTE
         elif (
-            register_data_type == DataType.ENUM
-            and register_type == RegisterType.ATTRIBUTE
-            and register_name == DeviceAttribute.STATE.value
+                register_data_type == DataType.ENUM
+                and register_type == RegisterType.ATTRIBUTE
+                and register_name == DeviceProperty.STATE.value
         ):
             transformed_value = ValueTransformHelpers.transform_to_bytes(
                 data_type=DataType.UCHAR,

@@ -58,7 +58,7 @@ from fastybird_fb_bus_connector.registry.records import (
 from fastybird_fb_bus_connector.transporters.transporter import ITransporter
 from fastybird_fb_bus_connector.types import (
     UNASSIGNED_ADDRESS,
-    DeviceAttribute,
+    DeviceProperty,
     Packet,
     RegisterType,
 )
@@ -404,7 +404,7 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
     # -----------------------------------------------------------------------------
 
     def __send_read_device_state_handler(self, device: DeviceRecord, device_address: int) -> None:
-        state_attribute = self.__registers_registry.get_by_name(device_id=device.id, name=DeviceAttribute.STATE.value)
+        state_attribute = self.__registers_registry.get_by_name(device_id=device.id, name=DeviceProperty.STATE.value)
 
         if state_attribute is None:
             self.__logger.error(
@@ -737,7 +737,7 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
                         device_serial_number=discovered_device.serial_number
                     )
                     if isinstance(register, DiscoveredAttributeRegisterRecord)
-                    and register.name == DeviceAttribute.ADDRESS.value
+                       and register.name == DeviceProperty.ADDRESS.value
                 ]
             ),
             None,
@@ -857,7 +857,7 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
                         device_serial_number=discovered_device.serial_number
                     )
                     if isinstance(register, DiscoveredAttributeRegisterRecord)
-                    and register.name == DeviceAttribute.STATE.value
+                       and register.name == DeviceProperty.STATE.value
                 ]
             ),
             None,
@@ -1001,19 +1001,19 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
                     register_settable=register.settable,
                 )
 
-                if register.name == DeviceAttribute.ADDRESS.value:
+                if register.name == DeviceProperty.ADDRESS.value:
                     self.__registers_registry.set_actual_value(
                         register=attribute_register,
                         value=discovered_device.address,
                     )
 
-                if register.name == DeviceAttribute.STATE.value:
+                if register.name == DeviceProperty.STATE.value:
                     self.__registers_registry.set_actual_value(
                         register=attribute_register,
                         value=discovered_device.state.value,
                     )
 
-                if register.name == DeviceAttribute.MAX_PACKET_LENGTH.value:
+                if register.name == DeviceProperty.MAX_PACKET_LENGTH.value:
                     self.__registers_registry.set_actual_value(
                         register=attribute_register,
                         value=discovered_device.max_packet_length,

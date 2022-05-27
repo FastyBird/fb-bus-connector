@@ -364,7 +364,7 @@ class SwitchPayloadType(Enum):
 
 
 @unique
-class DeviceAttribute(ExtendedEnum):
+class DeviceProperty(ExtendedEnum):
     """
     Known devices attribute name
 

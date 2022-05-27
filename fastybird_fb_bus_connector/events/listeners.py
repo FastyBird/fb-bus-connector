@@ -25,7 +25,6 @@ from datetime import datetime
 from typing import Dict, Union
 
 # Library dependencies
-import inflection
 from fastybird_devices_module.entities.channel import ChannelDynamicPropertyEntity
 from fastybird_devices_module.entities.device import (
     DeviceDynamicPropertyEntity,
@@ -79,7 +78,7 @@ from fastybird_fb_bus_connector.registry.records import (
     InputRegisterRecord,
     OutputRegisterRecord,
 )
-from fastybird_fb_bus_connector.types import DeviceAttribute, RegisterName, RegisterType
+from fastybird_fb_bus_connector.types import DeviceProperty, RegisterName, RegisterType
 
 
 @inject
@@ -413,8 +412,8 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
             return
 
         if event.record.name is not None and event.record.name in [
-            DeviceAttribute.ADDRESS.value,
-            DeviceAttribute.MAX_PACKET_LENGTH.value,
+            DeviceProperty.ADDRESS.value,
+            DeviceProperty.MAX_PACKET_LENGTH.value,
         ]:
             property_data = {
                 "id": event.record.id,
@@ -450,8 +449,8 @@ class EventsListener:  # pylint: disable=too-many-instance-attributes
 
             # Special mapping for known attributes
             if event.record.name is not None and event.record.name in [
-                DeviceAttribute.ADDRESS.value,
-                DeviceAttribute.MAX_PACKET_LENGTH.value,
+                DeviceProperty.ADDRESS.value,
+                DeviceProperty.MAX_PACKET_LENGTH.value,
             ]:
                 device_property = self.__devices_properties_manager.create(
                     data=property_data,

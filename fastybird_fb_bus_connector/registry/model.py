@@ -62,7 +62,7 @@ from fastybird_fb_bus_connector.registry.records import (
 )
 from fastybird_fb_bus_connector.types import (
     UNASSIGNED_ADDRESS,
-    DeviceAttribute,
+    DeviceProperty,
     Packet,
     RegisterType,
 )
@@ -117,7 +117,7 @@ class DevicesRegistry:  # pylint: disable=too-many-public-methods
 
     def get_by_address(self, address: int) -> Optional[DeviceRecord]:
         """Find device in registry by given unique address"""
-        addresses_attributes = self.__registers_registry.get_all_by_name(name=DeviceAttribute.ADDRESS.value)
+        addresses_attributes = self.__registers_registry.get_all_by_name(name=DeviceProperty.ADDRESS.value)
 
         for address_attribute in addresses_attributes:
             if address_attribute.actual_value == address:
@@ -238,7 +238,7 @@ class DevicesRegistry:  # pylint: disable=too-many-public-methods
         """Set device actual state"""
         actual_state = self.__registers_registry.get_by_name(
             device_id=device.id,
-            name=DeviceAttribute.STATE.value,
+            name=DeviceProperty.STATE.value,
         )
 
         if actual_state is None:
@@ -278,7 +278,7 @@ class DevicesRegistry:  # pylint: disable=too-many-public-methods
         """Get device actual state"""
         actual_state = self.__registers_registry.get_by_name(
             device_id=device.id,
-            name=DeviceAttribute.STATE.value,
+            name=DeviceProperty.STATE.value,
         )
 
         if (
@@ -357,7 +357,7 @@ class DevicesRegistry:  # pylint: disable=too-many-public-methods
         """Get device address from registry"""
         actual_address = self.__registers_registry.get_by_name(
             device_id=device.id,
-            name=DeviceAttribute.ADDRESS.value,
+            name=DeviceProperty.ADDRESS.value,
         )
 
         if actual_address is None or not isinstance(actual_address.actual_value, int):
@@ -371,7 +371,7 @@ class DevicesRegistry:  # pylint: disable=too-many-public-methods
         """Get device max packet length from registry"""
         max_packet_length_attribute = self.__registers_registry.get_by_name(
             device_id=device.id,
-            name=DeviceAttribute.MAX_PACKET_LENGTH.value,
+            name=DeviceProperty.MAX_PACKET_LENGTH.value,
         )
 
         if max_packet_length_attribute is None or not isinstance(max_packet_length_attribute.actual_value, int):
@@ -383,7 +383,7 @@ class DevicesRegistry:  # pylint: disable=too-many-public-methods
 
     def find_free_address(self) -> Optional[int]:
         """Find free address for new device"""
-        addresses_attributes = self.__registers_registry.get_all_by_name(DeviceAttribute.ADDRESS.value)
+        addresses_attributes = self.__registers_registry.get_all_by_name(DeviceProperty.ADDRESS.value)
 
         reserved_addresses: List[int] = []
 

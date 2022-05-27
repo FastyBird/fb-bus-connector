@@ -33,7 +33,7 @@ from fastybird_metadata.devices_module import ConnectionState
 from fastybird_metadata.types import ButtonPayload, DataType, SwitchPayload
 
 # Library libs
-from fastybird_fb_bus_connector.types import DeviceAttribute, Packet, RegisterType
+from fastybird_fb_bus_connector.types import DeviceProperty, Packet, RegisterType
 
 
 class DeviceRecord:  # pylint: disable=too-many-public-methods,too-many-instance-attributes
@@ -590,7 +590,7 @@ class AttributeRegisterRecord(RegisterRecord):
         None,
     ]:
         """Attribute register value format"""
-        if self.name == DeviceAttribute.STATE.value:
+        if self.name == DeviceProperty.STATE.value:
             return [
                 ConnectionState.RUNNING.value,
                 ConnectionState.STOPPED.value,
