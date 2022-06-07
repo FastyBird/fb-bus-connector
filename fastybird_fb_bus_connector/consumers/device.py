@@ -106,7 +106,7 @@ class DeviceItemConsumer(IConsumer):  # pylint: disable=too-few-public-methods
                 "Device state could not be updated. Device is disabled and have to be re-discovered",
                 extra={
                     "device": {
-                        "id": device_record.id.__str__(),
+                        "id": str(device_record.id),
                         "serial_number": device_record.serial_number,
                     },
                 },
@@ -182,7 +182,7 @@ class RegisterItemConsumer(IConsumer):  # pylint: disable=too-few-public-methods
                     register_address,
                     extra={
                         "device": {
-                            "id": device_record.id.__str__(),
+                            "id": str(device_record.id),
                         },
                     },
                 )
@@ -206,7 +206,7 @@ class RegisterItemConsumer(IConsumer):  # pylint: disable=too-few-public-methods
                         register_address,
                         extra={
                             "device": {
-                                "id": device_record.id.__str__(),
+                                "id": str(device_record.id),
                             },
                         },
                     )

@@ -109,7 +109,7 @@ class DevicesRegistry:  # pylint: disable=too-many-public-methods
         items = self.__items.copy()
 
         return next(
-            iter([record for record in items.values() if device_id.__eq__(record.id)]),
+            iter([record for record in items.values() if device_id == record.id]),
             None,
         )
 
@@ -148,7 +148,7 @@ class DevicesRegistry:  # pylint: disable=too-many-public-methods
             enabled=device_enabled,
         )
 
-        self.__items[device.id.__str__()] = device
+        self.__items[str(device.id)] = device
 
         return device
 
@@ -181,9 +181,9 @@ class DevicesRegistry:  # pylint: disable=too-many-public-methods
         items = self.__items.copy()
 
         for record in items.values():
-            if device_id.__eq__(record.id):
+            if device_id == record.id:
                 try:
-                    del self.__items[record.id.__str__()]
+                    del self.__items[str(record.id)]
 
                     self.__registers_registry.reset(device_id=record.id)
                     self.__attributes_registry.reset(device_id=record.id)
@@ -401,7 +401,7 @@ class DevicesRegistry:  # pylint: disable=too-many-public-methods
 
     def __update(self, updated_device: DeviceRecord) -> bool:
         """Update device record"""
-        self.__items[updated_device.id.__str__()] = updated_device
+        self.__items[str(updated_device.id)] = updated_device
 
         return True
 
@@ -476,7 +476,7 @@ class RegistersRegistry:
         """Get register by identifier"""
         items = self.__items.copy()
 
-        return next(iter([record for record in items.values() if register_id.__eq__(record.id)]), None)
+        return next(iter([record for record in items.values() if register_id == record.id]), None)
 
     # -----------------------------------------------------------------------------
 
@@ -494,7 +494,7 @@ class RegistersRegistry:
                 [
                     record
                     for record in items.values()
-                    if device_id.__eq__(record.device_id)
+                    if device_id == record.device_id
                     and record.address == register_address
                     and record.type == register_type
                 ]
@@ -519,7 +519,7 @@ class RegistersRegistry:
                     for record in items.values()
                     if isinstance(record, AttributeRegisterRecord)
                     and record.name == name
-                    and device_id.__eq__(record.device_id)
+                    and device_id == record.device_id
                 ]
             ),
             None,
@@ -551,7 +551,7 @@ class RegistersRegistry:
         return [
             record
             for record in items.values()
-            if device_id.__eq__(record.device_id)
+            if device_id == record.device_id
             and (
                 register_type is None
                 or (isinstance(register_type, RegisterType) and record.type == register_type)
@@ -604,7 +604,7 @@ class RegistersRegistry:
             register.expected_value = existing_register.expected_value
             register.expected_pending = existing_register.expected_pending
 
-        self.__items[register.id.__str__()] = register
+        self.__items[str(register.id)] = register
 
         return register
 
@@ -653,7 +653,7 @@ class RegistersRegistry:
             register.expected_value = existing_register.expected_value
             register.expected_pending = existing_register.expected_pending
 
-        self.__items[register.id.__str__()] = register
+        self.__items[str(register.id)] = register
 
         return register
 
@@ -719,7 +719,7 @@ class RegistersRegistry:
                 register.expected_value = None
                 register.expected_pending = None
 
-        self.__items[register.id.__str__()] = register
+        self.__items[str(register.id)] = register
 
         return register
 
@@ -801,9 +801,9 @@ class RegistersRegistry:
         items = self.__items.copy()
 
         for record in items.values():
-            if register_id.__eq__(record.id):
+            if register_id == record.id:
                 try:
-                    del self.__items[record.id.__str__()]
+                    del self.__items[str(record.id)]
 
                 except KeyError:
                     pass
@@ -818,7 +818,7 @@ class RegistersRegistry:
 
         if device_id is not None or registers_type is not None:
             for record in items.values():
-                if (device_id is None or device_id.__eq__(record.device_id)) and (
+                if (device_id is None or device_id == record.device_id) and (
                     registers_type is None or record.type == registers_type
                 ):
                     self.remove(register_id=record.id)
@@ -942,7 +942,7 @@ class RegistersRegistry:
 
         for record in items.values():
             if record.id == register.id:
-                self.__items[register.id.__str__()] = register
+                self.__items[str(register.id)] = register
 
                 return True
 
@@ -983,7 +983,7 @@ class DevicesAttributesRegistry:
         items = self.__items.copy()
 
         return next(
-            iter([record for record in items.values() if attribute_id.__eq__(record.id)]),
+            iter([record for record in items.values() if attribute_id == record.id]),
             None,
         )
 
@@ -998,7 +998,7 @@ class DevicesAttributesRegistry:
                 [
                     record
                     for record in items.values()
-                    if device_id.__eq__(record.device_id) and record.identifier == attribute_identifier
+                    if device_id == record.device_id and record.identifier == attribute_identifier
                 ]
             ),
             None,
@@ -1010,7 +1010,7 @@ class DevicesAttributesRegistry:
         """Find attributes in registry by device unique identifier"""
         items = self.__items.copy()
 
-        return [record for record in items.values() if device_id.__eq__(record.device_id)]
+        return [record for record in items.values() if device_id == record.device_id]
 
     # -----------------------------------------------------------------------------
 
@@ -1031,7 +1031,7 @@ class DevicesAttributesRegistry:
             attribute_value=attribute_value,
         )
 
-        self.__items[attribute_record.id.__str__()] = attribute_record
+        self.__items[str(attribute_record.id)] = attribute_record
 
         return attribute_record
 
@@ -1068,9 +1068,9 @@ class DevicesAttributesRegistry:
         items = self.__items.copy()
 
         for record in items.values():
-            if attribute_id.__eq__(record.id):
+            if attribute_id == record.id:
                 try:
-                    del self.__items[record.id.__str__()]
+                    del self.__items[str(record.id)]
 
                     if propagate:
                         self.__event_dispatcher.dispatch(
@@ -1091,7 +1091,7 @@ class DevicesAttributesRegistry:
 
         if device_id is not None:
             for record in items.values():
-                if device_id.__eq__(record.device_id):
+                if device_id == record.device_id:
                     self.remove(attribute_id=record.id)
 
         else:

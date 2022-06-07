@@ -177,10 +177,10 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
                 if not device.enabled:
                     continue
 
-                if device.id.__str__() not in self.__processed_devices:
+                if str(device.id) not in self.__processed_devices:
                     self.__process_device(device=device)
 
-                    self.__processed_devices.append(device.id.__str__())
+                    self.__processed_devices.append(str(device.id))
 
                     return
 
@@ -200,7 +200,7 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
                 "Device address could not be fetched from registry. Device is disabled and have to be re-discovered",
                 extra={
                     "device": {
-                        "id": device.id.__str__(),
+                        "id": str(device.id),
                         "serial_number": device.serial_number,
                     },
                 },
@@ -218,7 +218,7 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
                     device_address,
                     extra={
                         "device": {
-                            "id": device.id.__str__(),
+                            "id": str(device.id),
                             "serial_number": device.serial_number,
                             "address": device_address,
                         },
@@ -233,7 +233,7 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
                         "Device state could not be updated. Device is disabled and have to be re-discovered",
                         extra={
                             "device": {
-                                "id": device.id.__str__(),
+                                "id": str(device.id),
                                 "serial_number": device.serial_number,
                             },
                         },
@@ -249,7 +249,7 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
                     device_address,
                     extra={
                         "device": {
-                            "id": device.id.__str__(),
+                            "id": str(device.id),
                             "serial_number": device.serial_number,
                             "address": device_address,
                         },
@@ -264,7 +264,7 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
                         "Device state could not be updated. Device is disabled and have to be re-discovered",
                         extra={
                             "device": {
-                                "id": device.id.__str__(),
+                                "id": str(device.id),
                                 "serial_number": device.serial_number,
                             },
                         },
@@ -411,7 +411,7 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
                 "Device state attribute register could not be fetched from registry",
                 extra={
                     "device": {
-                        "id": device.id.__str__(),
+                        "id": str(device.id),
                         "serial_number": device.serial_number,
                     },
                 },
@@ -466,13 +466,13 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
             RegisterType.OUTPUT,
             RegisterType.ATTRIBUTE,
         ]:
-            if device.id.__str__() not in self.__processed_devices_registers:
-                self.__processed_devices_registers[device.id.__str__()] = {}
+            if str(device.id) not in self.__processed_devices_registers:
+                self.__processed_devices_registers[str(device.id)] = {}
 
-            if registers_type.value not in self.__processed_devices_registers[device.id.__str__()]:
-                self.__processed_devices_registers[device.id.__str__()][registers_type.value] = set()
+            if registers_type.value not in self.__processed_devices_registers[str(device.id)]:
+                self.__processed_devices_registers[str(device.id)][registers_type.value] = set()
 
-            processed_length = len(self.__processed_devices_registers[device.id.__str__()][registers_type.value])
+            processed_length = len(self.__processed_devices_registers[str(device.id)][registers_type.value])
 
             registers = self.__registers_registry.get_all_for_device(
                 device_id=device.id,
@@ -495,8 +495,8 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
                     )
 
                     for register in registers:
-                        self.__processed_devices_registers[device.id.__str__()][registers_type.value].add(
-                            register.id.__str__(),
+                        self.__processed_devices_registers[str(device.id)][registers_type.value].add(
+                            str(register.id),
                         )
 
                     return
@@ -504,8 +504,8 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
                 # Registers have to be read one by one
                 for register in registers:
                     if (
-                        register.id.__str__()
-                        in self.__processed_devices_registers[device.id.__str__()][registers_type.value]
+                        str(register.id)
+                        in self.__processed_devices_registers[str(device.id)][registers_type.value]
                     ):
                         continue
 
@@ -516,8 +516,8 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
                         register_address=register.address,
                     )
 
-                    self.__processed_devices_registers[device.id.__str__()][registers_type.value].add(
-                        register.id.__str__(),
+                    self.__processed_devices_registers[str(device.id)][registers_type.value].add(
+                        str(register.id),
                     )
 
                     return
@@ -530,7 +530,7 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
             RegisterType.OUTPUT,
             RegisterType.ATTRIBUTE,
         ]:
-            self.__processed_devices_registers[device.id.__str__()][registers_type.value] = set()
+            self.__processed_devices_registers[str(device.id)][registers_type.value] = set()
 
     # -----------------------------------------------------------------------------
 
@@ -688,7 +688,7 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
                 "Value couldn't be written into register",
                 extra={
                     "device": {
-                        "id": device.id.__str__(),
+                        "id": str(device.id),
                     },
                     "register": {
                         "address": register.address,
@@ -1033,7 +1033,7 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
                 "Device state could not be updated. Device is disabled and have to be re-discovered",
                 extra={
                     "device": {
-                        "id": device_record.id.__str__(),
+                        "id": str(device_record.id),
                         "serial_number": device_record.serial_number,
                     },
                 },

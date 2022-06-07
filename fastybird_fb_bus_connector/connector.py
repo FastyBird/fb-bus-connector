@@ -285,7 +285,7 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
             if (
                 isinstance(register, (OutputRegisterRecord, InputRegisterRecord))
                 and register.channel_id is not None
-                and register.channel_id.__eq__(channel_id)
+                and register.channel_id == channel_id
             ):
                 self.__registers_registry.remove(register_id=register.id)
 
@@ -323,10 +323,10 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
                 "Channel identifier is not as expected. Register couldn't be mapped",
                 extra={
                     "device": {
-                        "id": channel.device.id.__str__(),
+                        "id": str(channel.device.id),
                     },
                     "channel": {
-                        "id": channel.device.id.__str__(),
+                        "id": str(channel.device.id),
                     },
                 },
             )
@@ -363,10 +363,10 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
                     "Channel identifier is not as expected. Register couldn't be mapped",
                     extra={
                         "device": {
-                            "id": channel.device.id.__str__(),
+                            "id": str(channel.device.id),
                         },
                         "channel": {
-                            "id": channel.device.id.__str__(),
+                            "id": str(channel.device.id),
                         },
                     },
                 )
@@ -413,7 +413,7 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
                     "Device state could not be updated. Device is disabled and have to be re-discovered",
                     extra={
                         "device": {
-                            "id": device.id.__str__(),
+                            "id": str(device.id),
                             "serial_number": device.serial_number,
                         },
                     },
@@ -451,7 +451,7 @@ class FbBusConnector(IConnector):  # pylint: disable=too-many-instance-attribute
                     "Device state could not be updated. Device is disabled and have to be re-discovered",
                     extra={
                         "device": {
-                            "id": device.id.__str__(),
+                            "id": str(device.id),
                             "serial_number": device.serial_number,
                         },
                     },
