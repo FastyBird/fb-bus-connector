@@ -1,7 +1,7 @@
 Cython>=0.29
 fastnumbers>=3.2
-fastybird-devices-module>=0.59
-fastybird-metadata>=0.56
+fastybird-devices-module>=0.60
+fastybird-metadata>=0.60
 inflection>=0.5
 kink>=0.6
 libscrc>=1.6
