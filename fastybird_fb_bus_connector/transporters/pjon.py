@@ -57,7 +57,6 @@ class PjonTransporter(ITransporter, pjon.ThroughSerialAsync):  # pylint: disable
 
     # -----------------------------------------------------------------------------
 
-    @inject
     def __init__(  # pylint: disable=too-many-arguments
         self,
         receiver: Receiver,
