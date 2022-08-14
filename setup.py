@@ -74,7 +74,7 @@ setup(
         "fastybird-metadata",
         "inflection",
         "kink",
-        "libscrc",
+        "libscrc==1.7.1",
         "nose",
         "setuptools",
         "whistle"
