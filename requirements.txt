@@ -4,7 +4,7 @@ fastybird-devices-module>=0.72
 fastybird-metadata>=0.69
 inflection>=0.5
 kink>=0.6
-libscrc==1.7.1
+libscrc==1.6
 nose>=1.0
 setuptools>=57.4
 whistle>=1.0
