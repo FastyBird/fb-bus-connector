@@ -22,7 +22,10 @@ FastyBird BUS connector types module
 from enum import Enum, unique
 
 # Library dependencies
-from fastybird_metadata.devices_module import ConnectorPropertyIdentifier, DevicePropertyIdentifier
+from fastybird_metadata.devices_module import (
+    ConnectorPropertyIdentifier,
+    DevicePropertyIdentifier,
+)
 from fastybird_metadata.enum import ExtendedEnum
 
 CONNECTOR_NAME: str = "fb-bus"

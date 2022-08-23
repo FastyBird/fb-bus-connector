@@ -50,9 +50,9 @@ from fastybird_fb_bus_connector.exceptions import ParsePayloadException
 from fastybird_fb_bus_connector.registry.model import DevicesRegistry, RegistersRegistry
 from fastybird_fb_bus_connector.registry.records import AttributeRegisterRecord
 from fastybird_fb_bus_connector.types import (
-    DeviceProperty,
     DeviceConnectionState,
     DeviceDataType,
+    DeviceProperty,
     ProtocolVersion,
     RegisterType,
 )

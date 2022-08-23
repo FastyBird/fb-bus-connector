@@ -41,10 +41,11 @@ from fastybird_fb_bus_connector.exceptions import (
 )
 from fastybird_fb_bus_connector.logger import Logger
 from fastybird_fb_bus_connector.registry.model import (
+    DevicesAttributesRegistry,
     DevicesRegistry,
     DiscoveredDevicesRegistry,
     DiscoveredRegistersRegistry,
-    RegistersRegistry, DevicesAttributesRegistry,
+    RegistersRegistry,
 )
 from fastybird_fb_bus_connector.registry.records import (
     DeviceRecord,
