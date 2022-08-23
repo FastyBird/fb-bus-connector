@@ -28,7 +28,7 @@ from datetime import datetime
 from typing import Dict, List, Set, Union
 
 # Library dependencies
-from fastybird_metadata.devices_module import ConnectionState, DeviceAttributeName
+from fastybird_metadata.devices_module import ConnectionState, DeviceAttributeIdentifier
 from fastybird_metadata.types import ButtonPayload, DataType, SwitchPayload
 from kink import inject
 
@@ -941,35 +941,35 @@ class ApiV1Client(IClient):  # pylint: disable=too-few-public-methods, too-many-
         self.__devices_attributes_registry.create_or_update(
             device_id=device_record.id,
             attribute_id=uuid.uuid4(),
-            attribute_identifier=DeviceAttributeName.HARDWARE_MANUFACTURER.value,
+            attribute_identifier=DeviceAttributeIdentifier.HARDWARE_MANUFACTURER.value,
             attribute_value=discovered_device.hardware_manufacturer,
         )
 
         self.__devices_attributes_registry.create_or_update(
             device_id=device_record.id,
             attribute_id=uuid.uuid4(),
-            attribute_identifier=DeviceAttributeName.HARDWARE_MODEL.value,
+            attribute_identifier=DeviceAttributeIdentifier.HARDWARE_MODEL.value,
             attribute_value=discovered_device.hardware_model,
         )
 
         self.__devices_attributes_registry.create_or_update(
             device_id=device_record.id,
             attribute_id=uuid.uuid4(),
-            attribute_identifier=DeviceAttributeName.HARDWARE_VERSION.value,
+            attribute_identifier=DeviceAttributeIdentifier.HARDWARE_VERSION.value,
             attribute_value=discovered_device.hardware_version,
         )
 
         self.__devices_attributes_registry.create_or_update(
             device_id=device_record.id,
             attribute_id=uuid.uuid4(),
-            attribute_identifier=DeviceAttributeName.FIRMWARE_MANUFACTURER.value,
+            attribute_identifier=DeviceAttributeIdentifier.FIRMWARE_MANUFACTURER.value,
             attribute_value=discovered_device.firmware_manufacturer,
         )
 
         self.__devices_attributes_registry.create_or_update(
             device_id=device_record.id,
             attribute_id=uuid.uuid4(),
-            attribute_identifier=DeviceAttributeName.FIRMWARE_VERSION.value,
+            attribute_identifier=DeviceAttributeIdentifier.FIRMWARE_VERSION.value,
             attribute_value=discovered_device.firmware_version,
         )
 
