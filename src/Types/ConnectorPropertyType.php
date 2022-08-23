@@ -32,9 +32,9 @@ class ConnectorPropertyType extends Consistence\Enum\Enum
 	/**
 	 * Define device states
 	 */
-	public const NAME_BAUD_RATE = MetadataTypes\ConnectorPropertyNameType::NAME_BAUD_RATE;
-	public const NAME_INTERFACE = MetadataTypes\ConnectorPropertyNameType::NAME_INTERFACE;
-	public const NAME_ADDRESS = MetadataTypes\ConnectorPropertyNameType::NAME_ADDRESS;
+	public const NAME_BAUD_RATE = MetadataTypes\ConnectorPropertyIdentifierType::IDENTIFIER_BAUD_RATE;
+	public const NAME_INTERFACE = MetadataTypes\ConnectorPropertyIdentifierType::IDENTIFIER_INTERFACE;
+	public const NAME_ADDRESS = MetadataTypes\ConnectorPropertyIdentifierType::IDENTIFIER_ADDRESS;
 	public const NAME_PROTOCOL = 'protocol';
 
 	/**
